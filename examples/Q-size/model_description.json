@@ -1,0 +1,209 @@
+{   
+    "entities": 
+    [
+        {
+            "name": "link",
+            "hidden_state_dimension": 32,
+            "features":
+            [
+                {
+                    "name": "link_capacity",
+                    "normalization": "normalization_queue_size"
+                }
+            ]
+        },
+        {
+            "name": "path",
+            "hidden_state_dimension": 32,
+            "features":
+            [
+                {
+                    "name": "traffic",
+                    "normalization": "normalization_queue_size"
+                }
+            ]
+        },
+        {
+            "name": "node",
+            "hidden_state_dimension": 32,
+            "features":[
+                {
+                    "name": "queue_sizes",
+                    "normalization": "normalization_queue_size"
+                }
+            ]
+        }
+    ],
+
+    "message_passing":
+    {
+        "num_iterations": 8,
+        "stages":
+        [
+            {
+                "stage_name": "step1",
+                "stage_mp":
+                [
+                    {
+                        "destination_entity":"path",
+                        "source_entities": 
+                        [
+                            {
+                                "name": "link",
+                                "adj_vector": "adj_links_paths",
+                                "message": 
+                                [
+                                    {
+                                        "type": "direct_assignation"
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "node",
+                                "adj_vector": "adj_nodes_paths",
+                                "message": 
+                                [
+                                    {
+                                        "type": "direct_assignation"
+                                    }
+                                ]
+                            }
+                        ],
+                        "aggregation":
+                        {
+                            "type": "interleave",
+                            "interleave_definition": "path_interleave"
+                        },
+                        "update": 
+                        {
+                            "type": "recurrent_neural_network",
+                            "nn_name": "recurrent1"
+                        }
+                    }
+                ]
+            },
+            {
+                "stage_name": "step2",
+                "stage_mp":
+                [
+                    {
+                        "destination_entity":"link",
+                        "source_entities":
+                        [
+                            {
+                                "name": "path",
+                                "adj_vector": "adj_paths_links",
+                                "message": 
+                                [
+                                    {
+                                        "type": "direct_assignation"
+                                    }
+                                ]
+                            }
+                        ],
+                        "aggregation": 
+                        {
+                            "type": "sum"
+                        },
+                        "update": 
+                        {
+                            "type": "recurrent_neural_network",
+                            "nn_name": "recurrent1"
+                        }
+                        
+                    },
+                    {
+                        "destination_entity":"node",
+                        "source_entities":
+                        [
+                            {
+                                "name": "path",
+                                "adj_vector": "adj_paths_nodes",
+                                "message": 
+                                [
+                                    {
+                                        "type": "direct_assignation"
+                                    }
+                                ]
+                            }   
+                        ],
+                        "aggregation":
+                        {
+                            "type": "sum"
+                        },
+                        "update": 
+                        {
+                            "type": "recurrent_neural_network",
+                            "nn_name": "recurrent1"
+                        }
+                    }
+                ]
+            }
+        ]
+    },
+    "readout": 
+    [
+        {
+            "type": "predict",
+            "input": ["path"],
+            "label": "delay",
+            "label_normalization": "normalization_queue_size",
+            "nn_name": "readout_model"
+        }
+    ],
+        
+    "neural_networks":
+    [
+        {
+            "nn_name": "readout_model",
+            "nn_type": "feed_forward",
+            "nn_architecture":
+            [
+                {
+                    "name": "First_dense_layer",
+                    "type_layer":"Dense",
+                    "units": 256,
+                    "kernel_regularizer": 0.1,
+                    "activation": "selu"
+                },
+                {
+                    "name": "Second_dense_layer",
+                    "type_layer":"Dense",
+                    "units": 256,
+                    "kernel_regularizer":0.1,
+                    "activation": "selu"
+                },
+                {
+                    "name": "Output_layer",
+                    "type_layer":"Dense",
+                    "units": 1,
+                    "kernel_regularizer":0.01,
+                    "activation": "None"
+                }
+            ]
+        },
+        {
+            "nn_name":"recurrent1",
+            "nn_type": "recurrent_neural_network",
+            "recurrent_type": "GRU"
+        }
+    ],
+
+    "learning_options":
+    {
+        "loss": "MeanSquaredError",
+        "optimizer":
+        {
+            "type": "Adam",
+            "schedule": 
+            {
+                "type": "ExponentialDecay",
+                "initial_learning_rate":0.001,
+                "decay_steps":82000,
+                "decay_rate":0.8,
+                "staircase": "True"
+            }
+        } 
+    }
+
+}
