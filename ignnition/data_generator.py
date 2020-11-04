@@ -29,12 +29,22 @@ import random
 import tensorflow as tf
 import json
 import warnings
-#warnings.simplefilter("ignore")
+from ignnition.utils import *
 
 
 class Generator:
     def __init__(self):
         self.end_symbol = bytes(']', 'utf-8')
+
+    def __cummax(self, alist, extractor):
+        with tf.name_scope('cummax'):
+            maxes = [tf.math.reduce_max(extractor(v)) + 1 for v in alist]
+            cummaxes = [tf.zeros_like(maxes[0])]
+            for i in range(len(maxes) - 1):
+                cummaxes.append(tf.math.add_n(maxes[0:i + 1]))
+
+        return cummaxes
+
 
     def make_indices(self, sample, entity_names):
         """
@@ -67,8 +77,9 @@ class Generator:
                 json_str = f.read(e.pos)
                 obj = json.loads(json_str)
                 start_pos += e.pos +1
-                a = f.read(1)
-                if a == self.end_symbol:
+                a = f.read(1)   # this 1 is the coma or the final symbol
+
+                if a == self.end_symbol or a == ']':
                     yield obj
                     return
                 yield obj
@@ -76,7 +87,6 @@ class Generator:
     def __process_sample(self, sample):
         data = {}
         output = []
-
         # check that all the entities are defined
         for e in self.entity_names:
             if e not in sample:
@@ -219,72 +229,73 @@ class Generator:
         else:
             return data
 
+    def __get_new_item(self, data, i):
+        # if the data was passed in the form of an array
+        if isinstance(data, list):
+            return data[i]
+        return next(data)
 
-    def generate_from_array(self, data_samples, entity_names, feature_names, output_name, adj_names, interleave_names, additional_input, training, shuffle=False):
-        """
-                Parameters
-                ----------
-                dir:    str
-                   Name of the entity
-                feature_names:    str
-                   Name of the features to be found in the dataset
-                output_names:    str
-                   Name of the output data to be found in the dataset
-                adj_names:    [array]
-                   CHECK
-                interleave_names:    [array]
-                   First parameter is the name of the interleave, and the second the destination entity
-                predict:     bool
-                    Indicates if we are making predictions, and thus no label is required.
-                shuffle:    bool
-                   Shuffle parameter of the dataset
+    def __process_minibatch(self, data, batch_size):
+        data_features = {}
+        data_target = []
+        for i in range(batch_size):
+            processed_sample = self.__process_sample(self.__get_new_item(data, i))
 
-                """
-        data_samples = [json.loads(x.decode('ascii')) for x in data_samples]
-        self.entity_names = [x.decode('ascii') for x in entity_names]
-        self.feature_names = [x.decode('ascii') for x in feature_names]
-        self.output_name = output_name.decode('ascii')
-        self.adj_names = [[x[0].decode('ascii'), x[1].decode('ascii'), x[2].decode('ascii'), x[3].decode('ascii')] for x
-                          in
-                          adj_names]
-        self.interleave_names = [[i[0].decode('ascii'), i[1].decode('ascii')] for i in interleave_names]
-        self.additional_input = [x.decode('ascii') for x in additional_input]
-        self.training = training
-        samples = glob.glob(str(dir) + '/*.tar.gz')
+            if not isinstance(processed_sample, tuple):
+                processed_sample = [processed_sample]
 
-        if shuffle == True:
-            random.shuffle(samples)
-
-        for sample in data_samples:
-            try:
-                processed_sample = self.__process_sample(sample)
+            if i == 0:
+                data_features = processed_sample[0]
                 if self.training:
-                    yield processed_sample[0], processed_sample[1]
-                else:
-                    yield processed_sample
+                    data_target = processed_sample[1]
 
-            except StopIteration:
-                pass
+            else:
+                # cummax all the adjacency list (both src, dst and seq)
+                for a in self.adj_names:
+                    max_value = max(data_features['src_' + a[0]])
 
-            except KeyboardInterrupt:
-                sys.exit
+                    data_features['src_' + a[0]] += (np.array(processed_sample[0]['src_' + a[0]]) + max_value).tolist()
 
-            except Exception as inf:
-                tf.compat.v1.logging.warn(
-                    'IGNNITION: Please make sure that all the names used for the definition of the model '
-                    'are defined in your dataset. For instance, you should define a list for: \n'
-                    '1) A list for each of the entities defined with all its nodes of the graph\n'
-                    '2) Each of the features used to define an entity\n'
-                    '3) Additional lists/values used for the definition\n'
-                    '4) The label aimed to predict\n'
-                    '---------------------------------------------------------')
+                    max_value = max(data_features['dst_' + a[0]])
+                    data_features['dst_' + a[0]] += (np.array(processed_sample[0]['dst_' + a[0]]) + max_value).tolist()
 
-                tf.compat.v1.logging.error('IGNNITION: ' + str(inf))
-                sys.exit
+                    data_features['seq_' + a[1] + '_' + a[2]] += processed_sample[0]['seq_' + a[1] + '_' + a[2]]
+
+                for f in self.feature_names:
+                    data_features[f] += processed_sample[0][f]
+
+                for a in self.additional_input:
+                    data_features[a] += processed_sample[0][a]
+
+                for e in self.entity_names:#this is useful to approach this problem more generally for both training and predictions
+                    data_features['num_' + e] += processed_sample[0]['num_' + e]
+
+                for i in self.interleave_names:
+                    max_value = max(data_features['indices_' + i[0] + '_to_' + i[1]])
+                    data_features['indices_' + i[0] + '_to_' + i[1]] += (
+                                np.array(processed_sample[0]['indices_' + i[0] + '_to_' + i[1]]) + max_value).tolist()
+
+                # process the target
+                if self.training:
+                    data_target += processed_sample[1]
+
+        if self.training:
+            return data_features, data_target
+
+        return data_features
 
 
-    def generate_from_dataset(self, dir, entity_names, feature_names, output_name, adj_names, interleave_names, additional_input, training,
-              shuffle=False):
+    def generate_from_array(self,
+                            data_samples,
+                            entity_names,
+                            feature_names,
+                            output_name,
+                            adj_names,
+                            interleave_names,
+                            additional_input,
+                            training,
+                            shuffle=False,
+                            batch_size= 8):
         """
         Parameters
         ----------
@@ -304,13 +315,13 @@ class Generator:
            Shuffle parameter of the dataset
 
         """
-
-        dir = dir.decode('ascii')
+        data_samples = [json.loads(x.decode('ascii')) for x in data_samples]
         self.entity_names = [x.decode('ascii') for x in entity_names]
         self.feature_names = [x.decode('ascii') for x in feature_names]
         self.output_name = output_name.decode('ascii')
-        self.adj_names = [[x[0].decode('ascii'), x[1].decode('ascii'), x[2].decode('ascii'), x[3].decode('ascii')] for x in
-                     adj_names]
+        self.adj_names = [[x[0].decode('ascii'), x[1].decode('ascii'), x[2].decode('ascii'), x[3].decode('ascii')] for x
+                          in
+                          adj_names]
         self.interleave_names = [[i[0].decode('ascii'), i[1].decode('ascii')] for i in interleave_names]
         self.additional_input = [x.decode('ascii') for x in additional_input]
         self.training = training
@@ -319,24 +330,12 @@ class Generator:
         if shuffle == True:
             random.shuffle(samples)
 
-        for sample_file in samples:
+        n = len(data_samples)
+        for i in n:
             try:
-                tar = tarfile.open(sample_file, 'r:gz')  # read the tar files
-                try:
-                    file_samples = tar.extractfile('data.json')
-
-                except:
-                    raise Exception('The file data.json was not found in ', sample_file)
-
-                file_samples.read(1)
-                aux = self.stream_read_json(file_samples)
-                while True:
-                    sample = next(aux)
-                    processed_sample = self.__process_sample(sample)
-                    if self.training:
-                        yield processed_sample[0], processed_sample[1]
-                    else:
-                        yield processed_sample
+                mini_batch_samples = data_samples[i:i+batch_size]
+                mini_batch = self.__process_minibatch(mini_batch_samples, batch_size)
+                yield mini_batch
 
             except StopIteration:
                 pass
@@ -345,14 +344,90 @@ class Generator:
                 sys.exit
 
             except Exception as inf:
-                tf.compat.v1.logging.warn(
-                    'IGNNITION: Please make sure that all the names used for the definition of the model '
+                print_info("There was an unexpected error: \n" +  str(inf))
+                print_info('Please make sure that all the names used for the definition of the model '
                     'are defined in your dataset. For instance, you should define a list for: \n'
                     '1) A list for each of the entities defined with all its nodes of the graph\n'
                     '2) Each of the features used to define an entity\n'
                     '3) Additional lists/values used for the definition\n'
                     '4) The label aimed to predict\n'
                     '---------------------------------------------------------')
-                tf.compat.v1.logging.error('IGNNITION: ' + str(inf))
                 sys.exit
 
+
+    def generate_from_dataset(self,
+                              dir,
+                              entity_names,
+                              feature_names,
+                              output_name,
+                              adj_names,
+                              interleave_names,
+                              additional_input,
+                              training,
+                              shuffle=False,
+                              batch_size = 8):
+        """
+        Parameters
+        ----------
+        dir:    str
+           Name of the entity
+        feature_names:    str
+           Name of the features to be found in the dataset
+        output_names:    str
+           Name of the output data to be found in the dataset
+        adj_names:    [array]
+           CHECK
+        interleave_names:    [array]
+           First parameter is the name of the interleave, and the second the destination entity
+        predict:     bool
+            Indicates if we are making predictions, and thus no label is required.
+        shuffle:    bool
+           Shuffle parameter of the dataset
+
+        """
+        self.entity_names = entity_names
+        self.feature_names = feature_names
+        self.output_name = output_name
+        self.adj_names = adj_names
+        self.interleave_names = interleave_names
+        self.additional_input = additional_input
+        self.training = training
+
+        samples =  glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz')
+        if shuffle:
+            random.shuffle(samples)
+
+        for sample_file in samples:
+            try:
+                if 'tar.gz' in sample_file:
+                    tar = tarfile.open(sample_file, 'r:gz')  # read the tar files
+                    try:
+                        file_samples = tar.extractfile('data.json')
+                    except:
+                        raise Exception('The file data.json was not found in ', sample_file)
+
+                else:
+                    file_samples = open(sample_file, 'r')
+
+                file_samples.read(1)
+                aux = self.stream_read_json(file_samples)
+                while True:
+                    mini_batch = self.__process_minibatch(aux, batch_size)
+                    yield mini_batch
+
+            except StopIteration:
+                pass
+
+            except KeyboardInterrupt:
+                sys.exit
+
+            except Exception as inf:
+                print_info("\n There was an unexpected error: \n" + str(inf))
+                print_info('Please make sure that all the names used for the definition of the model '
+                              'are defined in your dataset. For instance, you should define a list for: \n'
+                              '1) A list for each of the entities defined with all its nodes of the graph\n'
+                              '2) Each of the features used to define an entity\n'
+                              '3) Additional lists/values used for the definition\n'
+                              '4) The label aimed to predict\n'
+                              '---------------------------------------------------------')
+                sys.exit

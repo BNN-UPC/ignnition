@@ -143,7 +143,7 @@ class Json_preprocessing:
         self.nn_architectures = self.__get_nn_mapping(data['neural_networks'])
         self.entities = self.__get_entities(data['entities'])
 
-        self.iterations_mp = int(data['message_passing']['num_iterations'])
+        self.iterations_mp = self.__convergence_or_int(data['message_passing']['num_iterations'])
         self.mp_instances = self.__get_mp_instances(data['message_passing']['stages'])
         self.readout_op = self.__get_readout_op(data['readout'])
         self.training_op = self.__get_training_op(data)
@@ -151,6 +151,13 @@ class Json_preprocessing:
         self.weight_matrices = self.__get_weight_matrices(data['neural_networks'])
 
     # PRIVATE
+    def __convergence_or_int(self, value):
+        print(value)
+        if value == "convergence":
+            return None
+        else:
+            return int(value)
+
     def __read_json(self, path):
         """
         Parameters

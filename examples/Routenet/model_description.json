@@ -1,5 +1,5 @@
-{   
-    "entities": 
+{
+    "entities":
     [
         {
             "name": "link",
@@ -27,14 +27,14 @@
 
     "message_passing":
         {
-            "num_iterations": 8,
+            "num_iterations": "convergence",
             "stages":
             [
                 {
                     "stage_name": "stage1",
                     "stage_mp":
                     [
-                        {   
+                        {
                             "destination_entity":"path",
                             "source_entities":
                             [
@@ -49,16 +49,16 @@
                                     ]
                                 }
                             ],
-                            "aggregation": 
+                            "aggregation":
                             {
                                 "type": "ordered"
                             },
-                            "update": 
+                            "update":
                             {
                                 "type": "recurrent_neural_network",
                                 "nn_name": "recurrent1"
                             }
-                            
+
                         }
                     ]
                 },
@@ -74,7 +74,7 @@
                                 {
                                     "name": "path",
                                     "adj_vector": "adj_paths_links",
-                                    "message": 
+                                    "message":
                                     [
                                         {
                                             "type": "direct_assignation"
@@ -82,11 +82,11 @@
                                     ]
                                 }
                             ],
-                            "aggregation": 
+                            "aggregation":
                             {
                                 "type": "sum"
                             },
-                            "update": 
+                            "update":
                             {
                                 "type": "recurrent_neural_network",
                                 "nn_name": "recurrent1"
@@ -98,13 +98,14 @@
         },
 
 
-    "readout": 
+    "readout":
     [
         {
             "type": "predict",
             "input": ["path"],
             "label": "delay",
             "label_normalization": "log",
+            "label_denormalization": "exp",
             "nn_name": "readout_model"
         }
     ],
@@ -146,14 +147,14 @@
             "recurrent_type": "GRU"
         }
     ],
-        
+
     "learning_options":
     {
         "loss": "MeanSquaredError",
         "optimizer":
         {
             "type": "Adam",
-            "schedule": 
+            "schedule":
             {
                 "type": "ExponentialDecay",
                 "initial_learning_rate":0.001,

@@ -736,7 +736,7 @@ class Recurrent_Cell:
 
         return layer
 
-    def perform_unsorted_update(self, model, src_input, old_state):
+    def perform_unsorted_update(self, model, src_input, old_state, dst_dim):
         """
         Parameters
         ----------
@@ -747,6 +747,7 @@ class Recurrent_Cell:
         old_state:  tensor
             Old hs of the destination entity
         """
+        src_input = tf.ensure_shape(src_input, [None, int(dst_dim)])
         new_state, _ = model(src_input, [old_state])
         return new_state
 
@@ -767,19 +768,9 @@ class Recurrent_Cell:
         num_dst:    int
             Number of destination nodes
         """
+        gru_rnn = tf.keras.layers.RNN(model, name=str(dst_name) + '_update')
 
-        gru_rnn = tf.keras.layers.RNN(model, return_sequences=True,
-                                      return_state=True,
-                                      name=str(dst_name) + '_update')
-
-        outputs, new_state = gru_rnn(inputs=src_input,
-                                     initial_state=old_state,
-                                     mask=tf.sequence_mask(final_len))
-
-        # reconstruct the new_state
-        ids_aux = tf.stack([tf.cast(tf.range(num_dst), dtype=tf.int64), final_len - 1], axis=1)
-
-        new_state = tf.gather_nd(outputs, ids_aux)  # n_paths x 32
+        new_state = gru_rnn(inputs = src_input, initial_state = old_state)
         return new_state
 
 
