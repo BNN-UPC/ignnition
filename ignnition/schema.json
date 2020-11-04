@@ -4,7 +4,7 @@
     "title": "Model description",
     "description": "The description of the model that the framework will use",
     "type": "object",
-    "properties": 
+    "properties":
     {
         "entities": {
             "description": "Definition of the entities",
@@ -23,16 +23,16 @@
                       "exclusiveMinimum": 0
 
                   },
-                  "features": 
+                  "features":
                  {
                     "type": "array",
                     "items":
                     {
                         "description": "Feature names of this entity",
                         "type": "object",
-                        "properties": 
+                        "properties":
                         {
-                            "name": 
+                            "name":
                             {
                                 "description": "Name of the feature",
                                 "type": "string"
@@ -50,33 +50,32 @@
               "required": ["name", "hidden_state_dimension", "features"]
             }},
 
-        "message_passing": 
+        "message_passing":
         {
             "description": "Message passing strategy",
             "type": "object",
-            "properties": 
+            "properties":
             {
-                "num_iterations": 
+                "num_iterations":
                 {
                     "description": "Number of iterations the algorithm",
-                    "type": "number",
-                    "exclusiveMinimum": 0
+                    "type": ["number", "string"]
                 },
-                "stages": 
+                "stages":
                 {
                     "type": "array",
-                    "items": 
+                    "items":
                     {
                         "description": "Definition of each of the inner steps for each iteration",
                         "type": "object",
-                        "properties": 
+                        "properties":
                         {
                             "stage_name": {
                                 "type": "string"
                             },
                             "stage_mp":
                             {
-                                "type": "array",    
+                                "type": "array",
                                 "items": {
                                     "description": "Definition of a single essage passing from source to destination",
                                     "type": "object",
@@ -106,7 +105,7 @@
                                                     "message":
                                                     {
                                                         "type": "array",
-                                                        "items": 
+                                                        "items":
                                                         {
                                                             "description": "Define each of the operations for the message creation function",
                                                             "type": "object",
@@ -144,7 +143,7 @@
                                                                     "type": "string"
                                                                 }
                                                             },
-                                                            "allOf": 
+                                                            "allOf":
                                                             [
                                                                 {
                                                                     "if": {
@@ -172,13 +171,13 @@
                                                 "required": ["name", "adj_vector", "message"]
                                             }
                                         },
-                                        "aggregation": 
+                                        "aggregation":
                                         {
                                             "description": "How the messages are combined by the destination source",
                                             "type": "object",
-                                            "properties": 
+                                            "properties":
                                             {
-                                                "type": 
+                                                "type":
                                                 {
                                                     "type": "string",
                                                     "enum": ["sum", "ordered", "attention", "concat", "interleave", "convolution", "edge_attention"]
@@ -207,7 +206,7 @@
                                                     "type": "string"
                                                 }
                                             },
-                                            "allOf": 
+                                            "allOf":
                                             [
                                                 {
                                                     "if": {
@@ -215,7 +214,7 @@
                                                     },
                                                     "then":
                                                     {
-                                                        "required": ["interleave_definition"] 
+                                                        "required": ["interleave_definition"]
                                                     }
                                                 },
                                                 {
@@ -224,7 +223,7 @@
                                                     },
                                                     "then":
                                                     {
-                                                        "required": ["concat_axis"] 
+                                                        "required": ["concat_axis"]
                                                     }
                                                 },
                                                 {
@@ -233,12 +232,12 @@
                                                     },
                                                     "then":
                                                     {
-                                                        "required": ["nn_name"] 
+                                                        "required": ["nn_name"]
                                                     }
                                                 }
                                             ]
                                         },
-                                        "update": 
+                                        "update":
                                         {
                                             "type": "object",
                                             "properties":
@@ -255,7 +254,7 @@
                                                     "type": "string"
                                                 }
                                             },
-                                            "allOf": 
+                                            "allOf":
                                             [
                                                 {
                                                     "if": {
@@ -275,10 +274,10 @@
                                                 }
                                             ]
                                         }
-                                        
+
                                     },
                                     "required": [ "source_entities", "destination_entity", "aggregation", "update"]
-                                    
+
                                 }
                             }
                         },
@@ -291,13 +290,13 @@
         "readout":
         {
             "type": "array",
-            "items": 
+            "items":
             {
                 "description": "Readout model which will make predictions using the hidden states of one entity type",
                 "type": "object",
-                "properties": 
+                "properties":
                 {
-                    "type": 
+                    "type":
                     {
                         "description": "Type of operation",
                         "type": "string",
@@ -315,7 +314,7 @@
                         "type": "string",
                         "enum": ["dot_product", "element_wise", "mat_mult"]
                     },
-                    "input": 
+                    "input":
                     {
                         "description": "Array of input of the operation",
                         "type": "array",
@@ -325,7 +324,7 @@
                             "type": "string"
                         }
                     },
-                    "label": 
+                    "label":
                     {
                         "description": "Label matching the dataset which contains the true labels of the predictions we aim to make.",
                         "type": "string"
@@ -366,7 +365,7 @@
                         "type": "string"
                     }
                 },
-                "allOf": 
+                "allOf":
                 [
                     {
                         "if": {
@@ -455,11 +454,11 @@
                     {
                         "description": "Define the architecture",
                         "type": "array",
-                        "items": 
+                        "items":
                         {
                             "description": "Definition of a single layer of the neural network",
                             "type":"object",
-                            "properties": 
+                            "properties":
                             {
                                 "type_layer": {
                                     "description": "Type of layer",
@@ -474,7 +473,7 @@
                         "required": ["type_layer"]
                     }
                 },
-                "allOf": 
+                "allOf":
                 [
                     {
                         "if": {
@@ -512,14 +511,14 @@
         {
             "description": "Definition of training hyperparameters",
             "type": "object",
-            "properties": 
+            "properties":
             {
-                "loss": 
+                "loss":
                 {
                     "description": "Name of the loss function to use",
                     "type": "string"
                 },
-                "optimizer": 
+                "optimizer":
                 {
                     "description": "Definition of the optimizer to use.",
                     "type": "object",
@@ -530,13 +529,13 @@
                             "description": "Name of the optimizer.",
                             "type": "string"
                         },
-                        "schedule": 
+                        "schedule":
                         {
                             "description": "Definition of the schedule to use",
                             "type": "object",
-                            "properties": 
+                            "properties":
                             {
-                                "type": 
+                                "type":
                                 {
                                     "description": "Name of the schedule type",
                                     "type": "string"
@@ -552,4 +551,3 @@
 
     }
 }
-    

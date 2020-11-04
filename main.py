@@ -32,16 +32,46 @@ def normalization_features(feature, feature_name):
 
 
 def normalization_func(feature, feature_name):
-    return (feature - 0.2150542567541631) / 0.28028338926980856
+    return (feature - 0.3984850402191232) / 0.2104260838365741
 
 def denormalization_func(feature, feature_name):
-    return feature * 0.28028338926980856 + 0.2150542567541631
+    return feature * 0.2104260838365741 + 0.3984850402191232
+
+def normalization_routenet(feature, feature_name):
+    if feature_name == 'traffic':
+        feature = (feature - 170) / 130
+    if feature_name == 'link_capacity':
+        feature = (feature - 25000) / 40000
+
+    return feature
+
+def log(feature, feature_name):
+    return tf.math.log(feature)
+
+def exp(feature, feature_name):
+    return tf.math.exp(feature)
 
 
+def r_squared(y_true, y_pred):
+    total_error = tf.reduce_sum(tf.square(y_true - tf.reduce_mean(y_true)))
+    unexplained_error = tf.reduce_sum(tf.square(y_true - y_pred))
+    r_sq = 1.0 - tf.truediv(unexplained_error, total_error)
+    return tf.reduce_mean(r_sq)
+
+
+import json
 def main():
     model = ignnition.create_model('./train_options.ini')
+    model.computational_graph()
     model.train_and_evaluate()
-
+   # with open('/Users/david/Documents/BNN/ignnition/examples/Explainability_pol/Dataset_masks/train/data.json') as json_file:
+   #     samples = json.load(json_file)
+    #with open('/Users/david/Documents/BNN/Datasets/Datasets_framework/Dataset_routenet/eval/data.json') as json_file:
+    #    samples = json.load(json_file)
+    #model.train_and_evaluate()
+    #model.predict()
+    #for s in samples:
+    #    model.predict([s])
 
 
 if __name__ == "__main__":
