@@ -64,14 +64,6 @@ def main():
     model = ignnition.create_model('./train_options.ini')
     model.computational_graph()
     model.train_and_evaluate()
-   # with open('/Users/david/Documents/BNN/ignnition/examples/Explainability_pol/Dataset_masks/train/data.json') as json_file:
-   #     samples = json.load(json_file)
-    #with open('/Users/david/Documents/BNN/Datasets/Datasets_framework/Dataset_routenet/eval/data.json') as json_file:
-    #    samples = json.load(json_file)
-    #model.train_and_evaluate()
-    #model.predict()
-    #for s in samples:
-    #    model.predict([s])
 
 
 if __name__ == "__main__":
