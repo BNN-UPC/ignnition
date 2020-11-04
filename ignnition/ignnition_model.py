@@ -52,11 +52,14 @@ class Ignnition_model:
             sys.path.insert(1, aux)
             self.module = __import__(aux.split('/')[-1][0:-3])
 
-        self.model = self.__create_model()
+        self.gnn_model = self.__create_model()
         self.generator = Generator()
 
+        # restore a warm-start Checkpoint (if any)
+        self.__restore_model()
+
     def __loss_function(self, labels, predictions):
-        loss_func_name = self.model.get_loss()
+        loss_func_name = self.model_info.get_loss()
         try:
             loss_function = getattr(tf.keras.losses, loss_func_name)()
             regularization_loss = sum(self.gnn_model.losses)
@@ -87,11 +90,11 @@ class Ignnition_model:
         return metrics
 
     @tf.autograph.experimental.do_not_convert
-    def __get_compiled_model(self, model):
-        gnn_model = Gnn_model(model)
+    def __get_compiled_model(self, model_info):
+        gnn_model = Gnn_model(model_info)
 
         # dynamically define the optimizer
-        optimizer_params = model.get_optimizer()
+        optimizer_params = model_info.get_optimizer()
         op_type = optimizer_params['type']
         del optimizer_params['type']
 
@@ -116,7 +119,6 @@ class Ignnition_model:
                           optimizer=optimizer,
                           metrics=self.__get_keras_metrics(),
                           run_eagerly=False)
-
         return gnn_model
 
     def __get_model_callbacks(self, model_dir, mini_epoch_size, num_epochs, metric_names):
@@ -191,14 +193,14 @@ class Ignnition_model:
             Maps each feature or label with its normalization strategy if any
         """
         with tf.name_scope('get_data') as _:
-            feature_list = self.model.get_all_features()
-            adjacency_info = self.model.get_adjecency_info()
-            interleave_list = self.model.get_interleave_tensors()
-            interleave_sources = self.model.get_interleave_sources()
-            output_name, output_normalization, _ = self.model.get_output_info()
-            additional_input = self.model.get_additional_input_names()
+            feature_list = self.model_info.get_all_features()
+            adjacency_info = self.model_info.get_adjecency_info()
+            interleave_list = self.model_info.get_interleave_tensors()
+            interleave_sources = self.model_info.get_interleave_sources()
+            output_name, output_normalization, _ = self.model_info.get_output_info()
+            additional_input = self.model_info.get_additional_input_names()
             unique_additional_input = [a for a in additional_input if a not in feature_list]
-            entity_names = self.model.get_entity_names()
+            entity_names = self.model_info.get_entity_names()
             types, shapes = {}, {}
             feature_names = []
 
@@ -273,16 +275,12 @@ class Ignnition_model:
         return ds
 
 
-    def _make_or_restore_model(self, checkpoint_dir, model_info):
+    def __make_model(self, model_info):
         # Either restore the latest model, or create a fresh one
-        if checkpoint_dir is not None:
-            checkpoints = [checkpoint_dir + "/" + name for name in os.listdir(checkpoint_dir)]
-            if checkpoints:
-                latest_checkpoint = max(checkpoints, key=os.path.getctime)
-                print("Restoring from", latest_checkpoint)
-                return tf.keras.models.load_weights(latest_checkpoint)
         print("Creating a new model")
-        return self.__get_compiled_model(model_info)
+        gnn_model = self.__get_compiled_model(model_info)
+
+        return gnn_model
 
     # FUNCTIONALITIES
     def train_and_evaluate(self, training_samples = None, eval_samples = None):
@@ -346,16 +344,27 @@ class Ignnition_model:
     def __create_model(self):
         model_description_path = self.CONFIG['PATHS']['model_description_path']
         dimensions = self.find_dataset_dimensions(self.CONFIG['PATHS']['train_dataset'])
-        model_info = Json_preprocessing(model_description_path, dimensions)  # read json
+        self.model_info = Json_preprocessing(model_description_path, dimensions)  # read json
 
+        return self.__make_model(self.model_info)
+
+    def __restore_model(self):
         if self.CONFIG.has_option('PATHS', 'warm_start_path'):
             checkpoint_path = self.CONFIG['PATHS']['warm_start_path']
         else:
-            checkpoint_path = None
+            checkpoint_path = ''
 
-        self.gnn_model = self._make_or_restore_model(checkpoint_path,model_info)
+        if os.path.isfile(checkpoint_path):
+            print("Restoring from", checkpoint_path)
+            # in this case we need to initialize the weights to be able to use a warm-start checkpoint
+            sample_it = self.__input_fn_generator(self.CONFIG['PATHS']['train_dataset'], training=False, data_samples=None, batch_size=1)
+            sample = sample_it.get_next()
 
-        return model_info
+            # Call only one tf.function when tracing.
+            _ = self.gnn_model(sample, training=False)
+
+            return self.gnn_model.load_weights(checkpoint_path)
+
 
 
     def find_dataset_dimensions(self, path):
@@ -475,6 +484,4 @@ class Ignnition_model:
                 name="computational_graph_" + str(datetime.datetime.now()),
                 step=0,
                 profiler_outdir=path)
-
-
 

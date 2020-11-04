@@ -520,19 +520,6 @@ class Gnn_model(tf.keras.Model):
                             has_converged = tf.math.logical_and(has_converged, diff_value)
 
 
-                    if tf.math.equal(tf.constant(True),tf.constant(False)):
-                        print("a")
-                    if tf.math.equal(has_converged, True):
-                        print("b")
-
-
-                    if not tf.equal(has_converged, tf.constant(True)):
-                        print(j)
-                    if tf.equal(has_converged, tf.constant(True)):
-                        print(j)
-                        pass
-
-
             # -----------------------------------------------------------------------------------
             # READOUT PHASE
             with tf.name_scope('readout_predictions') as _:
