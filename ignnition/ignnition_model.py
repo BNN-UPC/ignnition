@@ -125,10 +125,9 @@ class Ignnition_model:
         os.mkdir(model_dir + '/ckpt')
 
         # HERE WE CAN ADD AN OPTION FOR EARLY STOPPING
-        return [tf.keras.callbacks.TensorBoard(log_dir=model_dir + '/logs', update_freq='epoch'),
+        return [tf.keras.callbacks.TensorBoard(log_dir=model_dir + '/logs', update_freq='epoch', write_images=True, histogram_freq=1),
                 tf.keras.callbacks.ModelCheckpoint(filepath=model_dir + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5', save_freq='epoch', monitor='loss'),
-                Custom_scalars(log_dir = model_dir + '/logs'),
-                Custom_progressbar(model_dir = model_dir, mini_epoch_size=mini_epoch_size, num_epochs=num_epochs, metric_names=metric_names, k=5)]
+                Custom_progressbar(model_dir = model_dir + '/logs', mini_epoch_size=mini_epoch_size, num_epochs=num_epochs, metric_names=metric_names, k=5)]
 
     def __normalization(self, x, feature_list, output_name, output_normalization, y=None):
 
