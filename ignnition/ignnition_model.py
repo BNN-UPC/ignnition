@@ -18,7 +18,6 @@
 
 # -*- coding: utf-8 -*-
 
-
 import configparser
 import tensorflow as tf
 import datetime
@@ -52,11 +51,14 @@ class Ignnition_model:
             sys.path.insert(1, aux)
             self.module = __import__(aux.split('/')[-1][0:-3])
 
-        self.model = self.__create_model()
+        self.gnn_model = self.__create_model()
         self.generator = Generator()
 
+        # restore a warm-start Checkpoint (if any)
+        self.__restore_model()
+
     def __loss_function(self, labels, predictions):
-        loss_func_name = self.model.get_loss()
+        loss_func_name = self.model_info.get_loss()
         try:
             loss_function = getattr(tf.keras.losses, loss_func_name)()
             regularization_loss = sum(self.gnn_model.losses)
@@ -87,11 +89,11 @@ class Ignnition_model:
         return metrics
 
     @tf.autograph.experimental.do_not_convert
-    def __get_compiled_model(self, model):
-        gnn_model = Gnn_model(model)
+    def __get_compiled_model(self, model_info):
+        gnn_model = Gnn_model(model_info)
 
         # dynamically define the optimizer
-        optimizer_params = model.get_optimizer()
+        optimizer_params = model_info.get_optimizer()
         op_type = optimizer_params['type']
         del optimizer_params['type']
 
@@ -116,20 +118,63 @@ class Ignnition_model:
                           optimizer=optimizer,
                           metrics=self.__get_keras_metrics(),
                           run_eagerly=False)
-
         return gnn_model
 
     def __get_model_callbacks(self, model_dir, mini_epoch_size, num_epochs, metric_names):
         os.mkdir(model_dir + '/ckpt')
 
         # HERE WE CAN ADD AN OPTION FOR EARLY STOPPING
-        return [tf.keras.callbacks.TensorBoard(log_dir=model_dir + '/logs', update_freq='epoch'),
+        return [tf.keras.callbacks.TensorBoard(log_dir=model_dir + '/logs', update_freq='epoch', write_images=True, histogram_freq=1),
                 tf.keras.callbacks.ModelCheckpoint(filepath=model_dir + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5', save_freq='epoch', monitor='loss'),
-                Custom_scalars(log_dir = model_dir + '/logs'),
-                Custom_progressbar(model_dir = model_dir, mini_epoch_size=mini_epoch_size, num_epochs=num_epochs, metric_names=metric_names, k=5)]
+                Custom_progressbar(model_dir = model_dir + '/logs', mini_epoch_size=mini_epoch_size, num_epochs=num_epochs, metric_names=metric_names, k=5)]
 
-    def __normalization(self, x, feature_list, output_name, output_normalization, y=None):
 
+    # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
+    def __batch_normalization(self, x, feature_list, output_name, y=None):
+        """
+        Parameters
+        ----------
+        x:    tensor
+           Tensor with the feature information
+        y:    tensor
+           Tensor with the label information
+        feature_list:    tensor
+           List of names with the names of the features in x
+        output_names:    tensor
+           List of names with the name of the output labels in y
+        output_normalizations: dict
+           Maps each feature or label with its normalization strategy if any
+        """
+
+        # input data
+        for f in feature_list:
+            f_name = f.name
+            #norm_type = f.batch_normalization
+            norm_type = 'mean'
+            if norm_type == 'mean':
+                mean = tf.math.reduce_mean(x[f_name])
+                variance = tf.math.reduce_std(x[f_name])
+                x[f_name] = (x[f_name] - mean) / variance
+
+            elif norm_type == 'max':
+                max = tf.math.reduce_max(x[f_name])
+                x[f_name] = x[f_name] / max
+        # output
+        if y is not None:
+            output_normalization = 'mean'
+            if output_normalization == 'mean':
+                mean = tf.math.reduce_mean(y)
+                variance = tf.math.reduce_std(y)
+                y = (y - mean) / variance
+
+            elif output_normalization == 'max':
+                max = tf.math.reduce_max(y)
+                y = y / max
+
+            return x, y
+        return x
+
+    def __global_normalization(self, x, feature_list, output_name, output_normalization, y=None):
         """
         Parameters
         ----------
@@ -144,7 +189,6 @@ class Ignnition_model:
         output_normalizations: dict
             Maps each feature or label with its normalization strategy if any
         """
-
         # input data
         for f in feature_list:
             f_name = f.name
@@ -152,14 +196,13 @@ class Ignnition_model:
             if str(norm_type) != 'None':
                 try:
                     norm_func = getattr(self.module, norm_type)
-
                     x[f_name] = tf.py_function(func=norm_func, inp=[x[f_name], f_name], Tout=tf.float32)
 
                 except:
                     print_failure('The normalization function ' + str(norm_type) + ' is not defined in the main file.')
 
         # output
-        if y != None:
+        if y is not None:
             if str(output_normalization) != 'None':
                 try:
                     norm_func = getattr(self.module, output_normalization)
@@ -191,14 +234,14 @@ class Ignnition_model:
             Maps each feature or label with its normalization strategy if any
         """
         with tf.name_scope('get_data') as _:
-            feature_list = self.model.get_all_features()
-            adjacency_info = self.model.get_adjecency_info()
-            interleave_list = self.model.get_interleave_tensors()
-            interleave_sources = self.model.get_interleave_sources()
-            output_name, output_normalization, _ = self.model.get_output_info()
-            additional_input = self.model.get_additional_input_names()
+            feature_list = self.model_info.get_all_features()
+            adjacency_info = self.model_info.get_adjecency_info()
+            interleave_list = self.model_info.get_interleave_tensors()
+            interleave_sources = self.model_info.get_interleave_sources()
+            output_name, output_normalization, _ = self.model_info.get_output_info()
+            additional_input = self.model_info.get_additional_input_names()
             unique_additional_input = [a for a in additional_input if a not in feature_list]
-            entity_names = self.model.get_entity_names()
+            entity_names = self.model_info.get_entity_names()
             types, shapes = {}, {}
             feature_names = []
 
@@ -261,31 +304,43 @@ class Ignnition_model:
 
 
             with tf.name_scope('normalization') as _:
-                if training:
-                    ds = ds.map(lambda x, y: self.__normalization(x, feature_list, output_name, output_normalization, y),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-                    ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+                global_norm = True
+                if global_norm:
+                    if training:
+                        ds = ds.map(lambda x, y: self.__global_normalization(x, feature_list, output_name, output_normalization, y),
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+                    else:
+                        ds = ds.map(lambda x: self.__global_normalization(x, feature_list, output_name, output_normalization),
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = iter(ds)
 
                 else:
-                    ds = ds.map(lambda x: self.__normalization(x, feature_list, output_name, output_normalization),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-                    ds = iter(ds)
+                    if training:
+                        ds = ds.map(lambda x, y: self.__batch_normalization(x, feature_list, output_name, y),
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+                    else:
+                        ds = ds.map(lambda x: self.__batch_normalization(x, feature_list, output_name),
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = iter(ds)
+
         return ds
 
 
-    def _make_or_restore_model(self, checkpoint_dir, model_info):
+    def __make_model(self, model_info):
         # Either restore the latest model, or create a fresh one
-        if checkpoint_dir is not None:
-            checkpoints = [checkpoint_dir + "/" + name for name in os.listdir(checkpoint_dir)]
-            if checkpoints:
-                latest_checkpoint = max(checkpoints, key=os.path.getctime)
-                print("Restoring from", latest_checkpoint)
-                return tf.keras.models.load_weights(latest_checkpoint)
         print("Creating a new model")
-        return self.__get_compiled_model(model_info)
+        gnn_model = self.__get_compiled_model(model_info)
+
+        return gnn_model
 
     # FUNCTIONALITIES
     def train_and_evaluate(self, training_samples = None, eval_samples = None):
+        # training_files is a list of strings (paths)
+        # eval_files is a list of strings (paths)
         print()
         print_header('Starting the training and evaluation process...\n---------------------------------------------------------------------------\n')
 
@@ -322,7 +377,7 @@ class Ignnition_model:
 
         mini_epoch_size = None if self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'] == 'All' else int(self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'])
         num_epochs = int(self.CONFIG['TRAINING_OPTIONS']['epochs'])
-        metrics = ["sample_num","loss", "mean_absolute_error", "mean_absolute_percentage_error", "val_loss", "val_mean_absolute_error", "val_absolute_percentage_error"]
+        metrics = ["sample_num",  "loss", "mean_absolute_error", "mean_absolute_percentage_error", "val_loss", "val_mean_absolute_error", "val_absolute_percentage_error"]
 
         # pass the validation data to the callback and do this manually??
         callbacks = self.__get_model_callbacks(model_dir=model_dir, mini_epoch_size= mini_epoch_size, num_epochs = num_epochs , metric_names = metrics)
@@ -346,16 +401,27 @@ class Ignnition_model:
     def __create_model(self):
         model_description_path = self.CONFIG['PATHS']['model_description_path']
         dimensions = self.find_dataset_dimensions(self.CONFIG['PATHS']['train_dataset'])
-        model_info = Json_preprocessing(model_description_path, dimensions)  # read json
+        self.model_info = Json_preprocessing(model_description_path, dimensions)  # read json
 
+        return self.__make_model(self.model_info)
+
+    def __restore_model(self):
         if self.CONFIG.has_option('PATHS', 'warm_start_path'):
             checkpoint_path = self.CONFIG['PATHS']['warm_start_path']
         else:
-            checkpoint_path = None
+            checkpoint_path = ''
 
-        self.gnn_model = self._make_or_restore_model(checkpoint_path,model_info)
+        if os.path.isfile(checkpoint_path):
+            print("Restoring from", checkpoint_path)
+            # in this case we need to initialize the weights to be able to use a warm-start checkpoint
+            sample_it = self.__input_fn_generator(self.CONFIG['PATHS']['train_dataset'], training=False, data_samples=None, batch_size=1)
+            sample = sample_it.get_next()
 
-        return model_info
+            # Call only one tf.function when tracing.
+            _ = self.gnn_model(sample, training=False)
+
+            return self.gnn_model.load_weights(checkpoint_path)
+
 
 
     def find_dataset_dimensions(self, path):
@@ -428,6 +494,7 @@ class Ignnition_model:
         sample_it = self.__input_fn_generator(data_path, training=False, data_samples = prediction_samples)
         all_predictions = []
         try:
+            # while there are predictions
             while True:
                 pred = self.gnn_model(sample_it.get_next(), training=False)
                 pred = tf.squeeze(pred)
@@ -475,6 +542,4 @@ class Ignnition_model:
                 name="computational_graph_" + str(datetime.datetime.now()),
                 step=0,
                 profiler_outdir=path)
-
-
 

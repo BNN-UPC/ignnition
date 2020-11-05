@@ -266,8 +266,8 @@ class Gnn_model(tf.keras.Model):
             with tf.name_scope('message_passing') as _:
                 has_converged = tf.constant(False)
                 #while not self.mp_finish_condition(j, has_converged):
-                #for j in range(self.model_info.get_mp_iterations()):
-                for j in range(20):
+                for j in range(self.model_info.get_mp_iterations()):
+                #for j in range(20):
 
                     with tf.name_scope('iteration_' + str(j)) as _:
 
@@ -499,39 +499,26 @@ class Gnn_model(tf.keras.Model):
 
 
                     # calculate the absolute difference (for the convergance option)
-                    has_converged = tf.constant(True)
-                    for entity in entities:
-                        current_hs = self.get_global_variable(entity.name + '_state')
-                        if j == 0:   # save this as t-1 values
-                            self.save_global_variable(entity.name + '_previous_state', current_hs)
-
-                        # compute the difference
-                        else:
-                            previous_hs = self.get_global_variable(entity.name + '_previous_state')
-                            # check what happens if one is 0?. Current_hs is a matrix n_nodes x hs_dimension
-                            diff = tf.math.abs(tf.math.divide_no_nan((current_hs - previous_hs) , previous_hs))
-
-                            # compute the average for each node (by row)
-                            diff_value = tf.math.reduce_mean(diff, axis=1)
-
-                            # check if all of them are under a certain threshold
-                            diff_value = tf.map_fn(fn=lambda x: x <= 0.5, elems = diff_value, dtype=tf.bool)
-                            diff_value = tf.math.reduce_all(diff_value)
-                            has_converged = tf.math.logical_and(has_converged, diff_value)
-
-
-                    if tf.math.equal(tf.constant(True),tf.constant(False)):
-                        print("a")
-                    if tf.math.equal(has_converged, True):
-                        print("b")
-
-
-                    if not tf.equal(has_converged, tf.constant(True)):
-                        print(j)
-                    if tf.equal(has_converged, tf.constant(True)):
-                        print(j)
-                        pass
-
+                    # has_converged = tf.constant(True)
+                    # for entity in entities:
+                    #     current_hs = self.get_global_variable(entity.name + '_state')
+                    #     if j == 0:   # save this as t-1 values
+                    #         self.save_global_variable(entity.name + '_previous_state', current_hs)
+                    #
+                    #     # compute the difference
+                    #     else:
+                    #         previous_hs = self.get_global_variable(entity.name + '_previous_state')
+                    #         # check what happens if one is 0?. Current_hs is a matrix n_nodes x hs_dimension
+                    #         diff = tf.math.abs(tf.math.divide_no_nan((current_hs - previous_hs) , previous_hs))
+                    #
+                    #         # compute the average for each node (by row)
+                    #         diff_value = tf.math.reduce_mean(diff, axis=1)
+                    #
+                    #         # check if all of them are under a certain threshold
+                    #         diff_value = tf.map_fn(fn=lambda x: x <= 0.5, elems = diff_value, dtype=tf.bool)
+                    #         diff_value = tf.math.reduce_all(diff_value)
+                    #         has_converged = tf.math.logical_and(has_converged, diff_value)
+                    #
 
             # -----------------------------------------------------------------------------------
             # READOUT PHASE
