@@ -27,7 +27,7 @@
 
     "message_passing":
         {
-            "num_iterations": "convergence",
+            "num_iterations": 8,
             "stages":
             [
                 {
@@ -133,11 +133,11 @@
                     "activation": "selu"
                 },
                 {
-                    "name": "Output_layer",
+                    "name": "Output",
                     "type_layer":"Dense",
-                    "kernel_regularizer": 0.01,
                     "units": 1,
-                    "activation": "None"
+                    "kernel_regularizer": 0.01,
+                    "activation": "selu"
                 }
             ]
         },

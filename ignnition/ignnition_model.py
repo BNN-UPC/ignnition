@@ -18,7 +18,6 @@
 
 # -*- coding: utf-8 -*-
 
-
 import configparser
 import tensorflow as tf
 import datetime
@@ -129,8 +128,53 @@ class Ignnition_model:
                 tf.keras.callbacks.ModelCheckpoint(filepath=model_dir + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5', save_freq='epoch', monitor='loss'),
                 Custom_progressbar(model_dir = model_dir + '/logs', mini_epoch_size=mini_epoch_size, num_epochs=num_epochs, metric_names=metric_names, k=5)]
 
-    def __normalization(self, x, feature_list, output_name, output_normalization, y=None):
 
+    # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
+    def __batch_normalization(self, x, feature_list, output_name, y=None):
+        """
+        Parameters
+        ----------
+        x:    tensor
+           Tensor with the feature information
+        y:    tensor
+           Tensor with the label information
+        feature_list:    tensor
+           List of names with the names of the features in x
+        output_names:    tensor
+           List of names with the name of the output labels in y
+        output_normalizations: dict
+           Maps each feature or label with its normalization strategy if any
+        """
+
+        # input data
+        for f in feature_list:
+            f_name = f.name
+            #norm_type = f.batch_normalization
+            norm_type = 'mean'
+            if norm_type == 'mean':
+                mean = tf.math.reduce_mean(x[f_name])
+                variance = tf.math.reduce_std(x[f_name])
+                x[f_name] = (x[f_name] - mean) / variance
+
+            elif norm_type == 'max':
+                max = tf.math.reduce_max(x[f_name])
+                x[f_name] = x[f_name] / max
+        # output
+        if y is not None:
+            output_normalization = 'mean'
+            if output_normalization == 'mean':
+                mean = tf.math.reduce_mean(y)
+                variance = tf.math.reduce_std(y)
+                y = (y - mean) / variance
+
+            elif output_normalization == 'max':
+                max = tf.math.reduce_max(y)
+                y = y / max
+
+            return x, y
+        return x
+
+    def __global_normalization(self, x, feature_list, output_name, output_normalization, y=None):
         """
         Parameters
         ----------
@@ -145,7 +189,6 @@ class Ignnition_model:
         output_normalizations: dict
             Maps each feature or label with its normalization strategy if any
         """
-
         # input data
         for f in feature_list:
             f_name = f.name
@@ -153,14 +196,13 @@ class Ignnition_model:
             if str(norm_type) != 'None':
                 try:
                     norm_func = getattr(self.module, norm_type)
-
                     x[f_name] = tf.py_function(func=norm_func, inp=[x[f_name], f_name], Tout=tf.float32)
 
                 except:
                     print_failure('The normalization function ' + str(norm_type) + ' is not defined in the main file.')
 
         # output
-        if y != None:
+        if y is not None:
             if str(output_normalization) != 'None':
                 try:
                     norm_func = getattr(self.module, output_normalization)
@@ -262,15 +304,29 @@ class Ignnition_model:
 
 
             with tf.name_scope('normalization') as _:
-                if training:
-                    ds = ds.map(lambda x, y: self.__normalization(x, feature_list, output_name, output_normalization, y),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-                    ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+                global_norm = True
+                if global_norm:
+                    if training:
+                        ds = ds.map(lambda x, y: self.__global_normalization(x, feature_list, output_name, output_normalization, y),
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+                    else:
+                        ds = ds.map(lambda x: self.__global_normalization(x, feature_list, output_name, output_normalization),
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = iter(ds)
 
                 else:
-                    ds = ds.map(lambda x: self.__normalization(x, feature_list, output_name, output_normalization),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-                    ds = iter(ds)
+                    if training:
+                        ds = ds.map(lambda x, y: self.__batch_normalization(x, feature_list, output_name, y),
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+                    else:
+                        ds = ds.map(lambda x: self.__batch_normalization(x, feature_list, output_name),
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = iter(ds)
+
         return ds
 
 
@@ -283,6 +339,8 @@ class Ignnition_model:
 
     # FUNCTIONALITIES
     def train_and_evaluate(self, training_samples = None, eval_samples = None):
+        # training_files is a list of strings (paths)
+        # eval_files is a list of strings (paths)
         print()
         print_header('Starting the training and evaluation process...\n---------------------------------------------------------------------------\n')
 
@@ -319,7 +377,7 @@ class Ignnition_model:
 
         mini_epoch_size = None if self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'] == 'All' else int(self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'])
         num_epochs = int(self.CONFIG['TRAINING_OPTIONS']['epochs'])
-        metrics = ["sample_num","loss", "mean_absolute_error", "mean_absolute_percentage_error", "val_loss", "val_mean_absolute_error", "val_absolute_percentage_error"]
+        metrics = ["sample_num",  "loss", "mean_absolute_error", "mean_absolute_percentage_error", "val_loss", "val_mean_absolute_error", "val_absolute_percentage_error"]
 
         # pass the validation data to the callback and do this manually??
         callbacks = self.__get_model_callbacks(model_dir=model_dir, mini_epoch_size= mini_epoch_size, num_epochs = num_epochs , metric_names = metrics)
@@ -436,6 +494,7 @@ class Ignnition_model:
         sample_it = self.__input_fn_generator(data_path, training=False, data_samples = prediction_samples)
         all_predictions = []
         try:
+            # while there are predictions
             while True:
                 pred = self.gnn_model(sample_it.get_next(), training=False)
                 pred = tf.squeeze(pred)

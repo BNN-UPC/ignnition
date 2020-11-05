@@ -807,6 +807,7 @@ class Feed_forward_Layer:
         """
         self.trainable = True
         self.type = type
+
         if 'kernel_regularizer' in parameters:
             parameters['kernel_regularizer'] = tf.keras.regularizers.l2(float(parameters['kernel_regularizer']))
 
@@ -815,6 +816,8 @@ class Feed_forward_Layer:
 
         if 'trainable' in parameters:
             parameters['trainable'] = 'True' == parameters['trainable']
+        else:
+            parameters['trainable'] = self.trainable
 
         self.parameters = parameters
 
