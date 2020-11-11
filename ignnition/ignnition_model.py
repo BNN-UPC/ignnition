@@ -362,17 +362,17 @@ class Ignnition_model:
         print_header(
             'Starting the training and evaluation process...\n---------------------------------------------------------------------------\n')
 
-        filenames_train = self.CONFIG['PATHS']['train_dataset']
-        filenames_eval = self.CONFIG['PATHS']['eval_dataset']
+        filenames_train = os.path.normpath(self.CONFIG['PATHS']['train_dataset'])
+        filenames_eval = os.path.normpath(self.CONFIG['PATHS']['eval_dataset'])
 
-        model_dir = self.CONFIG['PATHS']['model_dir']
-        if model_dir[-1] != '/':
-            model_dir += '/'
-        model_dir += 'CheckPoint'
+        model_dir = os.path.normpath(self.CONFIG['PATHS']['model_dir'])
+
+        model_dir = os.path.join(model_dir, 'CheckPoint')
+
         if not os.path.isdir(model_dir):
             os.mkdir(model_dir)
 
-        model_dir = model_dir + '/experiment_' + str(datetime.datetime.now())
+        model_dir = os.path.join(model_dir, 'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
         os.mkdir(model_dir)
 
         # d = {}
