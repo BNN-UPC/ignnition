@@ -33,8 +33,9 @@ from ignnition.gnn_model import Gnn_model
 from ignnition.json_preprocessing import Json_preprocessing
 from ignnition.data_generator import Generator
 from ignnition.utils import *
-from ignnition.custom_callbacks import  *
+from ignnition.custom_callbacks import *
 import sys
+
 
 class Ignnition_model:
     def __init__(self, path):
@@ -67,7 +68,7 @@ class Ignnition_model:
 
         except:  # go to the main file and find the function by this name
             loss_function = getattr(self.module, loss_func_name)
-            #loss_function = getattr(self.add_file_name, loss_func_name)
+            # loss_function = getattr(self.add_file_name, loss_func_name)
             total_loss = tf.py_function(func=loss_function, inp=[predictions, labels, self.gnn_model], Tout=tf.float32)
 
         return total_loss
@@ -76,7 +77,7 @@ class Ignnition_model:
         # do this by default.
         # TODO: Let the user define an array of names of metrics
 
-        #metric_name = ["mae", "mape", "r_squared"]
+        # metric_name = ["mae", "mape", "r_squared"]
         metric_name = ["mae", "mape"]
         metrics = []
         for name in metric_name:
@@ -124,10 +125,12 @@ class Ignnition_model:
         os.mkdir(model_dir + '/ckpt')
 
         # HERE WE CAN ADD AN OPTION FOR EARLY STOPPING
-        return [tf.keras.callbacks.TensorBoard(log_dir=model_dir + '/logs', update_freq='epoch', write_images=True, histogram_freq=1),
-                tf.keras.callbacks.ModelCheckpoint(filepath=model_dir + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5', save_freq='epoch', monitor='loss'),
-                Custom_progressbar(model_dir = model_dir + '/logs', mini_epoch_size=mini_epoch_size, num_epochs=num_epochs, metric_names=metric_names, k=5)]
-
+        return [tf.keras.callbacks.TensorBoard(log_dir=model_dir + '/logs', update_freq='epoch', write_images=True,
+                                               histogram_freq=1),
+                tf.keras.callbacks.ModelCheckpoint(filepath=model_dir + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
+                                                   save_freq='epoch', monitor='loss'),
+                Custom_progressbar(model_dir=model_dir + '/logs', mini_epoch_size=mini_epoch_size,
+                                   num_epochs=num_epochs, metric_names=metric_names, k=5)]
 
     # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
     def __batch_normalization(self, x, feature_list, output_name, y=None):
@@ -149,7 +152,7 @@ class Ignnition_model:
         # input data
         for f in feature_list:
             f_name = f.name
-            #norm_type = f.batch_normalization
+            # norm_type = f.batch_normalization
             norm_type = 'mean'
             if norm_type == 'mean':
                 mean = tf.math.reduce_mean(x[f_name])
@@ -210,12 +213,11 @@ class Ignnition_model:
 
                 except:
                     print_failure('The normalization function ' + str(
-                            output_normalization) + ' is not defined in the main file.')
+                        output_normalization) + ' is not defined in the main file.')
 
             return x, y
 
         return x
-
 
     @tf.autograph.experimental.do_not_convert
     def __input_fn_generator(self, filenames, shuffle=False, training=True, batch_size=1, data_samples=None):
@@ -277,43 +279,59 @@ class Ignnition_model:
 
             if training:  # if we do training, we also expect the labels
                 if data_samples is None:
-                    ds = tf.data.Dataset.from_generator(lambda : self.generator.generate_from_dataset(filenames, entity_names, feature_names, output_name, adjacency_info,
-                                                            interleave_list, unique_additional_input, training, shuffle, batch_size),
-                                                        output_types = (types, tf.float32),
-                                                        output_shapes = (shapes, tf.TensorShape(None)))
+                    ds = tf.data.Dataset.from_generator(
+                        lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
+                                                                     output_name, adjacency_info,
+                                                                     interleave_list, unique_additional_input, training,
+                                                                     shuffle, batch_size),
+                        output_types=(types, tf.float32),
+                        output_shapes=(shapes, tf.TensorShape(None)))
                 else:
                     data_samples = [json.dumps(t) for t in data_samples]
-                    ds = tf.data.Dataset.from_generator(lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names, output_name,
-                                                                adjacency_info,interleave_list, unique_additional_input, training, shuffle, batch_size),
-                                                        output_types = (types, tf.float32),
-                                                        output_shapes = (shapes, tf.TensorShape(None)))
+                    ds = tf.data.Dataset.from_generator(
+                        lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
+                                                                   output_name,
+                                                                   adjacency_info, interleave_list,
+                                                                   unique_additional_input, training, shuffle,
+                                                                   batch_size),
+                        output_types=(types, tf.float32),
+                        output_shapes=(shapes, tf.TensorShape(None)))
 
             else:
                 if data_samples is None:
-                    ds = tf.data.Dataset.from_generator(lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names, output_name, adjacency_info,
-                                                            interleave_list, unique_additional_input, training, shuffle, batch_size),
-                                                        output_types = (types),
-                                                        output_shapes = (shapes))
+                    ds = tf.data.Dataset.from_generator(
+                        lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
+                                                                     output_name, adjacency_info,
+                                                                     interleave_list, unique_additional_input, training,
+                                                                     shuffle, batch_size),
+                        output_types=(types),
+                        output_shapes=(shapes))
 
                 else:
                     data_samples = [json.dumps(t) for t in data_samples]
-                    ds = tf.data.Dataset.from_generator(lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names, output_name,
-                                                            adjacency_info, interleave_list, unique_additional_input, training, shuffle, batch_size),
-                                                        output_types = (types),
-                                                        output_shapes = (shapes))
-
+                    ds = tf.data.Dataset.from_generator(
+                        lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
+                                                                   output_name,
+                                                                   adjacency_info, interleave_list,
+                                                                   unique_additional_input, training, shuffle,
+                                                                   batch_size),
+                        output_types=(types),
+                        output_shapes=(shapes))
 
             with tf.name_scope('normalization') as _:
                 global_norm = True
                 if global_norm:
                     if training:
-                        ds = ds.map(lambda x, y: self.__global_normalization(x, feature_list, output_name, output_normalization, y),
-                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = ds.map(
+                            lambda x, y: self.__global_normalization(x, feature_list, output_name, output_normalization,
+                                                                     y),
+                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
                         ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
                     else:
-                        ds = ds.map(lambda x: self.__global_normalization(x, feature_list, output_name, output_normalization),
-                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = ds.map(
+                            lambda x: self.__global_normalization(x, feature_list, output_name, output_normalization),
+                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
                         ds = iter(ds)
 
                 else:
@@ -329,7 +347,6 @@ class Ignnition_model:
 
         return ds
 
-
     def __make_model(self, model_info):
         # Either restore the latest model, or create a fresh one
         print("Creating a new model")
@@ -338,11 +355,12 @@ class Ignnition_model:
         return gnn_model
 
     # FUNCTIONALITIES
-    def train_and_evaluate(self, training_samples = None, eval_samples = None):
+    def train_and_evaluate(self, training_samples=None, eval_samples=None):
         # training_files is a list of strings (paths)
         # eval_files is a list of strings (paths)
         print()
-        print_header('Starting the training and evaluation process...\n---------------------------------------------------------------------------\n')
+        print_header(
+            'Starting the training and evaluation process...\n---------------------------------------------------------------------------\n')
 
         filenames_train = self.CONFIG['PATHS']['train_dataset']
         filenames_eval = self.CONFIG['PATHS']['eval_dataset']
@@ -357,46 +375,51 @@ class Ignnition_model:
         model_dir = model_dir + '/experiment_' + str(datetime.datetime.now())
         os.mkdir(model_dir)
 
-        #d = {}
-        #if self.CONFIG.has_option('TRAINING_OPTIONS', 'execute_gpu'):
+        # d = {}
+        # if self.CONFIG.has_option('TRAINING_OPTIONS', 'execute_gpu'):
         #    if self.CONFIG['TRAINING_OPTIONS']['execute_gpu'] == 'False':
         #        d = {'GPU': 0}
 
-
-        strategy = tf.distribute.MirroredStrategy() #change this not to use GPU
+        strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
         print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
         train_dataset = self.__input_fn_generator(filenames_train,
-                          shuffle=str_to_bool(self.CONFIG['TRAINING_OPTIONS']['shuffle_train_samples']),
-                          batch_size=int(self.CONFIG['TRAINING_OPTIONS']['batch_size']), data_samples=training_samples)
+                                                  shuffle=str_to_bool(
+                                                      self.CONFIG['TRAINING_OPTIONS']['shuffle_train_samples']),
+                                                  batch_size=int(self.CONFIG['TRAINING_OPTIONS']['batch_size']),
+                                                  data_samples=training_samples)
 
         validation_dataset = self.__input_fn_generator(filenames_eval,
-                       shuffle=str_to_bool(self.CONFIG['TRAINING_OPTIONS']['shuffle_eval_samples']),
-                       batch_size=int(self.CONFIG['TRAINING_OPTIONS']['batch_size']), data_samples=eval_samples)
+                                                       shuffle=str_to_bool(
+                                                           self.CONFIG['TRAINING_OPTIONS']['shuffle_eval_samples']),
+                                                       batch_size=int(self.CONFIG['TRAINING_OPTIONS']['batch_size']),
+                                                       data_samples=eval_samples)
 
-
-        mini_epoch_size = None if self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'] == 'All' else int(self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'])
+        mini_epoch_size = None if self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'] == 'All' else int(
+            self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'])
         num_epochs = int(self.CONFIG['TRAINING_OPTIONS']['epochs'])
-        metrics = ["sample_num",  "loss", "mean_absolute_error", "mean_absolute_percentage_error", "val_loss", "val_mean_absolute_error", "val_absolute_percentage_error"]
+        metrics = ["sample_num", "loss", "mean_absolute_error", "mean_absolute_percentage_error", "val_loss",
+                   "val_mean_absolute_error", "val_absolute_percentage_error"]
 
         # pass the validation data to the callback and do this manually??
-        callbacks = self.__get_model_callbacks(model_dir=model_dir, mini_epoch_size= mini_epoch_size, num_epochs = num_epochs , metric_names = metrics)
+        callbacks = self.__get_model_callbacks(model_dir=model_dir, mini_epoch_size=mini_epoch_size,
+                                               num_epochs=num_epochs, metric_names=metrics)
 
         self.gnn_model.fit(train_dataset,
-                  epochs=num_epochs,
-                  steps_per_epoch=mini_epoch_size,
-                  validation_data=validation_dataset,
-                  validation_freq= int(self.CONFIG['TRAINING_OPTIONS']['val_frequency']),
-                  validation_steps=int(self.CONFIG['TRAINING_OPTIONS']['val_samples']),
-                  callbacks=callbacks,
-                  use_multiprocessing=True,
-                  verbose = 0)
+                           epochs=num_epochs,
+                           steps_per_epoch=mini_epoch_size,
+                           validation_data=validation_dataset,
+                           validation_freq=int(self.CONFIG['TRAINING_OPTIONS']['val_frequency']),
+                           validation_steps=int(self.CONFIG['TRAINING_OPTIONS']['val_samples']),
+                           callbacks=callbacks,
+                           use_multiprocessing=True,
+                           verbose=0)
 
         # at the end of the training, save the entire model
         # Save the entire model as a SavedModel.
-        #path_to_final_model = model_dir + '/final_model/'
-        #os.mkdir(path_to_final_model)
-        #self.gnn_model.save(path_to_final_model, save_format='tf')
+        # path_to_final_model = model_dir + '/final_model/'
+        # os.mkdir(path_to_final_model)
+        # self.gnn_model.save(path_to_final_model, save_format='tf')
 
     def __create_model(self):
         model_description_path = self.CONFIG['PATHS']['model_description_path']
@@ -414,15 +437,14 @@ class Ignnition_model:
         if os.path.isfile(checkpoint_path):
             print("Restoring from", checkpoint_path)
             # in this case we need to initialize the weights to be able to use a warm-start checkpoint
-            sample_it = self.__input_fn_generator(self.CONFIG['PATHS']['train_dataset'], training=False, data_samples=None, batch_size=1)
+            sample_it = self.__input_fn_generator(self.CONFIG['PATHS']['train_dataset'], training=False,
+                                                  data_samples=None, batch_size=1)
             sample = sample_it.get_next()
 
             # Call only one tf.function when tracing.
             _ = self.gnn_model(sample, training=False)
 
             return self.gnn_model.load_weights(checkpoint_path)
-
-
 
     def find_dataset_dimensions(self, path):
         """
@@ -442,7 +464,7 @@ class Ignnition_model:
             file_samples.read(1)
             aux = stream_read_json(file_samples)
 
-            sample_data = next(aux) # read one single example #json.load(file_samples)[0]  # one single sample
+            sample_data = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
             dimensions = {}
             for k, v in sample_data.items():
                 # if it's a feature
@@ -471,7 +493,6 @@ class Ignnition_model:
         except:
             print_failure('Failed to read the data file ' + sample)
 
-
     def predict(self, prediction_samples=None):
         """
             Parameters
@@ -486,12 +507,13 @@ class Ignnition_model:
             try:
                 data_path = self.CONFIG['PATHS']['predict_dataset']
             except:
-                print_failure('Make sure to either pass an array of samples or to define in the train_options.ini the path to the prediction dataset')
+                print_failure(
+                    'Make sure to either pass an array of samples or to define in the train_options.ini the path to the prediction dataset')
 
         else:
             data_path = None
 
-        sample_it = self.__input_fn_generator(data_path, training=False, data_samples = prediction_samples)
+        sample_it = self.__input_fn_generator(data_path, training=False, data_samples=prediction_samples)
         all_predictions = []
         try:
             # while there are predictions
@@ -503,7 +525,8 @@ class Ignnition_model:
                     denorm_func = getattr(self.module, output_denormalization)
                     pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
                 except:
-                    print_info('A denormalization function for output ' + output_name + ' was not defined. The output will be normalized.')
+                    print_info(
+                        'A denormalization function for output ' + output_name + ' was not defined. The output will be normalized.')
 
                 all_predictions.append(pred)
 
@@ -512,21 +535,20 @@ class Ignnition_model:
 
         return all_predictions
 
-
     def computational_graph(self):
         print()
-        print_header('Generating the computational graph... \n---------------------------------------------------------\n')
+        print_header(
+            'Generating the computational graph... \n---------------------------------------------------------\n')
 
-        filenames_train = self.CONFIG['PATHS']['train_dataset']
+        filenames_train = os.path.normpath(self.CONFIG['PATHS']['train_dataset'])
 
-        path = self.CONFIG['PATHS']['model_dir']
-        if path[-1] != '/':
-            path += '/'
+        path = os.path.normpath(self.CONFIG['PATHS']['model_dir'])
 
-        path += 'computational_graphs/experiment_' + str(datetime.datetime.now())
-
+        path = os.path.join(path, 'computational_graphs',
+                            'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
 
         # tf.summary.trace_on() and tf.summary.trace_export().
+        print(path)
         writer = tf.summary.create_file_writer(path)
         tf.summary.trace_on(graph=True, profiler=True)
 
@@ -542,4 +564,3 @@ class Ignnition_model:
                 name="computational_graph_" + str(datetime.datetime.now()),
                 step=0,
                 profiler_outdir=path)
-
