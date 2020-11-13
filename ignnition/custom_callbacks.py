@@ -4,7 +4,6 @@ import sys
 import os
 from collections import OrderedDict
 
-
 class Custom_progressbar(tf.keras.callbacks.Callback):
     def __init__(self, model_dir, num_epochs, mini_epoch_size, metric_names, k=None):
         self.model_dir = model_dir

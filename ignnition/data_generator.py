@@ -388,7 +388,6 @@ class Generator:
         self.interleave_names = interleave_names
         self.additional_input = additional_input
         self.training = training
-
         files = glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz')
         if shuffle:
             random.shuffle(files)

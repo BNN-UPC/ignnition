@@ -82,7 +82,7 @@ class Ignnition_model:
         metrics = []
         for name in metric_name:
             try:
-                metrics.append(getattr(tf.keras.metrics, name)())
+                metrics.append(getattr(tf.keras.metrics, name))
 
             # if we cannot find this name
             except:
@@ -289,7 +289,6 @@ class Ignnition_model:
                                                                      shuffle, batch_size),
                         output_types=(types, tf.float32),
                         output_shapes=(shapes, tf.TensorShape(None)))
-
                     ds = ds.repeat()
                 else:
                     data_samples = [json.dumps(t) for t in data_samples]
@@ -369,7 +368,6 @@ class Ignnition_model:
 
         filenames_train = os.path.normpath(self.CONFIG['PATHS']['train_dataset'])
         filenames_eval = os.path.normpath(self.CONFIG['PATHS']['eval_dataset'])
-
         model_dir = os.path.normpath(self.CONFIG['PATHS']['model_dir'])
 
         model_dir = os.path.join(model_dir, 'CheckPoint')
@@ -388,7 +386,6 @@ class Ignnition_model:
                                                       self.CONFIG['TRAINING_OPTIONS']['shuffle_train_samples']),
                                                   batch_size=int(self.CONFIG['TRAINING_OPTIONS']['batch_size']),
                                                   data_samples=training_samples)
-
         validation_dataset = self.__input_fn_generator(filenames_eval,
                                                        shuffle=str_to_bool(
                                                            self.CONFIG['TRAINING_OPTIONS']['shuffle_eval_samples']),
