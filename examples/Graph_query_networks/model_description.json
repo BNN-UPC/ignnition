@@ -1,0 +1,194 @@
+{
+    "entities":
+    [
+        {
+            "name": "router",
+            "hidden_state_dimension": 160,
+            "features":
+            [
+                {
+                    "name": "router_id"
+                }
+            ]
+        },
+        {
+            "name": "interface",
+            "hidden_state_dimension": 160,
+            "features":
+            [
+                {
+                    "name": "link_speed"
+                }
+            ]
+        }
+    ],
+
+    "message_passing":
+        {
+            "num_iterations": 8,
+
+            "stages":
+            [
+                {
+                    "stage_name": "stage1",
+                    "stage_mp":
+                    [
+                        {
+                            "destination_entity": "interface",
+                            "source_entities":
+                            [
+                                {
+                                    "name": "router",
+                                    "adj_vector": "adj_routers_interfaces",
+                                    "message":
+                                    [
+                                        {
+                                            "type": "direct_assignation"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "interface",
+                                    "adj_vector": "adj_interfaces_interfaces",
+                                    "message":
+                                    [
+                                        {
+                                            "type": "direct_assignation"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "aggregation":
+                            {
+                                "type": "edge_attention",
+                                "nn_name": "edge_att_nn"
+                            },
+                            "update":
+                            {
+                                "type": "recurrent_neural_network",
+                                "nn_name": "recurrent1"
+                            }
+                        },
+                        {
+                            "destination_entity": "router",
+                            "source_entities":
+                            [
+                                {
+                                    "name": "interface",
+                                    "adj_vector": "adj_interfaces_routers",
+                                    "message":
+                                    [
+                                        {
+                                            "type": "direct_assignation"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "aggregation":
+                            {
+                                "type": "edge_attention",
+                                "nn_name": "edge_att_nn"
+                            },
+                            "update":
+                            {
+                                "type": "recurrent_neural_network",
+                                "nn_name": "recurrent1"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+
+    "readout":
+    [
+        {
+            "type": "feed_forward",
+            "input": ["target_router"],
+            "nn_name": "Q",
+            "output_name": "q_values"
+        },
+        {
+            "type": "product",
+            "type_product": "element_wise",
+            "input": ["q_values", "interface"],
+            "output_name": "aux"
+        },
+        {
+            "type": "predict",
+            "input": ["aux"],
+            "label": "label",
+            "nn_name": "F"
+        }
+    ],
+
+    "neural_networks":
+    [
+        {
+            "nn_name": "edge_att_nn",
+            "nn_type": "feed_forward",
+            "nn_architecture":
+            [
+                {
+                    "type_layer":"Dense",
+                    "units": 256,
+                    "activation": "leaky_relu"
+                },
+                {
+                    "type_layer":"Dense",
+                    "units": 1,
+                    "activation": "leaky_relu"
+                }
+            ]
+        },
+        {
+            "nn_name": "Q",
+            "nn_type": "feed_forward",
+            "nn_architecture":
+            [
+                {
+                    "type_layer":"Dense",
+                    "units": 160,
+                    "activation": "leaky_relu"
+                },
+                {
+                    "type_layer": "Dropout",
+                    "rate": 0.5
+                }
+            ]
+        },
+        {
+            "nn_name": "F",
+            "nn_type": "feed_forward",
+            "nn_architecture":
+            [
+                {
+                    "type_layer":"Dense",
+                    "units": 1,
+                    "activation": "sigmoid"
+                }
+            ]
+        },
+        {
+            "nn_name":"recurrent1",
+            "nn_type": "recurrent_neural_network",
+            "recurrent_type": "GRU"
+        }
+    ],
+
+    "learning_options":
+    {
+        "loss": "BinaryCrossentropy",
+        "optimizer": {
+            "type": "Adam",
+            "schedule": {
+                "type": "ExponentialDecay",
+                "initial_learning_rate": 0.0005,
+                "decay_steps": 80000,
+                "decay_rate": 0.6,
+                "staircase": "True"
+            }
+        }
+    }
+
+}
