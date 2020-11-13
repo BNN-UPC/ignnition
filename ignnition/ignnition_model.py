@@ -87,6 +87,7 @@ class Ignnition_model:
             # if we cannot find this name
             except:
                 metrics.append(getattr(self.module, name))
+
         return metrics
 
     @tf.autograph.experimental.do_not_convert
@@ -115,6 +116,7 @@ class Ignnition_model:
 
         # create an instance of the optimizer class indicated by the user. Accepts any loss function from keras documentation
         optimizer = o(**optimizer_params)
+
         gnn_model.compile(loss=self.__loss_function,
                           optimizer=optimizer,
                           metrics=self.__get_keras_metrics(),
@@ -130,7 +132,7 @@ class Ignnition_model:
                 tf.keras.callbacks.ModelCheckpoint(filepath=model_dir + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
                                                    save_freq='epoch', monitor='loss'),
                 Custom_progressbar(model_dir=model_dir + '/logs', mini_epoch_size=mini_epoch_size,
-                                   num_epochs=num_epochs, metric_names=metric_names, k=5)]
+                                   num_epochs=num_epochs, metric_names=metric_names, k=None)]
 
     # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
     def __batch_normalization(self, x, feature_list, output_name, y=None):
@@ -155,13 +157,13 @@ class Ignnition_model:
             # norm_type = f.batch_normalization
             norm_type = 'mean'
             if norm_type == 'mean':
-                mean = tf.math.reduce_mean(x[f_name])
-                variance = tf.math.reduce_std(x[f_name])
-                x[f_name] = (x[f_name] - mean) / variance
+                mean = tf.math.reduce_mean(x.get(f_name))
+                variance = tf.math.reduce_std(x.get(f_name))
+                x[f_name] = (x.get(f_name) - mean) / variance
 
             elif norm_type == 'max':
-                max = tf.math.reduce_max(x[f_name])
-                x[f_name] = x[f_name] / max
+                max = tf.math.reduce_max(x.get(f_name))
+                x[f_name] = x.get(f_name) / max
         # output
         if y is not None:
             output_normalization = 'mean'
@@ -196,10 +198,11 @@ class Ignnition_model:
         for f in feature_list:
             f_name = f.name
             norm_type = f.normalization
+
             if str(norm_type) != 'None':
                 try:
                     norm_func = getattr(self.module, norm_type)
-                    x[f_name] = tf.py_function(func=norm_func, inp=[x[f_name], f_name], Tout=tf.float32)
+                    x[f_name] = tf.py_function(func=norm_func, inp=[x.get(f_name), f_name], Tout=tf.float32)
 
                 except:
                     print_failure('The normalization function ' + str(norm_type) + ' is not defined in the main file.')
@@ -286,6 +289,7 @@ class Ignnition_model:
                                                                      shuffle, batch_size),
                         output_types=(types, tf.float32),
                         output_shapes=(shapes, tf.TensorShape(None)))
+                    ds = ds.repeat()
                 else:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
@@ -364,7 +368,6 @@ class Ignnition_model:
 
         filenames_train = os.path.normpath(self.CONFIG['PATHS']['train_dataset'])
         filenames_eval = os.path.normpath(self.CONFIG['PATHS']['eval_dataset'])
-
         model_dir = os.path.normpath(self.CONFIG['PATHS']['model_dir'])
 
         model_dir = os.path.join(model_dir, 'CheckPoint')
@@ -375,11 +378,6 @@ class Ignnition_model:
         model_dir = os.path.join(model_dir, 'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
         os.mkdir(model_dir)
 
-        # d = {}
-        # if self.CONFIG.has_option('TRAINING_OPTIONS', 'execute_gpu'):
-        #    if self.CONFIG['TRAINING_OPTIONS']['execute_gpu'] == 'False':
-        #        d = {'GPU': 0}
-
         strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
         print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
 
@@ -388,7 +386,6 @@ class Ignnition_model:
                                                       self.CONFIG['TRAINING_OPTIONS']['shuffle_train_samples']),
                                                   batch_size=int(self.CONFIG['TRAINING_OPTIONS']['batch_size']),
                                                   data_samples=training_samples)
-
         validation_dataset = self.__input_fn_generator(filenames_eval,
                                                        shuffle=str_to_bool(
                                                            self.CONFIG['TRAINING_OPTIONS']['shuffle_eval_samples']),
@@ -398,9 +395,7 @@ class Ignnition_model:
         mini_epoch_size = None if self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'] == 'All' else int(
             self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'])
         num_epochs = int(self.CONFIG['TRAINING_OPTIONS']['epochs'])
-        metrics = ["sample_num", "loss", "mean_absolute_error", "mean_absolute_percentage_error", "val_loss",
-                   "val_mean_absolute_error", "val_absolute_percentage_error"]
-
+        metrics = ['sample_num', 'loss', 'mean_absolute_error', 'BinaryAccuracy']
         # pass the validation data to the callback and do this manually??
         callbacks = self.__get_model_callbacks(model_dir=model_dir, mini_epoch_size=mini_epoch_size,
                                                num_epochs=num_epochs, metric_names=metrics)
@@ -446,6 +441,8 @@ class Ignnition_model:
 
             return self.gnn_model.load_weights(checkpoint_path)
 
+
+
     def find_dataset_dimensions(self, path):
         """
         Parameters
@@ -465,16 +462,23 @@ class Ignnition_model:
             aux = stream_read_json(file_samples)
 
             sample_data = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
-            dimensions = {}
+            dimensions = {}  # for each key, we have a tuple of (length, num_elements)
             for k, v in sample_data.items():
                 # if it's a feature
-                if not isinstance(v, dict) and isinstance(v, list):
-                    if isinstance(v[0], str):
-                        pass
+                if not isinstance(v, dict):
+                    if isinstance(v, list):
+                        if isinstance(v[0], str):
+                            pass
 
-                    # if it's a feature
-                    elif isinstance(v[0], list):
-                        dimensions[k] = len(v[0])
+                        # if it's a feature (2-d array)
+                        elif isinstance(v[0], list):
+                            dimensions[k] = len(v[0])
+
+                        # set always to len(v). In run time, if its a 1-d feature of a node, replace for dimension = 1
+                        else:
+                            dimensions[k] = len(v)
+
+                    # if it is one single value
                     else:
                         dimensions[k] = 1
 
@@ -548,7 +552,6 @@ class Ignnition_model:
                             'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
 
         # tf.summary.trace_on() and tf.summary.trace_export().
-        print(path)
         writer = tf.summary.create_file_writer(path)
         tf.summary.trace_on(graph=True, profiler=True)
 

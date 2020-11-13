@@ -48,16 +48,9 @@ class Feature:
             Dictionary with the required attributes
         """
 
-        self.name = f['name']
-        self.size = 1
-        self.normalization = 'None'
-
-        if 'size' in f:
-            self.size = f['size']
-
-        if 'normalization' in f:
-            self.normalization = f['normalization']
-
+        self.name = f.get('name')
+        self.size = f.get('size',1)
+        self.normalization = f.get('normalization','None')
 
 class Entity:
     """
@@ -89,20 +82,21 @@ class Entity:
 
     """
 
-    def __init__(self, dict):
+    def __init__(self, attr):
         """
         Parameters
         ----------
-        dict:    dict
+        attr:    dict
             Dictionary with the required attributes
         """
 
-        self.name = dict['name']
-        self.hidden_state_dimension = dict['hidden_state_dimension']
-        self.features = []
+        self.name = attr.get('name')
+        self.hidden_state_dimension = attr.get('hidden_state_dimension')
+        self.features = [Feature(f) for f in attr.get('features', [])]
+        #self.features = []
 
-        if 'features' in dict:
-            self.features = [Feature(f) for f in dict['features']]
+        #if 'features' in attr:
+        #    self.features = [Feature(f) for f in attr'features']]
 
     def get_entity_total_feature_size(self):
         total = 0
@@ -139,12 +133,18 @@ class Entity:
         # concatenate all the features
         for feature in self.features:
             name_feature = feature.name
-            total += feature.size
 
+            # if the feature vector is 1-d, then the feature size is always 1
+            size = feature.size
+            if len(tf.shape(input.get(name_feature))) == 1:
+                size = 1
+
+            size = tf.cast(size, dtype=tf.int64)
+
+            total += size
             with tf.name_scope('add_feature_' + str(name_feature)) as _:
-                size = feature.size
-                aux = tf.reshape(input[name_feature],
-                                                 tf.stack([input['num_' + str(self.name)], size]))
+                aux = tf.reshape(input.get(name_feature),
+                                                 tf.stack([input.get('num_' + str(self.name)), size]))
 
                 if first:
                     state = aux
@@ -152,7 +152,7 @@ class Entity:
                 else:
                     state = tf.concat([state, aux], axis=1, name="add_" + name_feature)
 
-        shape = tf.stack([input['num_' + self.name], self.hidden_state_dimension - total], axis=0)  # shape (2,)
+        shape = tf.stack([input.get('num_' + self.name), self.hidden_state_dimension - total], axis=0)  # shape (2,)
 
         # add 0s until reaching the given dimension
         with tf.name_scope('add_zeros_to_' + str(self.name)) as _:
@@ -170,7 +170,7 @@ class Aggregation:
         Type of aggreagation
     """
     def __init__(self, dict):
-        self.type = dict['type']
+        self.type = dict.get('type')
 
 
 class Sum_aggr(Aggregation):
@@ -242,11 +242,7 @@ class Attention_aggr(Aggregation):
 
     def __init__(self, dict):
         super(Attention_aggr, self).__init__(dict)
-
-        self.weight_initialization = None
-
-        if 'weight_initialization' in dict:
-            self.weight_initialization = dict['weight_initialization']
+        self.weight_initialization = dict.get('weight_initialization', None)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, dst_states, comb_seq, num_dst, kernel1, kernel2, attn_kernel):
         """
@@ -326,7 +322,6 @@ class Edge_attention_aggr(Aggregation):
         Caclulates the result of applying the attention mechanism
     """
 
-
     def __init__(self, op):
         super(Edge_attention_aggr, self).__init__(op)
         del op['type']
@@ -336,13 +331,11 @@ class Edge_attention_aggr(Aggregation):
     def get_model(self):
         return self.aggr_model.model
 
-    def calculate_input(self, comb_src_states, comb_dst_idx, num_dst, weights, ):
+    def calculate_input(self, comb_src_states, comb_dst_idx, num_dst, weights):
         # apply the attention mechanism
-        weighted_inputs = comb_src_states * weights
-
+        weighted_inputs =  weights * comb_src_states
         # sum by destination nodes
-        src_input = tf.math.unsorted_segment_sum(weighted_inputs, comb_dst_idx, num_dst)
-
+        src_input = tf.math.unsorted_segment_sum(weighted_inputs, comb_dst_idx, int(num_dst))
         return src_input
 
 
@@ -355,20 +348,10 @@ class Conv_aggr(Aggregation):
     calculate_input(self, comb_src_states, comb_dst_idx, dst_states, num_dst, kernel)
         Caclulates the result of applying the convolution mechanism
     """
-
-
-    def __init__(self, dict):
-        super(Conv_aggr, self).__init__(dict)
-
-        if 'activation_function' in dict:
-            self.activation_function = dict['activation_function']
-        else:
-            self.activation_function = 'relu'
-
-        self.weight_initialization = None
-
-        if 'weight_initialization' in dict:
-            self.weight_initialization = dict['weight_initialization']
+    def __init__(self, attr):
+        super(Conv_aggr, self).__init__(attr)
+        self.activation_function = attr.get('activation_function', 'relu')
+        self.weight_initialization = attr.get('weight_initialization', None)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, dst_states, num_dst, kernel):
         """
@@ -421,7 +404,7 @@ class Conv_aggr(Aggregation):
         normalized_val = (normalized_val - mean) /var
 
         # apply the non-linearity
-        activation_func = getattr(tf.keras.activations, self.activation_function)
+        activation_func = getattr(tf.nn, self.activation_function)
 
         return activation_func(normalized_val)
 
@@ -438,7 +421,7 @@ class Interleave_aggr(Aggregation):
 
     def __init__(self, dict):
         super(Interleave_aggr, self).__init__(dict)
-        self.combination_definition = dict['interleave_definition']
+        self.combination_definition = dict.get('interleave_definition')
 
 
     def calculate_input(self, src_input, indices):
@@ -480,12 +463,9 @@ class Concat_aggr(Aggregation):
 
     """
 
-    def __init__(self, dict):
-        super(Concat_aggr, self).__init__(dict)
-        self.concat_axis = int(dict['concat_axis'])
-
-
-
+    def __init__(self, attr):
+        super(Concat_aggr, self).__init__(attr)
+        self.concat_axis = int(attr.get('concat_axis'))
 
 class Message_Passing:
     """
@@ -551,11 +531,11 @@ class Message_Passing:
             Dictionary with the required attributes
         """
 
-        self.destination_entity = m['destination_entity']
-        self.source_entities = [Source_Entity(s) for s in m['source_entities']]
+        self.destination_entity = m.get('destination_entity')
+        self.source_entities = [Source_Entity(s) for s in m.get('source_entities')]
 
-        self.aggregation = self.create_aggregation(m['aggregation'])
-        self.update = self.create_update(m['update'])
+        self.aggregation = self.create_aggregation(m.get('aggregation'))
+        self.update = self.create_update(m.get('update'))
 
     def create_update(self, u):
         """
@@ -565,35 +545,36 @@ class Message_Passing:
             Dictionary with the required attributes for the update
         """
 
-        type_update = u['type']
+        type_update = u.get('type')
         if type_update == 'feed_forward':
             return Feed_forward_operation(u, model_role='update')
 
-        if type_update == 'recurrent_neural_network':
+        elif type_update == 'recurrent_neural_network':
             return RNN_operation(u, model_role= 'update')
 
 
-    def create_aggregation(self, dict):
+    def create_aggregation(self, attr):
         """
         Parameters
         ----------
         dict:    dict
             Dictionary with the required attributes for the aggregation
         """
-        if dict['type'] == 'interleave':
-            return Interleave_aggr(dict)
-        elif dict['type'] == 'concat':
-            return Concat_aggr(dict)
-        elif dict['type'] == 'sum':
-            return Sum_aggr(dict)
-        elif dict['type'] == 'attention':
-            return Attention_aggr(dict)
-        elif dict['type'] == 'edge_attention':
-            return Edge_attention_aggr(dict)
-        elif dict['type'] == 'convolution':
-            return Conv_aggr(dict)
+        type = attr.get('type')
+        if type == 'interleave':
+            return Interleave_aggr(attr)
+        elif type == 'concat':
+            return Concat_aggr(attr)
+        elif type == 'sum':
+            return Sum_aggr(attr)
+        elif type == 'attention':
+            return Attention_aggr(attr)
+        elif type == 'edge_attention':
+            return Edge_attention_aggr(attr)
+        elif type == 'convolution':
+            return Conv_aggr(attr)
         else:
-            return Aggregation(dict)
+            return Aggregation(attr)
 
 
     def find_type_of_message_creation(self, type):
@@ -605,11 +586,8 @@ class Message_Passing:
         """
         return 'feed_forward' if type == 'yes' else 'hidden_state'
 
-
-
     def get_instance_info(self):
         return [src.get_instance_info(self.destination_entity) for src in self.source_entities]
-
 
 class Source_Entity:
     """
@@ -636,11 +614,11 @@ class Source_Entity:
         Returns information of the class
 
     """
-    def __init__(self, dict):
-        self.name = dict['name']
-        self.adj_vector = dict['adj_vector']
-        self.message_formation = self.create_message_formation(dict['message']) if 'message' in dict else [None]
-        self.extra_parameters = dict['extra_parameters']
+    def __init__(self, attr):
+        self.name = attr.get('name')
+        self.adj_vector = attr.get('adj_vector')
+        self.message_formation = self.create_message_formation(attr.get('message')) if 'message' in attr else [None]
+        self.extra_parameters = attr.get('extra_parameters')
 
     def create_message_formation(self, operations):
         """
@@ -652,16 +630,17 @@ class Source_Entity:
         result = []
         counter = 0
         for op in operations:
-            if op['type'] == 'feed_forward':
+            type = op.get('type')
+            if type == 'feed_forward':
                 result.append(Feed_forward_operation(op, model_role='message_creation_' + str(counter)))
 
-            elif op['type'] == 'direct_assignation':
+            elif type == 'direct_assignation':
                 result.append(None)
 
-            elif op['type'] == 'product':
+            elif type == 'product':
                 result.append(Product_operation(op))
-            counter += 1
 
+            counter += 1
         return result
 
     def get_instance_info(self, dst_name):
@@ -671,7 +650,6 @@ class Source_Entity:
         dst_name:    dict
             Name of the destination entity
         """
-
         return [self.adj_vector, self.name, dst_name, str(self.extra_parameters > 0)]
 
 
@@ -686,7 +664,6 @@ class Recurrent_Cell:
         Type of recurrent model to be used
     params:     dict
         Additional parameters
-
 
     Methods:
     --------
@@ -713,10 +690,8 @@ class Recurrent_Cell:
 
         self.type = type
         self.parameters = parameters
-
-        self.trainable = True
-        if 'trainable' in self.parameters:
-            self.trainable = 'True' == self.parameters['trainable']
+        self.trainable = self.parameters.get('trainable', 'True')
+        self.trainable = 'True' == self.trainable
 
         for k, v in self.parameters.items():
             if v == 'None':
@@ -747,7 +722,7 @@ class Recurrent_Cell:
         old_state:  tensor
             Old hs of the destination entity
         """
-        src_input = tf.ensure_shape(src_input, [None, int(dst_dim)])
+        src_input = tf.ensure_shape(src_input, [None, dst_dim])
         new_state, _ = model(src_input, [old_state])
         return new_state
 
@@ -805,20 +780,20 @@ class Feed_forward_Layer:
         parameters:    dict
             Additional parameters of the model
         """
-        self.trainable = True
         self.type = type
 
         if 'kernel_regularizer' in parameters:
-            parameters['kernel_regularizer'] = tf.keras.regularizers.l2(float(parameters['kernel_regularizer']))
+            parameters['kernel_regularizer'] = tf.keras.regularizers.l2(float(parameters.get('kernel_regularizer')))
 
-        if 'activation' in parameters and parameters['activation'] == 'None':
-            parameters['activation'] = None
+        if 'activation' in parameters:
+            activation = parameters.get('activation')
+            if activation == 'None':
+                parameters['activation'] = None
+            else:
+                parameters['activation'] = getattr(tf.nn, activation)
 
-        if 'trainable' in parameters:
-            parameters['trainable'] = 'True' == parameters['trainable']
-        else:
-            parameters['trainable'] = self.trainable
-
+        self.trainable = parameters.get('trainable', 'True')
+        parameters['trainable'] = 'True' == self.trainable
         self.parameters = parameters
 
     def get_tensorflow_object(self, l_previous):
@@ -915,7 +890,7 @@ class Feed_forward_model:
             Name of the destination entity
         """
         setattr(self, str(var_name) + "_layer_" + str(0),
-                tf.keras.Input(shape=(input_dim,)))
+                tf.keras.Input(shape=(input_dim)))
 
         layer_counter = 1
         n = len(self.layers)
@@ -923,15 +898,17 @@ class Feed_forward_model:
         for j in range(n):
             l = self.layers[j]
             l_previous = getattr(self, str(var_name) + "_layer_" + str(layer_counter - 1))
-
             try:
-                layer_model = l.get_tensorflow_object_last(l_previous, dst_dim) if (j==(n-1) and dst_dim != None) \
-                    else l.get_tensorflow_object(l_previous)
+                # if it's the last layer and we haven't defined an output dimension
+                if j==(n-1) and dst_dim is not None:
+                    layer_model = l.get_tensorflow_object_last(l_previous, dst_dim)
+                else:
+                    layer_model = l.get_tensorflow_object(l_previous)
 
                 setattr(self, str(var_name) + "_layer_" + str(layer_counter), layer_model)
 
             except:
-                if dst_dim == None: #message_creation
+                if dst_dim is None: #message_creation
                     if is_readout:
                         tf.compat.v1.logging.error(
                             'IGNNITION: The layer ' + str(
@@ -977,15 +954,15 @@ class Operation():
     """
 
     def __init__(self, op):
-        self.type = op['type']
+        self.type = op.get('type')
 
         self.output_name = None
 
         if 'output_name' in op:
-            self.output_name = op['output_name']
+            self.output_name = op.get('output_name')
 
         if 'input' in op:
-            self.input = op['input']
+            self.input = op.get('input')
 
 
 class Product_operation(Operation):
@@ -1003,7 +980,7 @@ class Product_operation(Operation):
 
     def __init__(self, op):
         super(Product_operation, self).__init__(op)
-        self.type_product = op['type_product']
+        self.type_product = op.get('type_product')
 
     def calculate(self, product_input1, product_input2):
         """
@@ -1020,13 +997,10 @@ class Product_operation(Operation):
 
             elif self.type_product == 'element_wise':
                 result = tf.math.multiply(product_input1, product_input2)
-
             return result
 
         except:
-            tf.compat.v1.logging.error('IGNNITION:  The product operation between ' + str(
-                operation.input[0]) + ' and ' + operation.input[
-                                           1] + ' failed. Check that the dimensions are compatible.')
+            tf.compat.v1.logging.error('IGNNITION:  The product operation between ' + product_input1 + ' and ' + product_input2 + ' failed. Check that the dimensions are compatible.')
             sys.exit(1)
 
 
@@ -1057,17 +1031,10 @@ class Predicting_operation(Operation):
         """
 
         super(Predicting_operation, self).__init__(operation)
-        self.model = Feed_forward_model({'architecture': operation['architecture']}, model_role="readout")
-        self.label = operation['label']
-        self.label_normalization = None
-        self.label_denormalization = None
-
-        if 'label_normalization' in operation:
-            self.label_normalization = operation['label_normalization']
-
-        if 'label_denormalization' in operation:
-            self.label_denormalization = operation['label_denormalization']
-
+        self.model = Feed_forward_model({'architecture': operation.get('architecture')}, model_role="readout")
+        self.label = operation.get('label')
+        self.label_normalization = operation.get('label_normalization', None)
+        self.label_denormalization = operation.get('label_denormalizatin', None)
 
 class Pooling_operation(Operation):
     """
@@ -1095,7 +1062,7 @@ class Pooling_operation(Operation):
         """
 
         super(Pooling_operation, self).__init__(operation)
-        self.type_pooling = operation['type_pooling']
+        self.type_pooling = operation.get('type_pooling')
 
     def calculate(self, pooling_input):
         """
@@ -1138,7 +1105,7 @@ class Feed_forward_operation(Operation):
         super(Feed_forward_operation, self).__init__(op)
 
         # we need somehow to find the number of extra_parameters beforehand
-        self.model = Feed_forward_model({'architecture': op['architecture']}, model_role=model_role)
+        self.model = Feed_forward_model({'architecture': op.get('architecture')}, model_role=model_role)
 
 
 class RNN_operation(Operation):
@@ -1146,55 +1113,14 @@ class RNN_operation(Operation):
         super(RNN_operation, self).__init__(op)
 
         if 'input' in op:
-            self.input = op['input']
+            self.input = op.get('input')
 
         del op['type']
-        self.recurrent_type = op['recurrent_type']
+        self.recurrent_type = op.get('recurrent_type')
         del op['recurrent_type']
 
         # we need somehow to find the number of extra_parameters beforehand
         self.model = Recurrent_Cell(self.recurrent_type, op)
-
-
-
-class Extend_tensor(Operation):
-    """
-    Subclass of Readout_operation that given a 1-d tensor of dim = a, and a second tensor of dim = b x c,
-    replicates the first tensor b times to have dim = b x a
-
-    Attributes:
-    ----------
-    adj_list:    str
-        Adjacency list to be used
-    output_name:    int
-        Name to save the output of the operation with
-
-    Methods:
-    --------
-    calculate(self, src_states, adj_src, dst_states, adj_dst)
-        Applies the extend_adjacency operation to two inputs
-    """
-
-    def __init__(self, op):
-        super(Extend_tensor, self).__init__(op)
-
-    def calculate(self, tensor_to_replicate, ref_tensor ):
-        """
-        Parameters
-        ----------
-        src_states:    tensor
-           Input 1
-        adj_src:    tensor
-            Adj src -> dest
-        dst_states:     tensor
-            Input 2
-        adj_dst:    tensor
-            Adj dst -> src
-        """
-
-        n = tf.shape(ref_tensor)[0] #number of times to replicate
-        return [tensor_to_replicate]* n
-
 
 class Extend_adjacencies(Operation):
     """
@@ -1216,7 +1142,7 @@ class Extend_adjacencies(Operation):
     def __init__(self, op):
         super(Extend_adjacencies, self).__init__({'type': op['type'], 'input': op['input']})
         self.adj_list = op['adj_list']
-        self.output_name = [op['output_name_src'], op['output_name_dst']]
+        self.output_name = [op.get('output_name_src'), op.get('output_name_dst')]
 
 
     def calculate(self, src_states, adj_src, dst_states, adj_dst):
@@ -1253,9 +1179,7 @@ class Extend_adjacencies(Operation):
 
 class Weight_matrix:
     def __init__(self, nn):
-        self.nn_name = nn['nn_name']
-        self.weight_dimensions = nn['weight_dimensions']
-        self.trainable = True
-
-        if 'trainable' in nn:
-            self.trainable = 'True' == nn['trainable']
+        self.nn_name = nn.get('nn_name')
+        self.weight_dimensions = nn.get('weight_dimensions')
+        self.trainable = nn.get('trainable', 'True')
+        self.trainable = self.trainable == 'True'
