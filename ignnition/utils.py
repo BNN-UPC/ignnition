@@ -23,10 +23,6 @@ import tensorflow as tf
 import sys
 import os
 
-
-
-
-
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -48,7 +44,6 @@ def print_info(msg):
 def print_header(msg):
     tf.print(bcolors.OKGREEN + msg + bcolors.ENDC, output_stream=sys.stderr)
 
-
 def stream_read_json(f):
     end_symbol = bytes(']', 'utf-8')
     start_pos = 1
@@ -68,7 +63,6 @@ def stream_read_json(f):
                 return
             yield obj
 
-
 def str_to_bool(a):
     """
     Parameters
@@ -76,7 +70,6 @@ def str_to_bool(a):
     a:    str
        Input
     """
-
     if a == 'True':
         return True
     else:

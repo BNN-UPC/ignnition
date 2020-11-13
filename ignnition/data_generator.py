@@ -45,7 +45,6 @@ class Generator:
 
         return cummaxes
 
-
     def make_indices(self, sample, entity_names):
         """
         Parameters
@@ -76,8 +75,8 @@ class Generator:
                 f.seek(start_pos)
                 json_str = f.read(e.pos)
                 obj = json.loads(json_str)
-                start_pos += e.pos +1
-                a = f.read(1)   # this 1 is the coma or the final symbol
+                start_pos += e.pos + 1
+                a = f.read(1)  # this 1 is the coma or the final symbol
 
                 if a == self.end_symbol or a == ']':
                     yield obj
@@ -223,7 +222,6 @@ class Generator:
             for entity in involved_entities:
                 id = involved_entities[entity]
                 data['indices_' + entity + '_to_' + dst_entity] = np.where(result == id)[0].tolist()
-
         if self.training:
             return data, output
         else:
@@ -267,13 +265,13 @@ class Generator:
                 for a in self.additional_input:
                     data_features[a] += processed_sample[0][a]
 
-                for e in self.entity_names:#this is useful to approach this problem more generally for both training and predictions
+                for e in self.entity_names:  # this is useful to approach this problem more generally for both training and predictions
                     data_features['num_' + e] += processed_sample[0]['num_' + e]
 
                 for i in self.interleave_names:
                     max_value = max(data_features['indices_' + i[0] + '_to_' + i[1]])
                     data_features['indices_' + i[0] + '_to_' + i[1]] += (
-                                np.array(processed_sample[0]['indices_' + i[0] + '_to_' + i[1]]) + max_value).tolist()
+                            np.array(processed_sample[0]['indices_' + i[0] + '_to_' + i[1]]) + max_value).tolist()
 
                 # process the target
                 if self.training:
@@ -283,7 +281,6 @@ class Generator:
             return data_features, data_target
 
         return data_features
-
 
     def generate_from_array(self,
                             data_samples,
@@ -295,7 +292,7 @@ class Generator:
                             additional_input,
                             training,
                             shuffle=False,
-                            batch_size= 8):
+                            batch_size=8):
         """
         Parameters
         ----------
@@ -333,7 +330,7 @@ class Generator:
         n = len(data_samples)
         for i in n:
             try:
-                mini_batch_samples = data_samples[i:i+batch_size]
+                mini_batch_samples = data_samples[i:i + batch_size]
                 mini_batch = self.__process_minibatch(mini_batch_samples, batch_size)
                 yield mini_batch
 
@@ -344,16 +341,15 @@ class Generator:
                 sys.exit
 
             except Exception as inf:
-                print_info("There was an unexpected error: \n" +  str(inf))
+                print_info("There was an unexpected error: \n" + str(inf))
                 print_info('Please make sure that all the names used for the definition of the model '
-                    'are defined in your dataset. For instance, you should define a list for: \n'
-                    '1) A list for each of the entities defined with all its nodes of the graph\n'
-                    '2) Each of the features used to define an entity\n'
-                    '3) Additional lists/values used for the definition\n'
-                    '4) The label aimed to predict\n'
-                    '---------------------------------------------------------')
+                           'are defined in your dataset. For instance, you should define a list for: \n'
+                           '1) A list for each of the entities defined with all its nodes of the graph\n'
+                           '2) Each of the features used to define an entity\n'
+                           '3) Additional lists/values used for the definition\n'
+                           '4) The label aimed to predict\n'
+                           '---------------------------------------------------------')
                 sys.exit
-
 
     def generate_from_dataset(self,
                               dir,
@@ -365,7 +361,7 @@ class Generator:
                               additional_input,
                               training,
                               shuffle=False,
-                              batch_size = 8):
+                              batch_size=8):
         """
         Parameters
         ----------
@@ -393,11 +389,11 @@ class Generator:
         self.additional_input = additional_input
         self.training = training
 
-        samples =  glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz')
+        files = glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz')
         if shuffle:
-            random.shuffle(samples)
+            random.shuffle(files)
 
-        for sample_file in samples:
+        for sample_file in files:
             try:
                 if 'tar.gz' in sample_file:
                     tar = tarfile.open(sample_file, 'r:gz')  # read the tar files
@@ -423,11 +419,7 @@ class Generator:
 
             except Exception as inf:
                 print_info("\n There was an unexpected error: \n" + str(inf))
-                print_info('Please make sure that all the names used for the definition of the model '
-                              'are defined in your dataset. For instance, you should define a list for: \n'
-                              '1) A list for each of the entities defined with all its nodes of the graph\n'
-                              '2) Each of the features used to define an entity\n'
-                              '3) Additional lists/values used for the definition\n'
-                              '4) The label aimed to predict\n'
-                              '---------------------------------------------------------')
+                print_info('Please make sure that all the names used in the file ' + sample_file +
+                           'are defined in your dataset')
+
                 sys.exit

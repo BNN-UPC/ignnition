@@ -179,14 +179,17 @@ class Json_preprocessing:
         """
 
         for e in data['entities']:
-            for f in e['features']:
-                name = f['name']
-                f['size'] = dimensions[name]  # add the dimension of the feature
+            features = e.get('features')
+            for f in features:
+                name = f.get('name')
+                f['size'] = dimensions.get(name)  # add the dimension of the feature
 
         for stage in data['message_passing']['stages']:
-            for mp in stage['stage_mp']:
-                for src in mp['source_entities']:
-                    src['extra_parameters'] = dimensions[src['adj_vector']]
+            stages = stage.get('stage_mp')
+            for mp in stages:
+                sources = mp.get('source_entities')
+                for src in sources:
+                    src['extra_parameters'] = dimensions.get(src['adj_vector'])
 
     # validate that all the nn_name are correct. Validate that all source and destination entities are correct. Validate that all the inputs in the message function are correct
     def __validate_model_description(self, data):
@@ -202,27 +205,27 @@ class Json_preprocessing:
         output_names = ['hs_source', 'hs_dst', 'edge_params']
 
         for stage in stages:
-            s = stage['stage_name']
-            for mp in stage['stage_mp']:  # for every message-passing
-                dst_names.append(mp['destination_entity'])
-
-                for src in mp['source_entities']:
-                    src_names.append(src['name'])
-
-                    for op in src['message']:  # for every operation
-                        if op['type'] == 'feed_forward':
-                            called_nn_names.append(op['nn_name'])
-                            input_names += op['input']
+            stage_mp = stage.get('stage_mp')
+            for mp in stage_mp:  # for every message-passing
+                dst_names.append(mp.get('destination_entity'))
+                sources = mp.get('source_entities')
+                for src in sources:
+                    src_names.append(src.get('name'))
+                    messages = src.get('message')
+                    for op in messages:  # for every operation
+                        if op.get('type') == 'feed_forward':
+                            called_nn_names.append(op.get('nn_name'))
+                            input_names += op.get('input')
 
                         if 'output_name' in op:
-                            output_names.append(op['output_name'])
+                            output_names.append(op.get('output_name'))
 
-        readout_op = data['readout']
-        called_nn_names += [op['nn_name'] for op in readout_op if op['type'] == ('predict' or 'feed_forward')]
+        readout_op = data.get('readout')
+        called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == ('predict' or 'feed_forward')]
 
         # now check the entities
-        entity_names = [a['name'] for a in data['entities']]
-        nn_names = [n['nn_name'] for n in data['neural_networks']]
+        entity_names = [a.get('name') for a in data.get('entities')]
+        nn_names = [n.get('nn_name') for n in data.get('neural_networks')]
 
         try:
             # check the source entities
@@ -263,7 +266,7 @@ class Json_preprocessing:
 
         result = {}
         for m in models:
-            result[m['nn_name']] = m
+            result[m.get('nn_name')] = m
         return result
 
     def __get_entities(self, entities):
@@ -285,18 +288,20 @@ class Json_preprocessing:
         """
 
         # add the message_creation nn architecture
-        for s in m['source_entities']:
-            for op in s['message']:
-                if op['type'] == 'feed_forward':
+        sources = m.get('source_entities')
+        for s in sources:
+            messages = s.get('message')
+            for op in messages:
+                if op.get('type') == 'feed_forward':
                     info = copy.deepcopy(self.nn_architectures[op['nn_name']])
                     del op['nn_name']
-                    op['architecture'] = info['nn_architecture']
+                    op['architecture'] = info.get('nn_architecture')
 
         aggr = m['aggregation']
-        if aggr['type'] == 'edge_attention':
+        if aggr.get('type') == 'edge_attention':
             info = copy.deepcopy(self.nn_architectures[aggr['nn_name']])
             del aggr['nn_name']
-            aggr['architecture'] = info['nn_architecture']
+            aggr['architecture'] = info.get('nn_architecture')
 
         # add the update nn architecture
         if 'update' in m:
@@ -332,7 +337,7 @@ class Json_preprocessing:
         """
 
         name = output['nn_name']
-        info = copy.deepcopy(self.nn_architectures[name])
+        info = copy.deepcopy(self.nn_architectures.get(name))
         del output['nn_name']
         output['architecture'] = info['nn_architecture']
 
@@ -347,23 +352,21 @@ class Json_preprocessing:
         """
         result = []
         for op in output_operations:
-            if op['type'] == 'predict':
+            type = op.get('type')
+            if type == 'predict':
                 result.append(Predicting_operation(self.__add_readout_architecture(op)))
 
-            elif op['type'] == 'pooling':
+            elif type == 'pooling':
                 result.append(Pooling_operation(op))
 
-            elif op['type'] == 'product':
+            elif type== 'product':
                 result.append(Product_operation(op))
 
-            elif op['type'] == 'feed_forward':
+            elif type == 'feed_forward':
                 result.append(Feed_forward_operation(self.__add_readout_architecture(op), model_role = 'readout'))
 
-            elif op['type'] == 'extend_adjacencies':
+            elif type == 'extend_adjacencies':
                 result.append(Extend_adjacencies(op))
-
-            elif op['type'] == 'extend_tensor':
-                result.append(Extend_tensor(op))
 
         return result
 
@@ -375,11 +378,11 @@ class Json_preprocessing:
            Dictionary with the initial data
         """
 
-        train_hp = data['learning_options']
+        train_hp = data.get('learning_options')
         dict = {}
 
-        dict['loss'] = train_hp['loss']  # required
-        dict['optimizer'] = train_hp['optimizer']  # required
+        dict['loss'] = train_hp.get('loss')  # required
+        dict['optimizer'] = train_hp.get('optimizer')  # required
         return dict
 
     def __get_input_dims(self, dimensions):
@@ -399,7 +402,7 @@ class Json_preprocessing:
 
 
     def __get_weight_matrices(self, neural_networks):
-        return [Weight_matrix(nn) for nn in neural_networks if nn['nn_type'] == 'weight_matrix']
+        return [Weight_matrix(nn) for nn in neural_networks if nn.get('nn_type') == 'weight_matrix']
 
 
 
@@ -491,6 +494,7 @@ class Json_preprocessing:
                 output_names.update(r.output_name)
 
             elif r.type != 'predict':
+                output_names.add(r.output_name)
                 output_names.add(r.output_name)
 
             for i in r.input:
