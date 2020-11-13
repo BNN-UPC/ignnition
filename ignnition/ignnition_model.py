@@ -78,7 +78,7 @@ class Ignnition_model:
         # TODO: Let the user define an array of names of metrics
 
         # metric_name = ["mae", "mape", "r_squared"]
-        metric_name = ["MeanAbsoluteError", "BinaryAccuracy"]
+        metric_name = ["mae", "mape"]
         metrics = []
         for name in metric_name:
             try:
@@ -367,17 +367,17 @@ class Ignnition_model:
         print_header(
             'Starting the training and evaluation process...\n---------------------------------------------------------------------------\n')
 
-        filenames_train = self.CONFIG['PATHS']['train_dataset']
-        filenames_eval = self.CONFIG['PATHS']['eval_dataset']
+        filenames_train = os.path.normpath(self.CONFIG['PATHS']['train_dataset'])
+        filenames_eval = os.path.normpath(self.CONFIG['PATHS']['eval_dataset'])
 
-        model_dir = self.CONFIG['PATHS']['model_dir']
-        if model_dir[-1] != '/':
-            model_dir += '/'
-        model_dir += 'CheckPoint'
+        model_dir = os.path.normpath(self.CONFIG['PATHS']['model_dir'])
+
+        model_dir = os.path.join(model_dir, 'CheckPoint')
+
         if not os.path.isdir(model_dir):
             os.mkdir(model_dir)
 
-        model_dir = model_dir + '/experiment_' + str(datetime.datetime.now())
+        model_dir = os.path.join(model_dir, 'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
         os.mkdir(model_dir)
 
         strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
@@ -420,7 +420,7 @@ class Ignnition_model:
         # self.gnn_model.save(path_to_final_model, save_format='tf')
 
     def __create_model(self):
-        model_description_path = self.CONFIG['PATHS']['model_description']
+        model_description_path = self.CONFIG['PATHS']['model_description_path']
         dimensions = self.find_dataset_dimensions(self.CONFIG['PATHS']['train_dataset'])
         self.model_info = Json_preprocessing(model_description_path, dimensions)  # read json
 
@@ -443,6 +443,8 @@ class Ignnition_model:
             _ = self.gnn_model(sample, training=False)
 
             return self.gnn_model.load_weights(checkpoint_path)
+
+
 
     def find_dataset_dimensions(self, path):
         """
@@ -486,9 +488,7 @@ class Ignnition_model:
                 # if its either the entity or an adjacency (it is a dictionary, that is non-empty)
                 elif v:
                     first_key = list(v.keys())[0]  # first key of the list
-                    element = v[first_key]
-
-                    # first value of the list (another list)
+                    element = v[first_key]  # first value of the list (another list)
                     if (not isinstance(element[0], str)) and isinstance(element[0], list):
                         # the element[0][0] is the adjacency node. The element[0][1] is the edge information
                         dimensions[k] = len(element[0][1])
@@ -547,13 +547,12 @@ class Ignnition_model:
         print_header(
             'Generating the computational graph... \n---------------------------------------------------------\n')
 
-        filenames_train = self.CONFIG['PATHS']['train_dataset']
+        filenames_train = os.path.normpath(self.CONFIG['PATHS']['train_dataset'])
 
-        path = self.CONFIG['PATHS']['model_dir']
-        if path[-1] != '/':
-            path += '/'
+        path = os.path.normpath(self.CONFIG['PATHS']['model_dir'])
 
-        path += 'computational_graphs/experiment_' + str(datetime.datetime.now())
+        path = os.path.join(path, 'computational_graphs',
+                            'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
 
         # tf.summary.trace_on() and tf.summary.trace_export().
         writer = tf.summary.create_file_writer(path)
