@@ -221,7 +221,7 @@ class Json_preprocessing:
                             output_names.append(op.get('output_name'))
 
         readout_op = data.get('readout')
-        called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == ('predict' or 'feed_forward')]
+        called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == 'feed_forward']
 
         # now check the entities
         entity_names = [a.get('name') for a in data.get('entities')]
@@ -354,7 +354,7 @@ class Json_preprocessing:
         for op in output_operations:
             type = op.get('type')
             if type == 'predict':
-                result.append(Predicting_operation(self.__add_readout_architecture(op)))
+                result.append(Predicting_operation(op))
 
             elif type == 'pooling':
                 result.append(Pooling_operation(op))
@@ -396,6 +396,7 @@ class Json_preprocessing:
         dict = {}
         for entity in self.entities:
             dict[entity.name] = entity.hidden_state_dimension
+            dict[entity.name + '_initial'] = entity.hidden_state_dimension
 
         # add the size of additional inputs if needed
         return {**dict, **dimensions}
@@ -413,9 +414,6 @@ class Json_preprocessing:
 
     def get_entities(self):
         return self.entities
-
-    def get_combined_mp_options(self):
-        return self.comb_op
 
     def get_combined_mp_sources(self, dst_entity, step_name):
         """
@@ -502,6 +500,7 @@ class Json_preprocessing:
 
         for e in self.entities:
             output_names.add(e.name)
+            output_names.add(e.name + '_initial')
 
         return list(input_names.difference(output_names))
 

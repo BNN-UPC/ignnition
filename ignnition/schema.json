@@ -372,7 +372,7 @@
                             "properties": { "type": { "const": "predict" } }
                         },
                         "then": {
-                            "required": ["nn_name", "label"]
+                            "required": ["label"]
                         }
                     },
                     {

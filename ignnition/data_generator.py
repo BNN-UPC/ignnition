@@ -312,15 +312,13 @@ class Generator:
            Shuffle parameter of the dataset
 
         """
-        data_samples = [json.loads(x.decode('ascii')) for x in data_samples]
-        self.entity_names = [x.decode('ascii') for x in entity_names]
-        self.feature_names = [x.decode('ascii') for x in feature_names]
-        self.output_name = output_name.decode('ascii')
-        self.adj_names = [[x[0].decode('ascii'), x[1].decode('ascii'), x[2].decode('ascii'), x[3].decode('ascii')] for x
-                          in
-                          adj_names]
-        self.interleave_names = [[i[0].decode('ascii'), i[1].decode('ascii')] for i in interleave_names]
-        self.additional_input = [x.decode('ascii') for x in additional_input]
+        data_samples = [json.loads(x) for x in data_samples]
+        self.entity_names = [x for x in entity_names]
+        self.feature_names = [x for x in feature_names]
+        self.output_name = output_name
+        self.adj_names = [[x[0], x[1], x[2], x[3]] for x in adj_names]
+        self.interleave_names = [[i[0], i[1]] for i in interleave_names]
+        self.additional_input = [x for x in additional_input]
         self.training = training
         samples = glob.glob(str(dir) + '/*.tar.gz')
 
@@ -328,7 +326,7 @@ class Generator:
             random.shuffle(samples)
 
         n = len(data_samples)
-        for i in n:
+        for i in range(n):
             try:
                 mini_batch_samples = data_samples[i:i + batch_size]
                 mini_batch = self.__process_minibatch(mini_batch_samples, batch_size)
@@ -388,7 +386,13 @@ class Generator:
         self.interleave_names = interleave_names
         self.additional_input = additional_input
         self.training = training
+
         files = glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz')
+
+        # no elements found
+        if files == []:
+            raise Exception('The dataset located in  ' + dir + ' seems to contain no valid elements (json or .tar.gz)')
+
         if shuffle:
             random.shuffle(files)
 

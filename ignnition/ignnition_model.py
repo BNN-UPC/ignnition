@@ -127,7 +127,7 @@ class Ignnition_model:
         os.mkdir(model_dir + '/ckpt')
 
         # HERE WE CAN ADD AN OPTION FOR EARLY STOPPING
-        return [tf.keras.callbacks.TensorBoard(log_dir=model_dir + '/logs', update_freq='epoch', write_images=True,
+        return [tf.keras.callbacks.TensorBoard(log_dir=model_dir + '/logs', update_freq='epoch', write_images=False,
                                                histogram_freq=1),
                 tf.keras.callbacks.ModelCheckpoint(filepath=model_dir + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
                                                    save_freq='epoch', monitor='loss'),
@@ -380,7 +380,6 @@ class Ignnition_model:
 
         strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
         print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
-
         train_dataset = self.__input_fn_generator(filenames_train,
                                                   shuffle=str_to_bool(
                                                       self.CONFIG['TRAINING_OPTIONS']['shuffle_train_samples']),
@@ -409,12 +408,6 @@ class Ignnition_model:
                            callbacks=callbacks,
                            use_multiprocessing=True,
                            verbose=0)
-
-        # at the end of the training, save the entire model
-        # Save the entire model as a SavedModel.
-        # path_to_final_model = model_dir + '/final_model/'
-        # os.mkdir(path_to_final_model)
-        # self.gnn_model.save(path_to_final_model, save_format='tf')
 
     def __create_model(self):
         model_description_path = self.CONFIG['PATHS']['model_description_path']
@@ -524,7 +517,7 @@ class Ignnition_model:
             while True:
                 pred = self.gnn_model(sample_it.get_next(), training=False)
                 pred = tf.squeeze(pred)
-                output_name, _, output_denormalization = self.model.get_output_info()  # for now suppose we only have one output type
+                output_name, _, output_denormalization = self.model_info.get_output_info()  # for now suppose we only have one output type
                 try:
                     denorm_func = getattr(self.module, output_denormalization)
                     pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
