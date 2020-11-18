@@ -83,12 +83,17 @@
         },
     "readout":  [
         {
-            "type": "predict",
+            "type": "feed_forward",
             "input": ["path"],
+            "nn_name": "readout_model",
+            "output_name": "path_hs2"
+        },
+        {
+            "type": "predict",
+            "input": ["path_hs2"],
             "label": "delay",
             "label_normalization": "log",
-            "label_denormalization": "exp",
-            "nn_name": "readout_model"
+            "label_denormalization": "exp"
         }
     ],
 

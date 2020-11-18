@@ -792,6 +792,9 @@ class Feed_forward_Layer:
             else:
                 parameters['activation'] = getattr(tf.nn, activation)
 
+        #if self.type == 'Reshape':
+        #    dimensions = parameters['target_shape']
+        #    parameters['target_shape'] = tuple(dimensions)
         self.trainable = parameters.get('trainable', 'True')
         parameters['trainable'] = 'True' == self.trainable
         self.parameters = parameters
@@ -993,10 +996,20 @@ class Product_operation(Operation):
         """
         try:
             if self.type_product == 'dot_product':
-                result = tf.tensordot(product_input1, product_input2, axes=0)
+                result = tf.tensordot(product_input1, product_input2, axes=[[1],[1]])
+
+                # the correct values are in the diagonal (IMPROVE THIS)
+                # This does the dot product row by row (so independently for each adjacency)
+                result = tf.linalg.tensor_diag_part(result)
+                result = tf.expand_dims(result, axis=-1)
 
             elif self.type_product == 'element_wise':
                 result = tf.math.multiply(product_input1, product_input2)
+
+            elif self.type_product == 'mat_mult':
+                result = tf.tensordot(product_input1, product_input2, axes=[[2],[1]])
+                result = tf.squeeze(result, axis=2)
+
             return result
 
         except:
@@ -1031,7 +1044,6 @@ class Predicting_operation(Operation):
         """
 
         super(Predicting_operation, self).__init__(operation)
-        self.model = Feed_forward_model({'architecture': operation.get('architecture')}, model_role="readout")
         self.label = operation.get('label')
         self.label_normalization = operation.get('label_normalization', None)
         self.label_denormalization = operation.get('label_denormalizatin', None)
@@ -1042,10 +1054,8 @@ class Pooling_operation(Operation):
 
     Attributes:
     ----------
-    type_product:    str
-        Type of product to be used
-    output_name:    int
-        Name to save the output of the operation with
+    type_pooling:    str
+        Type of pooling to be used
 
     Methods:
     --------
