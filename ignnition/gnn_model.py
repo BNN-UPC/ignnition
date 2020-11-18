@@ -91,7 +91,8 @@ class Gnn_model(tf.keras.Model):
                                             self.save_global_variable(operation.output_name + '_dim', output_shape)
 
                                     elif operation.type == 'product':
-                                        pass
+                                        if operation.type_product == 'dot_product':
+                                            output_shape = 1
 
 
                             self.save_global_variable("final_message_dim_" + src.adj_vector, output_shape)
@@ -228,7 +229,7 @@ class Gnn_model(tf.keras.Model):
 
                     self.save_global_variable(w.nn_name, mask)
 
-    @tf.function
+    #@tf.function
     def call(self, input, training):
         """
         Parameters
@@ -284,12 +285,12 @@ class Gnn_model(tf.keras.Model):
 
                                                 with tf.name_scope(
                                                         'create_message_' + src_name + '_to_' + dst_name) as _:
-                                                    src_messages = tf.gather(src_states, src_idx)
-                                                    dst_messages = tf.gather(dst_states, dst_idx)
+                                                    self.src_messages = tf.gather(src_states, src_idx)
+                                                    self.dst_messages = tf.gather(dst_states, dst_idx)
                                                     message_creation_models = src.message_formation
 
                                                     # by default, the source hs are the messages
-                                                    result = src_messages
+                                                    result = self.src_messages
                                                     counter = 0
 
                                                     for operation in message_creation_models:
@@ -304,18 +305,7 @@ class Gnn_model(tf.keras.Model):
                                                                     first = True
                                                                     with tf.name_scope('obtain_input') as _:
                                                                         for i in operation.input:
-                                                                            if i == 'hs_source':
-                                                                                new_input = src_messages
-                                                                            elif i == 'hs_dst':
-                                                                                new_input = dst_messages
-                                                                            elif i == 'edge_params':
-                                                                                new_input = tf.cast(
-                                                                                    input['params_' + src.adj_vector],
-                                                                                    tf.float32)
-                                                                            else:
-                                                                                new_input = self.get_global_variable(
-                                                                                    i + '_var')
-
+                                                                            new_input = self.treat_message_function_input(i, src.adj_vector, f_ )
                                                                             # accumulate the results
                                                                             if first:
                                                                                 first = False
@@ -330,14 +320,15 @@ class Gnn_model(tf.keras.Model):
                                                                 with tf.name_scope(
                                                                         'apply_product_' + str(counter)) as _:
                                                                     with tf.name_scope('obtain_input') as _:
-                                                                        product_input1 = self.get_global_var_or_input(
-                                                                            operation.input[0], f_)
-                                                                        product_input2 = self.get_global_var_or_input(
-                                                                            operation.input[1], f_)
 
+                                                                        product_input1 = self.treat_message_function_input(
+                                                                            operation.input[0], src.adj_vector, f_)
+
+                                                                        product_input2 = self.treat_message_function_input(
+                                                                            operation.input[1], src.adj_vector, f_)
                                                                     result = operation.calculate(product_input1, product_input2)
 
-                                                            if operation.output_name != None:
+                                                            if operation.output_name is not None:
                                                                 self.save_global_variable(
                                                                     operation.output_name + '_var', result)
 
@@ -604,3 +595,18 @@ class Gnn_model(tf.keras.Model):
             Name of the global variable to save
         """
         return getattr(self, var_name)
+
+    def treat_message_function_input(self, var_name, adj_vector_name, f_):
+        if var_name == 'hs_source':
+            new_input = self.src_messages
+        elif var_name == 'hs_dst':
+            new_input = self.dst_messages
+        elif var_name == 'edge_params':
+            new_input = tf.cast(
+                f_['params_' + adj_vector_name],
+                tf.float32)
+        else:
+            new_input = self.get_global_variable(
+                var_name + '_var')
+
+        return new_input

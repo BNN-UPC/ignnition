@@ -120,7 +120,7 @@ class Ignnition_model:
         gnn_model.compile(loss=self.__loss_function,
                           optimizer=optimizer,
                           metrics=self.__get_keras_metrics(),
-                          run_eagerly=False)
+                          run_eagerly=True)
         return gnn_model
 
     def __get_model_callbacks(self, model_dir, mini_epoch_size, num_epochs, metric_names):

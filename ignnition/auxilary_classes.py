@@ -995,6 +995,11 @@ class Product_operation(Operation):
             if self.type_product == 'dot_product':
                 result = tf.tensordot(product_input1, product_input2, axes=[[1],[1]])
 
+                # the correct values are in the diagonal (IMPROVE THIS)
+                # This does the dot product row by row (so independently for each adjacency)
+                result = tf.linalg.tensor_diag_part(result)
+                result = tf.expand_dims(result, axis=-1)
+
             elif self.type_product == 'element_wise':
                 result = tf.math.multiply(product_input1, product_input2)
 
