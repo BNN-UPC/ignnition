@@ -65,7 +65,7 @@ class Gnn_model(tf.keras.Model):
                                 self.dimensions.get(src_name))  # default if operation is direct_assignation
                             for operation in operations:
                                 if operation is not None:
-                                    if operation.type == 'feed_forward_nn':
+                                    if operation.type == 'feed_forward':
                                         var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(counter)
 
                                         # Find out the dimension of the model
@@ -87,7 +87,7 @@ class Gnn_model(tf.keras.Model):
                                         self.save_global_variable(var_name, model)
 
                                         # Need to keep track of the output dimension of this one, in case we need it for a new model
-                                        if operation.output_name != 'None':
+                                        if operation.output_name is not None:
                                             self.save_global_variable(operation.output_name + '_dim', output_shape)
 
                                     elif operation.type == 'product':
@@ -229,7 +229,7 @@ class Gnn_model(tf.keras.Model):
 
                     self.save_global_variable(w.nn_name, mask)
 
-    #@tf.function
+    @tf.function
     def call(self, input, training):
         """
         Parameters
@@ -297,10 +297,10 @@ class Gnn_model(tf.keras.Model):
                                                         if operation is not None:  # if it is not direct_assignation
                                                             type_operation = operation.type
 
-                                                            if type_operation == 'feed_forward_nn':
+                                                            if type_operation == 'feed_forward':
                                                                 with tf.name_scope('apply_nn_' + str(counter)) as _:
-                                                                    var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(
-                                                                        counter)  # careful. This name could overlap with another model
+                                                                    # careful. This name could overlap with another model
+                                                                    var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(counter)
                                                                     message_creator = self.get_global_variable(var_name)
                                                                     first = True
                                                                     with tf.name_scope('obtain_input') as _:

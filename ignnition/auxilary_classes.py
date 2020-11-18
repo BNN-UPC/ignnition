@@ -792,6 +792,9 @@ class Feed_forward_Layer:
             else:
                 parameters['activation'] = getattr(tf.nn, activation)
 
+        #if self.type == 'Reshape':
+        #    dimensions = parameters['target_shape']
+        #    parameters['target_shape'] = tuple(dimensions)
         self.trainable = parameters.get('trainable', 'True')
         parameters['trainable'] = 'True' == self.trainable
         self.parameters = parameters
