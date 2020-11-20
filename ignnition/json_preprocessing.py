@@ -19,7 +19,7 @@
 # -*- coding: utf-8 -*-
 
 
-import json
+import yaml
 from jsonschema import validate
 import copy
 import sys
@@ -134,40 +134,26 @@ class Json_preprocessing:
         """
 
         # read and validate the json file
-        data = self.__read_json(path)
+        with open(path, 'r') as stream:
+            try:
+                data = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print("The model description file was not found in: " + path)
 
-        with importlib.resources.path('ignnition', "schema.json") as schema_file:
-            validate(instance=data,schema=self.__read_json(schema_file))  # validate that the json is well defined
+        #with importlib.resources.path('ignnition', "schema.json") as schema_file:
+        #    validate(instance=data,schema=self.__read_json(schema_file))  # validate that the json is well defined
         self.__validate_model_description(data)
         self.__add_dimensions(data, dimensions)  # add the dimension of the features and of the edges
         self.nn_architectures = self.__get_nn_mapping(data['neural_networks'])
         self.entities = self.__get_entities(data['entities'])
 
-        self.iterations_mp = self.__convergence_or_int(data['message_passing']['num_iterations'])
+        self.iterations_mp = int(data['message_passing']['num_iterations'])
         self.mp_instances = self.__get_mp_instances(data['message_passing']['stages'])
         self.readout_op = self.__get_readout_op(data['readout'])
-        self.training_op = self.__get_training_op(data)
         self.input_dim = self.__get_input_dims(dimensions)
         self.weight_matrices = self.__get_weight_matrices(data['neural_networks'])
 
     # PRIVATE
-    def __convergence_or_int(self, value):
-        print(value)
-        if value == "convergence":
-            return None
-        else:
-            return int(value)
-
-    def __read_json(self, path):
-        """
-        Parameters
-        ----------
-        path:    str (optional)
-            Path of the json file with the model description
-        """
-        with open(path) as json_file:
-            return json.load(json_file)
-
     def __add_dimensions(self, data, dimensions):
         """
         Parameters
@@ -179,13 +165,15 @@ class Json_preprocessing:
         """
 
         for e in data['entities']:
-            features = e.get('features')
-            for f in features:
-                name = f.get('name')
-                f['size'] = dimensions.get(name)  # add the dimension of the feature
+            new_features = []
+            features = e.get('features')    # names of the features
+            for name in features:
+                new_features.append({"name": name, "size": dimensions.get(name)})
+
+            e['features'] = new_features
 
         for stage in data['message_passing']['stages']:
-            stages = stage.get('stage_mp')
+            stages = stage.get('stage_message_passings')
             for mp in stages:
                 sources = mp.get('source_entities')
                 for src in sources:
@@ -205,7 +193,7 @@ class Json_preprocessing:
         output_names = ['hs_source', 'hs_dst', 'edge_params']
 
         for stage in stages:
-            stage_mp = stage.get('stage_mp')
+            stage_mp = stage.get('stage_message_passings')
             for mp in stage_mp:  # for every message-passing
                 dst_names.append(mp.get('destination_entity'))
                 sources = mp.get('source_entities')
@@ -326,7 +314,7 @@ class Json_preprocessing:
         inst:    dict
            Dictionary with the definition of each message passing
         """
-        return [[step['stage_name'], [Message_Passing(self.__add_nn_architecture(m)) for m in step['stage_mp']]] for step in inst]
+        return [['stage_' + str(step_number), [Message_Passing(self.__add_nn_architecture(m)) for m in stage['stage_message_passings']]] for step_number, stage in enumerate(inst)]
 
     def __add_readout_architecture(self, output):
         """
@@ -369,21 +357,6 @@ class Json_preprocessing:
                 result.append(Extend_adjacencies(op))
 
         return result
-
-    def __get_training_op(self, data):
-        """
-        Parameters
-        ----------
-        data:    dict
-           Dictionary with the initial data
-        """
-
-        train_hp = data.get('learning_options')
-        dict = {}
-
-        dict['loss'] = train_hp.get('loss')  # required
-        dict['optimizer'] = train_hp.get('optimizer')  # required
-        return dict
 
     def __get_input_dims(self, dimensions):
         """
@@ -441,7 +414,6 @@ class Json_preprocessing:
     def get_mp_iterations(self):
         return self.iterations_mp
 
-
     def get_interleave_tensors(self):
         return [[mp.aggregation.combination_definition, mp.destination_entity] for stage_name, mps in self.mp_instances for mp in mps if isinstance(mp.aggregation, Interleave_aggr)]
 
@@ -458,9 +430,12 @@ class Json_preprocessing:
         return self.readout_op
 
     def get_output_info(self):
-        result_name = [o.label for o in self.readout_op if o.type == 'predict'][0] #there must be only one
-        result_norm = [o.label_normalization for o in self.readout_op if o.type == 'predict'][0]
-        result_denorm = [o.label_denormalization for o in self.readout_op if o.type == 'predict'][0]
+        result_name = self.readout_op[-1].output_label
+        #result_name = [o.label for o in self.readout_op[-1]][0] #there must be only one
+        result_norm = None
+        result_denorm = []
+        #result_norm = [o.label_normalization for o in self.readout_op if o.type == 'predict'][0]
+        #result_denorm = [o.label_denormalization for o in self.readout_op if o.type == 'predict'][0]
         return result_name, result_norm, result_denorm
 
     def get_all_features(self):

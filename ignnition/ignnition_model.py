@@ -200,8 +200,7 @@ class Ignnition_model:
         for f in feature_list:
             f_name = f.name
             norm_type = f.normalization
-
-            if str(norm_type) != 'None':
+            if str(norm_type) != str(None):
                 try:
                     norm_func = getattr(self.module, norm_type)
                     x[f_name] = tf.py_function(func=norm_func, inp=[x.get(f_name), f_name], Tout=tf.float32)
@@ -211,7 +210,7 @@ class Ignnition_model:
 
         # output
         if y is not None:
-            if str(output_normalization) != 'None':
+            if output_normalization is not None:
                 try:
                     norm_func = getattr(self.module, output_normalization)
                     y = tf.py_function(func=norm_func, inp=[y, output_name], Tout=tf.float32)
@@ -219,7 +218,6 @@ class Ignnition_model:
                 except:
                     print_failure('The normalization function ' + str(
                         output_normalization) + ' is not defined in the main file.')
-
             return x, y
 
         return x
@@ -366,10 +364,11 @@ class Ignnition_model:
         # eval_files is a list of strings (paths)
         print()
         print_header(
-            'Starting the training and evaluation process...\n---------------------------------------------------------------------------\n')
+            'Starting the training and validation process...\n---------------------------------------------------------------------------\n')
 
         filenames_train = os.path.normpath(self.CONFIG['train_dataset'])
         filenames_eval = os.path.normpath(self.CONFIG['validation_dataset'])
+
         model_dir = os.path.normpath(self.CONFIG['model_dir'])
 
         model_dir = os.path.join(model_dir, 'CheckPoint')
@@ -554,7 +553,6 @@ class Ignnition_model:
         # evaluate one single input
         sample_it = self.__input_fn_generator(filenames_train, training=False, data_samples=None, batch_size=1)
         sample = sample_it.get_next()
-
         # Call only one tf.function when tracing.
         _ = self.gnn_model(sample, training=False)
 

@@ -56,7 +56,6 @@
                     "stage_name": "stage2",
                     "stage_mp":[
                         {
-                            "source_entity": "path",
                             "destination_entity":"link",
                             "source_entities": [
                               {
@@ -101,25 +100,24 @@
         {
             "nn_name": "readout_model",
             "nn_type": "feed_forward",
-            "nn_architecture":
-            [
+            "nn_architecture": [
                 {
                     "name": "1st_dense_layer",
-                    "type_layer":"Dense",
+                    "type_layer": "Dense",
                     "units": 256,
                     "kernel_regularizer": 0.1,
                     "activation": "selu"
                 },
                 {
                     "name": "2nd_dense_layer",
-                    "type_layer":"Dense",
+                    "type_layer": "Dense",
                     "units": 256,
                     "kernel_regularizer": 0.1,
                     "activation": "selu"
                 },
                 {
                     "name": "Output",
-                    "type_layer":"Dense",
+                    "type_layer": "Dense",
                     "units": 1,
                     "kernel_regularizer": 0.01,
                     "activation": "selu"

@@ -1,0 +1,28 @@
+# PATHS
+train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/train
+validation_dataset: ../Datasets/Datasets_framework/Dataset_routenet/eval
+#predict_dataset:
+#warm_start_path:
+model_description_path: ./examples/Routenet/model_description.yaml
+additional_functions_file: ./main.py
+model_dir: ./examples/Routenet/
+
+# OPTIMIZATION OPTIONS
+loss: MeanSquaredError
+optimizer:
+  type: Adam
+  learning_rate:  # define a schedule
+    type: ExponentialDecay
+    initial_learning_rate: 0.001
+    decay_steps: 80000
+    decay_rate: 0.6
+metrics: [sample_num, loss, mean_absolute_error, BinaryAccuracy]
+
+# TRAINING OPTIONS
+batch_size: 1
+epochs: 3
+epoch_size: 1000
+shuffle_training_set: True
+shuffle_validation_set: False
+val_samples: 100
+val_frequency: 1

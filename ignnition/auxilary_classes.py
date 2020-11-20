@@ -93,10 +93,6 @@ class Entity:
         self.name = attr.get('name')
         self.hidden_state_dimension = attr.get('hidden_state_dimension')
         self.features = [Feature(f) for f in attr.get('features', [])]
-        #self.features = []
-
-        #if 'features' in attr:
-        #    self.features = [Feature(f) for f in attr'features']]
 
     def get_entity_total_feature_size(self):
         total = 0
@@ -530,7 +526,6 @@ class Message_Passing:
         m:    dict
             Dictionary with the required attributes
         """
-
         self.destination_entity = m.get('destination_entity')
         self.source_entities = [Source_Entity(s) for s in m.get('source_entities')]
 
@@ -958,8 +953,11 @@ class Operation():
 
     def __init__(self, op):
         self.type = op.get('type')
-
         self.output_name = None
+        self.output_label = None
+
+        if 'output_label' in op:
+            self.output_label = op['output_label']
 
         if 'output_name' in op:
             self.output_name = op.get('output_name')
@@ -980,7 +978,6 @@ class Product_operation(Operation):
         Name to save the output of the operation with
 
     """
-
     def __init__(self, op):
         super(Product_operation, self).__init__(op)
         self.type_product = op.get('type_product')
@@ -1015,38 +1012,6 @@ class Product_operation(Operation):
         except:
             tf.compat.v1.logging.error('IGNNITION:  The product operation between ' + product_input1 + ' and ' + product_input2 + ' failed. Check that the dimensions are compatible.')
             sys.exit(1)
-
-
-class Predicting_operation(Operation):
-    """
-    Subclass of Readout_operation that represents the prediction operation
-
-    Attributes
-    ----------
-    type:   str
-        Type of message passing (individual or combined)
-    entity:     str
-        Name of the destination entity which shall be used for the predictions
-    output_label:   str
-        Name found in the dataset with the labels to be predicted
-    output_normalization:   str (opt)
-        Normalization to be used for the labels and predictions
-    output_denormalization:     str (opt)
-        Denormalization strategy for the labels and predictions
-    """
-
-    def __init__(self, operation):
-        """
-        Parameters
-        ----------
-        output:    dict
-            Dictionary with the readout_model parameters
-        """
-
-        super(Predicting_operation, self).__init__(operation)
-        self.label = operation.get('label')
-        self.label_normalization = operation.get('label_normalization', None)
-        self.label_denormalization = operation.get('label_denormalizatin', None)
 
 class Pooling_operation(Operation):
     """
