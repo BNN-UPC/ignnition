@@ -19,8 +19,7 @@
                   },
                   "hidden_state_dimension": {
                       "description": "Size of the hidden state of this entity",
-                      "type": "number",
-                      "exclusiveMinimum": 0
+                      "type": ["number", "string"]
 
                   },
                   "features":

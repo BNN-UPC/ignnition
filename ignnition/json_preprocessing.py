@@ -136,8 +136,14 @@ class Json_preprocessing:
 
         # read and validate the json file
         data = self.__read_yaml(path)
+
+        # validate with the schema
         with importlib.resources.path('ignnition', "schema.json") as schema_file:
             validate(instance=data,schema=self.__read_json(schema_file))  # validate that the json is well defined
+
+        # add the global variables
+        global_variables = self.__read_yaml('./global_variables.yaml')
+        data = self.__add_global_variables(data, global_variables)
 
         self.__validate_model_description(data)
         self.__add_dimensions(data, dimensions)  # add the dimension of the features and of the edges
@@ -150,6 +156,7 @@ class Json_preprocessing:
         self.input_dim = self.__get_input_dims(dimensions)
         self.weight_matrices = self.__get_weight_matrices(data['neural_networks'])
 
+    # PRIVATE
     def __read_json(self, path):
         """
         Parameters
@@ -173,7 +180,21 @@ class Json_preprocessing:
             except yaml.YAMLError as exc:
                 print("The model description file was not found in: " + path)
 
-    # PRIVATE
+    def __add_global_variables(self, data, global_variables):
+        if isinstance(data, dict):
+            for k,v in data.items():
+                if isinstance(v, str) and v in global_variables:
+                    data[k] = global_variables[v]
+
+                # make a recursive call
+                elif isinstance(v, dict):
+                    self.__add_global_variables(v, global_variables)
+                elif isinstance(v, list):
+                    for i in range(len(v)):
+                        self.__add_global_variables(v[i], global_variables)
+
+        return data
+
     def __add_dimensions(self, data, dimensions):
         """
         Parameters
