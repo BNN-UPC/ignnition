@@ -133,7 +133,6 @@ class Json_preprocessing:
         path:    str (optional)
             Path of the json file with the model description
         """
-
         # read and validate the json file
         data = self.__read_yaml(path)
 

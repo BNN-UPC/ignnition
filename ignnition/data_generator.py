@@ -227,61 +227,6 @@ class Generator:
         else:
             return data
 
-    def __get_new_item(self, data, i):
-        # if the data was passed in the form of an array
-        if isinstance(data, list):
-            return data[i]
-        return next(data)
-
-    def __process_minibatch(self, data, batch_size):
-        data_features = {}
-        data_target = []
-        for i in range(batch_size):
-            processed_sample = self.__process_sample(self.__get_new_item(data, i))
-
-            if not isinstance(processed_sample, tuple):
-                processed_sample = [processed_sample]
-
-            if i == 0:
-                data_features = processed_sample[0]
-                if self.training:
-                    data_target = processed_sample[1]
-
-            else:
-                # cummax all the adjacency list (both src, dst and seq)
-                for a in self.adj_names:
-                    max_value = max(data_features['src_' + a[0]])
-
-                    data_features['src_' + a[0]] += (np.array(processed_sample[0]['src_' + a[0]]) + max_value).tolist()
-
-                    max_value = max(data_features['dst_' + a[0]])
-                    data_features['dst_' + a[0]] += (np.array(processed_sample[0]['dst_' + a[0]]) + max_value).tolist()
-
-                    data_features['seq_' + a[1] + '_' + a[2]] += processed_sample[0]['seq_' + a[1] + '_' + a[2]]
-
-                for f in self.feature_names:
-                    data_features[f] += processed_sample[0][f]
-
-                for a in self.additional_input:
-                    data_features[a] += processed_sample[0][a]
-
-                for e in self.entity_names:  # this is useful to approach this problem more generally for both training and predictions
-                    data_features['num_' + e] += processed_sample[0]['num_' + e]
-
-                for i in self.interleave_names:
-                    max_value = max(data_features['indices_' + i[0] + '_to_' + i[1]])
-                    data_features['indices_' + i[0] + '_to_' + i[1]] += (
-                            np.array(processed_sample[0]['indices_' + i[0] + '_to_' + i[1]]) + max_value).tolist()
-
-                # process the target
-                if self.training:
-                    data_target += processed_sample[1]
-
-        if self.training:
-            return data_features, data_target
-
-        return data_features
-
     def generate_from_array(self,
                             data_samples,
                             entity_names,
@@ -325,12 +270,10 @@ class Generator:
         if shuffle == True:
             random.shuffle(samples)
 
-        n = len(data_samples)
-        for i in range(n):
+        for sample in data_samples:
             try:
-                mini_batch_samples = data_samples[i:i + batch_size]
-                mini_batch = self.__process_minibatch(mini_batch_samples, batch_size)
-                yield mini_batch
+                processed_sample = self.__process_sample(sample)
+                yield processed_sample
 
             except StopIteration:
                 pass
@@ -409,10 +352,10 @@ class Generator:
                     file_samples = open(sample_file, 'r')
 
                 file_samples.read(1)
-                aux = self.stream_read_json(file_samples)
+                data = self.stream_read_json(file_samples)
                 while True:
-                    mini_batch = self.__process_minibatch(aux, batch_size)
-                    yield mini_batch
+                    processed_sample = self.__process_sample(next(data))
+                    yield processed_sample
 
             except StopIteration:
                 pass
