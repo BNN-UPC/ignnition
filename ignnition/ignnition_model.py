@@ -35,20 +35,24 @@ from ignnition.data_generator import Generator
 from ignnition.utils import *
 from ignnition.custom_callbacks import *
 import sys
+import yaml
 
 
 class Ignnition_model:
     def __init__(self, path):
-        self.CONFIG = configparser.ConfigParser()
-        self.CONFIG._interpolation = configparser.ExtendedInterpolation()
-        self.CONFIG.read(path)
+        # read the train_options file
+        with open(path, 'r') as stream:
+            try:
+                self.CONFIG = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print("The training options file was not found in " + path)
 
         tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
         warnings.filterwarnings("ignore")
 
         # add the file with any additional function, if any
-        if 'additional_functions_file' in self.CONFIG['PATHS']:
-            aux = self.CONFIG['PATHS']['additional_functions_file']
+        if 'additional_functions_file' in self.CONFIG:
+            aux = self.CONFIG['additional_functions_file']
             sys.path.insert(1, aux)
             self.module = __import__(aux.split('/')[-1][0:-3])
 
@@ -59,7 +63,7 @@ class Ignnition_model:
         self.__restore_model()
 
     def __loss_function(self, labels, predictions):
-        loss_func_name = self.model_info.get_loss()
+        loss_func_name = self.CONFIG['loss']
         try:
             loss_function = getattr(tf.keras.losses, loss_func_name)()
             regularization_loss = sum(self.gnn_model.losses)
@@ -95,28 +99,26 @@ class Ignnition_model:
         gnn_model = Gnn_model(model_info)
 
         # dynamically define the optimizer
-        optimizer_params = model_info.get_optimizer()
+        #optimizer_params = model_info.get_optimizer()
+        optimizer_params = self.CONFIG['optimizer']
         op_type = optimizer_params['type']
         del optimizer_params['type']
 
-        # dynamically define the adaptative learning rate if needed
-
-        if 'schedule' in optimizer_params:
-            schedule = optimizer_params['schedule']
+        # dynamically define the adaptative learning rate if needed (schedule)
+        if 'learning_rate' in optimizer_params and isinstance(optimizer_params['learning_rate'], dict):
+            schedule = optimizer_params['learning_rate']
             type = schedule['type']
             del schedule['type']  # so that only the parameters remain
             s = getattr(tf.keras.optimizers.schedules, type)
 
             # create an instance of the schedule class indicated by the user. Accepts any schedule from keras documentation
             optimizer_params['learning_rate'] = s(**schedule)
-            del optimizer_params['schedule']
 
         # create the optimizer
         o = getattr(tf.keras.optimizers, op_type)
 
         # create an instance of the optimizer class indicated by the user. Accepts any loss function from keras documentation
         optimizer = o(**optimizer_params)
-
         gnn_model.compile(loss=self.__loss_function,
                           optimizer=optimizer,
                           metrics=self.__get_keras_metrics(),
@@ -366,9 +368,9 @@ class Ignnition_model:
         print_header(
             'Starting the training and evaluation process...\n---------------------------------------------------------------------------\n')
 
-        filenames_train = os.path.normpath(self.CONFIG['PATHS']['train_dataset'])
-        filenames_eval = os.path.normpath(self.CONFIG['PATHS']['eval_dataset'])
-        model_dir = os.path.normpath(self.CONFIG['PATHS']['model_dir'])
+        filenames_train = os.path.normpath(self.CONFIG['train_dataset'])
+        filenames_eval = os.path.normpath(self.CONFIG['validation_dataset'])
+        model_dir = os.path.normpath(self.CONFIG['model_dir'])
 
         model_dir = os.path.join(model_dir, 'CheckPoint')
 
@@ -382,19 +384,20 @@ class Ignnition_model:
         print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
         train_dataset = self.__input_fn_generator(filenames_train,
                                                   shuffle=str_to_bool(
-                                                      self.CONFIG['TRAINING_OPTIONS']['shuffle_train_samples']),
-                                                  batch_size=int(self.CONFIG['TRAINING_OPTIONS']['batch_size']),
+                                                      self.CONFIG['shuffle_training_set']),
+                                                  batch_size=int(self.CONFIG['batch_size']),
                                                   data_samples=training_samples)
         validation_dataset = self.__input_fn_generator(filenames_eval,
                                                        shuffle=str_to_bool(
-                                                           self.CONFIG['TRAINING_OPTIONS']['shuffle_eval_samples']),
-                                                       batch_size=int(self.CONFIG['TRAINING_OPTIONS']['batch_size']),
+                                                           self.CONFIG['shuffle_validation_set']),
+                                                       batch_size=int(self.CONFIG['batch_size']),
                                                        data_samples=eval_samples)
 
-        mini_epoch_size = None if self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'] == 'All' else int(
-            self.CONFIG['TRAINING_OPTIONS']['mini_epoch_size'])
-        num_epochs = int(self.CONFIG['TRAINING_OPTIONS']['epochs'])
-        metrics = ['sample_num', 'loss', 'mean_absolute_error', 'BinaryAccuracy']
+        mini_epoch_size = None if self.CONFIG['epoch_size'] == 'All' else int(
+            self.CONFIG['epoch_size'])
+        num_epochs = int(self.CONFIG['epochs'])
+        metrics = self.CONFIG['metrics']
+        #metrics = ['sample_num', 'loss', 'mean_absolute_error', 'BinaryAccuracy']
         # pass the validation data to the callback and do this manually??
         callbacks = self.__get_model_callbacks(model_dir=model_dir, mini_epoch_size=mini_epoch_size,
                                                num_epochs=num_epochs, metric_names=metrics)
@@ -403,29 +406,29 @@ class Ignnition_model:
                            epochs=num_epochs,
                            steps_per_epoch=mini_epoch_size,
                            validation_data=validation_dataset,
-                           validation_freq=int(self.CONFIG['TRAINING_OPTIONS']['val_frequency']),
-                           validation_steps=int(self.CONFIG['TRAINING_OPTIONS']['val_samples']),
+                           validation_freq=int(self.CONFIG['val_frequency']),
+                           validation_steps=int(self.CONFIG['val_samples']),
                            callbacks=callbacks,
                            use_multiprocessing=True,
                            verbose=0)
 
     def __create_model(self):
-        model_description_path = self.CONFIG['PATHS']['model_description_path']
-        dimensions = self.find_dataset_dimensions(self.CONFIG['PATHS']['train_dataset'])
+        model_description_path = self.CONFIG['model_description_path']
+        dimensions = self.find_dataset_dimensions(self.CONFIG['train_dataset'])
         self.model_info = Json_preprocessing(model_description_path, dimensions)  # read json
 
         return self.__make_model(self.model_info)
 
     def __restore_model(self):
-        if self.CONFIG.has_option('PATHS', 'warm_start_path'):
-            checkpoint_path = self.CONFIG['PATHS']['warm_start_path']
+        if 'warm_start_path' in self.CONFIG:
+            checkpoint_path = self.CONFIG['warm_start_path']
         else:
             checkpoint_path = ''
 
         if os.path.isfile(checkpoint_path):
             print("Restoring from", checkpoint_path)
             # in this case we need to initialize the weights to be able to use a warm-start checkpoint
-            sample_it = self.__input_fn_generator(self.CONFIG['PATHS']['train_dataset'], training=False,
+            sample_it = self.__input_fn_generator(self.CONFIG['train_dataset'], training=False,
                                                   data_samples=None, batch_size=1)
             sample = sample_it.get_next()
 
@@ -502,7 +505,7 @@ class Ignnition_model:
 
         if prediction_samples is None:
             try:
-                data_path = self.CONFIG['PATHS']['predict_dataset']
+                data_path = self.CONFIG['predict_dataset']
             except:
                 print_failure(
                     'Make sure to either pass an array of samples or to define in the train_options.ini the path to the prediction dataset')
@@ -537,9 +540,9 @@ class Ignnition_model:
         print_header(
             'Generating the computational graph... \n---------------------------------------------------------\n')
 
-        filenames_train = os.path.normpath(self.CONFIG['PATHS']['train_dataset'])
+        filenames_train = os.path.normpath(self.CONFIG['train_dataset'])
 
-        path = os.path.normpath(self.CONFIG['PATHS']['model_dir'])
+        path = os.path.normpath(self.CONFIG['model_dir'])
 
         path = os.path.join(path, 'computational_graphs',
                             'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
