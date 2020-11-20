@@ -1,0 +1,97 @@
+# Definition of the entities
+entities:
+- name: link
+  hidden_state_dimension: 32
+  features: [link_capacity]
+- name: path
+  hidden_state_dimension: 32
+  features: [traffic]
+- name: node
+  hidden_state_dimension: 32
+  features: [queue_sizes]
+
+# Definition of the message passing phase
+message_passing:
+  num_iterations: 8
+  stages:
+  # STAGE 1
+  - stage_message_passings:
+    # links and nodes to path
+    - destination_entity: path
+      source_entities:
+      - name: link
+        adj_vector: adj_links_paths
+        message:
+        - type: direct_assignation
+      - name: node
+        adj_vector: adj_nodes_paths
+        message:
+        - type: direct_assignation
+      aggregation:
+        type: interleave
+        interleave_definition: path_interleave
+      update:
+        type: recurrent_neural_network
+        nn_name: recurrent1
+
+  # STAGE 2
+  - stage_message_passings:
+    # paths to links
+    - destination_entity: link
+      source_entities:
+      - name: path
+        adj_vector: adj_paths_links
+        message:
+        - type: direct_assignation
+      aggregation:
+        type: sum
+      update:
+        type: recurrent_neural_network
+        nn_name: recurrent1
+
+    # paths to nodes
+    - destination_entity: node
+      source_entities:
+      - name: path
+        adj_vector: adj_paths_nodes
+        message:
+        - type: direct_assignation
+      aggregation:
+        type: sum
+      update:
+        type: recurrent_neural_network
+        nn_name: recurrent1
+
+# Definition of the readout
+readout:
+- type: feed_forward
+  input: [path]
+  nn_name: readout_model
+  output_label: delay
+
+# Definition of the neural networks
+neural_networks:
+# Feed-forward model
+- nn_name: readout_model
+  nn_type: feed_forward
+  nn_architecture:
+  - name: First_dense_layer
+    type_layer: Dense
+    units: 256
+    kernel_regularizer: 0.1
+    activation: selu
+  - name: Second_dense_layer
+    type_layer: Dense
+    units: 256
+    kernel_regularizer: 0.1
+    activation: selu
+  - name: Output_layer
+    type_layer: Dense
+    units: 1
+    kernel_regularizer: 0.01
+    activation: None
+
+# RNN model
+- nn_name: recurrent1
+  nn_type: recurrent_neural_network
+  recurrent_type: GRU

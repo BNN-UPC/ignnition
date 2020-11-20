@@ -97,7 +97,7 @@ class Generator:
         for f in self.feature_names:
             if f not in sample:
                 raise Exception(
-                    'IGNNITION: The feature "' + f + '" was used in the model_description.json file '
+                    'IGNNITION: The feature "' + f + '" was used in the model_description.yaml file '
                                                      'but was not defined in the dataset. A list should be defined with the corresponding value'
                                                      'for each of the nodes of its entity type. \n'
                                                      'E.g., "' + f + '": [v1, v2, v3 ...]')
@@ -108,14 +108,14 @@ class Generator:
         for a in self.additional_input:
             if a not in sample:
                 raise Exception('There was an list of float values named"' + str(
-                    a) + '" which was used in the model_description.json file. Thus it must be defined in the dataset. Please make sure the spelling is correct.')
+                    a) + '" which was used in the model_description.yaml file. Thus it must be defined in the dataset. Please make sure the spelling is correct.')
             else:
                 data[a] = sample[a]
 
         # read the output values if we are training
         if self.training:
             if self.output_name not in sample:
-                raise Exception('The model_description.json file defined a label named "' + str(
+                raise Exception('The model_description.yaml file defined a label named "' + str(
                     self.output_name) + '". This was, however, not found. Make sure the spelling is correct, and that it is a valid array of float values.')
             else:
                 value = sample[self.output_name]
