@@ -23,6 +23,7 @@ import yaml
 from jsonschema import validate
 import copy
 import sys
+import json
 from ignnition.auxilary_classes import *
 from functools import reduce
 import importlib
@@ -134,14 +135,10 @@ class Json_preprocessing:
         """
 
         # read and validate the json file
-        with open(path, 'r') as stream:
-            try:
-                data = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print("The model description file was not found in: " + path)
+        data = self.__read_yaml(path)
+        with importlib.resources.path('ignnition', "schema.json") as schema_file:
+            validate(instance=data,schema=self.__read_json(schema_file))  # validate that the json is well defined
 
-        #with importlib.resources.path('ignnition', "schema.json") as schema_file:
-        #    validate(instance=data,schema=self.__read_json(schema_file))  # validate that the json is well defined
         self.__validate_model_description(data)
         self.__add_dimensions(data, dimensions)  # add the dimension of the features and of the edges
         self.nn_architectures = self.__get_nn_mapping(data['neural_networks'])
@@ -152,6 +149,29 @@ class Json_preprocessing:
         self.readout_op = self.__get_readout_op(data['readout'])
         self.input_dim = self.__get_input_dims(dimensions)
         self.weight_matrices = self.__get_weight_matrices(data['neural_networks'])
+
+    def __read_json(self, path):
+        """
+        Parameters
+        ----------
+        path:    str (optional)
+            Path of the json file with the model description
+        """
+        with open(path) as json_file:
+            return json.load(json_file)
+
+    def __read_yaml(self, path):
+        """
+        Parameters
+        ----------
+        path:    str (optional)
+            Path of the json file with the model description
+        """
+        with open(path, 'r') as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print("The model description file was not found in: " + path)
 
     # PRIVATE
     def __add_dimensions(self, data, dimensions):
