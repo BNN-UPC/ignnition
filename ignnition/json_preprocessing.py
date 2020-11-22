@@ -126,7 +126,7 @@ class Json_preprocessing:
     get_adjecency_info(self)
     """
 
-    def __init__(self, path, dimensions):
+    def __init__(self, path, dimensions, len1_features):
         """
         Parameters
         ----------
@@ -143,9 +143,8 @@ class Json_preprocessing:
         # add the global variables
         global_variables = self.__read_yaml('./global_variables.yaml')
         data = self.__add_global_variables(data, global_variables)
-
         self.__validate_model_description(data)
-        self.__add_dimensions(data, dimensions)  # add the dimension of the features and of the edges
+        self.__add_dimensions(data, dimensions, len1_features)  # add the dimension of the features and of the edges
         self.nn_architectures = self.__get_nn_mapping(data['neural_networks'])
         self.entities = self.__get_entities(data['entities'])
 
@@ -194,7 +193,7 @@ class Json_preprocessing:
 
         return data
 
-    def __add_dimensions(self, data, dimensions):
+    def __add_dimensions(self, data, dimensions, len1_features):
         """
         Parameters
         ----------
@@ -208,8 +207,11 @@ class Json_preprocessing:
             new_features = []
             features = e.get('features')    # names of the features
             for name in features:
-                new_features.append({"name": name, "size": dimensions.get(name)})
-
+                if name in len1_features:
+                    size = 1
+                else:
+                    size = dimensions.get(name)
+                new_features.append({"name": name, "size": size})
             e['features'] = new_features
 
         for stage in data['message_passing']['stages']:
@@ -251,6 +253,9 @@ class Json_preprocessing:
         readout_op = data.get('readout')
         called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == 'feed_forward']
 
+        if 'output_label' not in readout_op[-1]:
+            print_failure('The last operation of the readout MUST contain the definition of the output_label')
+
         # now check the entities
         entity_names = [a.get('name') for a in data.get('entities')]
         nn_names = [n.get('nn_name') for n in data.get('neural_networks')]
@@ -281,8 +286,7 @@ class Json_preprocessing:
                         'The name "' + i + '" was used as input of a message creation operation even though it was not the output of one.')
 
         except Exception as inf:
-            tf.compat.v1.logging.error('IGNNITION: ' + str(inf) + '\n')
-            sys.exit(1)
+            print_failure(inf + '\n')
 
     def __get_nn_mapping(self, models):
         """
@@ -460,12 +464,6 @@ class Json_preprocessing:
     def get_mp_instances(self):
         return self.mp_instances
 
-    def get_optimizer(self):
-        return self.training_op['optimizer']
-
-    def get_loss(self):
-        return self.training_op['loss']
-
     def get_readout_operations(self):
         return self.readout_op
 
@@ -488,7 +486,6 @@ class Json_preprocessing:
         feature:    dict
            Dictionary with the sizes of each feature
         """
-
         return feature['size'] if 'size' in feature else 1
 
     def get_entity_names(self):
@@ -504,10 +501,9 @@ class Json_preprocessing:
 
         for r in self.readout_op:
             if r.type == 'extend_adjacencies':
-                output_names.update(r.output_name)
+                output_names.update(r.output_name)  # several names
 
-            elif r.type != 'predict':
-                output_names.add(r.output_name)
+            elif r.output_name is not None:
                 output_names.add(r.output_name)
 
             for i in r.input:

@@ -23,6 +23,7 @@ import tensorflow as tf
 import tensorflow.keras.activations
 from keras import backend as K
 import sys
+from ignnition.utils import *
 
 
 class Feature:
@@ -39,7 +40,6 @@ class Feature:
         Type of normalization to be applied to this feature
 
     """
-
     def __init__(self, f):
         """
         Parameters
@@ -47,7 +47,6 @@ class Feature:
         f:    dict
             Dictionary with the required attributes
         """
-
         self.name = f.get('name')
         self.size = f.get('size',1)
         self.normalization = f.get('normalization','None')
@@ -94,16 +93,21 @@ class Entity:
         self.hidden_state_dimension = attr.get('hidden_state_dimension')
         self.features = [Feature(f) for f in attr.get('features', [])]
 
+        # check that the dimension of the hidden-state is big enough
+        dim_features = self.get_entity_total_feature_size()
+        if dim_features > self.hidden_state_dimension:
+            print_failure("The dimension of the hidden_state of entity '" + self.name + "' is insufficient to fit all its features. It should be at least " + str(dim_features) )
+
+
     def get_entity_total_feature_size(self):
         total = 0
         for f in self.features:
-            total += f.get_size()
+            total += f.size
 
         return total
 
     def get_features_names(self):
-        return [f.get_name() for f in self.features]
-
+        return [f.name for f in self.features]
 
     def add_feature(self, f):
         """
@@ -122,21 +126,13 @@ class Entity:
         input:    dict
             Dictionary with the required attributes
         """
-
         first = True
         total = 0
 
         # concatenate all the features
         for feature in self.features:
             name_feature = feature.name
-
-            # if the feature vector is 1-d, then the feature size is always 1
             size = feature.size
-            if len(tf.shape(input.get(name_feature))) == 1:
-                size = 1
-
-            size = tf.cast(size, dtype=tf.int64)
-
             total += size
             with tf.name_scope('add_feature_' + str(name_feature)) as _:
                 aux = tf.reshape(input.get(name_feature),
@@ -194,7 +190,7 @@ class Sum_aggr(Aggregation):
 
 class Average_aggr(Aggregation):
     """
-    A subclass that represents the Sum aggreagtion operation
+    A subclass that represents the average aggreagtion operation
 
     Methods:
     ----------
@@ -212,7 +208,6 @@ class Average_aggr(Aggregation):
         src_input:    tensor
            Source entity hs
         """
-
         neighbours_sum = tf.math.unsorted_segment_sum(comb_src_states, comb_dst_idx, num_dst)
 
         # obtain the degrees of each dst_node
@@ -234,8 +229,6 @@ class Attention_aggr(Aggregation):
     calculate_input(self, comb_src_states, comb_dst_idx, dst_states, comb_seq, num_dst, kernel1, kernel2, attn_kernel)
         Caclulates the result of applying the attention mechanism
     """
-
-
     def __init__(self, dict):
         super(Attention_aggr, self).__init__(dict)
         self.weight_initialization = dict.get('weight_initialization', None)
@@ -571,16 +564,6 @@ class Message_Passing:
         else:
             return Aggregation(attr)
 
-
-    def find_type_of_message_creation(self, type):
-        """
-        Parameters
-        ----------
-        type:    str
-            Indicates if it uses a feed-forward, or the message is simply its hidden state
-        """
-        return 'feed_forward' if type == 'yes' else 'hidden_state'
-
     def get_instance_info(self):
         return [src.get_instance_info(self.destination_entity) for src in self.source_entities]
 
@@ -648,7 +631,6 @@ class Source_Entity:
         return [self.adj_vector, self.name, dst_name, str(self.extra_parameters > 0)]
 
 
-
 class Recurrent_Cell:
     """
     Class that represents an RNN model
@@ -682,7 +664,6 @@ class Recurrent_Cell:
         parameters:    dict
            Additional parameters of the model
         """
-
         self.type = type
         self.parameters = parameters
         self.trainable = self.parameters.get('trainable', 'True')
@@ -700,9 +681,17 @@ class Recurrent_Cell:
             Number of units that the recurrent cell will have
         """
         self.parameters['units'] = destination_dimension
-        c_ = getattr(tf.keras.layers, self.type + 'Cell')
-        layer = c_(**self.parameters)
-        layer.trainable = self.trainable
+        try:
+            c_ = getattr(tf.keras.layers, self.type + 'Cell')
+        except:
+            print_failure("Error when trying to define a RNN of type '" + self.type + "' since this type does not exist. Check the valid RNN cells that Keras allow to define.")
+
+        try:
+            layer = c_(**self.parameters)
+            layer.trainable = self.trainable
+        except:
+            print_failure(
+                "Error when creating the RNN of type '" + self.type + "' since invalid parameters were passed. Check the documentation to check which parameters are acceptable or check the spelling of the parameters' names.")
 
         return layer
 
@@ -721,7 +710,7 @@ class Recurrent_Cell:
         new_state, _ = model(src_input, [old_state])
         return new_state
 
-    def perform_sorted_update(self,model, src_input, dst_name, old_state, final_len, num_dst ):
+    def perform_sorted_update(self,model, src_input, dst_name, old_state, final_len):
         """
         Parameters
         ----------
@@ -739,8 +728,8 @@ class Recurrent_Cell:
             Number of destination nodes
         """
         gru_rnn = tf.keras.layers.RNN(model, name=str(dst_name) + '_update')
-
-        new_state = gru_rnn(inputs = src_input, initial_state = old_state)
+        final_len.set_shape([None])
+        new_state = gru_rnn(inputs = src_input, initial_state = old_state, mask=tf.sequence_mask(final_len))
         return new_state
 
 
@@ -765,7 +754,6 @@ class Feed_forward_Layer:
         Returns a tensorflow object of the last layer of the model, and sets its previous layer and the number of output units for it to have.
 
     """
-
     def __init__(self, type, parameters):
         """
         Parameters
@@ -778,18 +766,22 @@ class Feed_forward_Layer:
         self.type = type
 
         if 'kernel_regularizer' in parameters:
-            parameters['kernel_regularizer'] = tf.keras.regularizers.l2(float(parameters.get('kernel_regularizer')))
+            try:
+                parameters['kernel_regularizer'] = tf.keras.regularizers.l2(float(parameters.get('kernel_regularizer')))
+            except:
+                print_failure("The kernel regularizer parameter '" + str(parameters.get('kernel_regularizer')) + "' in layer of type " + self.type + " is invalid. Please make sure it is a numerical value.")
 
         if 'activation' in parameters:
             activation = parameters.get('activation')
             if activation == 'None':
                 parameters['activation'] = None
             else:
-                parameters['activation'] = getattr(tf.nn, activation)
+                try:
+                    parameters['activation'] = getattr(tf.nn, activation)
+                except:
+                    print_failure("The activation '" + activation + "' is not a valid function from the tf.nn library. Please check the documentation and the spelling of the function.")
 
-        #if self.type == 'Reshape':
-        #    dimensions = parameters['target_shape']
-        #    parameters['target_shape'] = tuple(dimensions)
+
         self.trainable = parameters.get('trainable', 'True')
         parameters['trainable'] = 'True' == self.trainable
         self.parameters = parameters
@@ -801,8 +793,20 @@ class Feed_forward_Layer:
         l_previous:    object
             Previous layer of the architecture
         """
-        c_ = getattr(tf.keras.layers, self.type)
-        layer = c_(**self.parameters)(l_previous)
+        try:
+            c_ = getattr(tf.keras.layers, self.type)
+        except:
+            print_failure("The layer of type '" + self.type + "' is not a valid tf.keras layer. Please check the documentation to write the correct way to define this layer. ")
+
+        try:
+            layer = c_(**self.parameters)(l_previous)
+        except:
+            parameters_string = ''
+            for k,v in self.parameters.items():
+                parameters_string += k + ': ' + v + '\n'
+            print_failure("One of the parameters passed to the layer of type '" + self.type +  "' is incorrect. \n " +
+                        "You have defined the following parameters: \n" + parameters_string)
+
         return layer
 
 
@@ -815,10 +819,22 @@ class Feed_forward_Layer:
         destination_dimension:    int
             Number of units that the recurrent cell will have
         """
+        try:
+            c_ = getattr(tf.keras.layers, self.type)
+        except:
+            print_failure("The layer of type '" + self.type + "' is not a valid tf.keras layer. Please check the documentation to write the correct way to define this layer. ")
 
-        c_ = getattr(tf.keras.layers, self.type)
         self.parameters['units'] = destination_units
-        layer = c_(**self.parameters)(l_previous)
+
+        try:
+            layer = c_(**self.parameters)(l_previous)
+        except:
+            parameters_string = ''
+            for k,v in self.parameters.items():
+                parameters_string += k + ': ' + v + '\n'
+            print_failure("One of the parameters passed to the layer of type '" + self.type +  "' is incorrect. \n " +
+                        "You have defined the following parameters: \n" + parameters_string)
+
         return layer
 
 
@@ -908,22 +924,17 @@ class Feed_forward_model:
             except:
                 if dst_dim is None: #message_creation
                     if is_readout:
-                        tf.compat.v1.logging.error(
-                            'IGNNITION: The layer ' + str(
+                        print_failure('The layer ' + str(
                                 layer_counter) + ' of the readout is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
                     else:
-                        tf.compat.v1.logging.error('IGNNITION: The layer ' + str(
+                        print_failure('The layer ' + str(
                             layer_counter) + ' of the message creation neural network in the message passing to ' + str(
                             dst_name) +' is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
 
                 else:
-                    tf.compat.v1.logging.error(
-                        'IGNNITION: The layer ' + str(
+                    print_failure('The layer ' + str(
                             layer_counter) + ' of the update neural network in message passing to ' + str(dst_name) +
                         ' is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
-
-
-                sys.exit(1)
 
             output_shape = int(layer_model.shape[1])
             layer_counter += 1
@@ -932,9 +943,6 @@ class Feed_forward_model:
                                outputs=getattr(self, str(var_name) + "_layer_" + str(
                                    layer_counter - 1)))
         return [model, output_shape]
-
-
-
 
 class Operation():
     """
@@ -1010,7 +1018,7 @@ class Product_operation(Operation):
             return result
 
         except:
-            tf.compat.v1.logging.error('IGNNITION:  The product operation between ' + product_input1 + ' and ' + product_input2 + ' failed. Check that the dimensions are compatible.')
+            print_failure('The product operation between ' + product_input1 + ' and ' + product_input2 + ' failed. Check that the dimensions are compatible.')
             sys.exit(1)
 
 class Pooling_operation(Operation):
@@ -1138,16 +1146,14 @@ class Extend_adjacencies(Operation):
         try:
             extended_src = tf.gather(src_states, adj_src)
         except:
-            tf.compat.v1.logging.error('IGNNITION:  Extending the adjacency list ' + str(
+            print_failure('Extending the adjacency list ' + str(
                 self.adj_list) + ' was not possible. Check that the indexes of the source of the adjacency list match the input given.')
-            sys.exit(1)
 
         try:
             extended_dst = tf.gather(dst_states, adj_dst)
         except:
-            tf.compat.v1.logging.error('IGNNITION:  Extending the adjacency list ' + str(
+            print_failure('Extending the adjacency list ' + str(
                 self.adj_list) + ' was not possible. Check that the indexes of the destination of the adjacency list match the input given.')
-            sys.exit(1)
 
         return extended_src, extended_dst
 

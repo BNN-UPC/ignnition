@@ -384,7 +384,7 @@ class Gnn_model(tf.keras.Model):
                                                                     final_len = tf.math.add(final_len, lens)
 
 
-                                                        # if we must aggregate them together into a single embedding (sum, attention, edge_attention ordered)
+                                                        # if we must aggregate them together into a single embedding (sum, attention, edge_attention, ordered)
                                                         else:
                                                             # obtain the overall input of each of the destinations
                                                             if first_src:
@@ -475,14 +475,11 @@ class Gnn_model(tf.keras.Model):
                                                 # if the aggregation was ordered or concat
                                                 else:
                                                     final_len = self.get_global_variable('update_lens_' + dst_name)
-                                                    num_dst = int(f_.get('num_' + dst_name))
-
                                                     new_state = update_model.model.perform_sorted_update(model,
                                                                                                          src_input,
                                                                                                          dst_name,
                                                                                                          old_state,
-                                                                                                         final_len,
-                                                                                                         num_dst)
+                                                                                                         final_len)
 
                                             # feed-forward update:
                                             # restriction: It can only be used if the aggreagation was not ordered.

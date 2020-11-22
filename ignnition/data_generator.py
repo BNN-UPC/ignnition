@@ -36,16 +36,7 @@ class Generator:
     def __init__(self):
         self.end_symbol = bytes(']', 'utf-8')
 
-    def __cummax(self, alist, extractor):
-        with tf.name_scope('cummax'):
-            maxes = [tf.math.reduce_max(extractor(v)) + 1 for v in alist]
-            cummaxes = [tf.zeros_like(maxes[0])]
-            for i in range(len(maxes) - 1):
-                cummaxes.append(tf.math.add_n(maxes[0:i + 1]))
-
-        return cummaxes
-
-    def make_indices(self, sample, entity_names):
+    def __make_indices(self, sample, entity_names):
         """
         Parameters
         ----------
@@ -83,21 +74,25 @@ class Generator:
                     return
                 yield obj
 
-    def __process_sample(self, sample):
+    def __process_sample(self, sample, file=None):
         data = {}
         output = []
         # check that all the entities are defined
         for e in self.entity_names:
             if e not in sample:
-                raise Exception('The entity "' + e + '" was used in the model_description.json file '
-                                                     'but was not defined in the dataset. A list should be defined with the names (string) of each node of type ' + e + '.\n'
+                if file is not None:
+                    if file is not None:
+                        print_info("Error in the dataset file located in '" + file + ".")
+                    print_info("The entity '" + e + "' was used in the model_description.json file "
+                                                     "but was not defined in the dataset. A list should be defined with the names (string) of each node of type " + e + '.\n'
                                                                                                                                                                         'E.g., "' + e + '": ["n1", "n2", "n3" ...]')
 
         # read the features
         for f in self.feature_names:
             if f not in sample:
-                raise Exception(
-                    'IGNNITION: The feature "' + f + '" was used in the model_description.yaml file '
+                if file is not None:
+                    print_info("Error in the dataset file located in '" + file + ".")
+                print_info('The feature "' + f + '" was used in the model_description.yaml file '
                                                      'but was not defined in the dataset. A list should be defined with the corresponding value'
                                                      'for each of the nodes of its entity type. \n'
                                                      'E.g., "' + f + '": [v1, v2, v3 ...]')
@@ -107,7 +102,9 @@ class Generator:
         # read additional input name
         for a in self.additional_input:
             if a not in sample:
-                raise Exception('There was an list of float values named"' + str(
+                if file is not None:
+                    print_info("Error in the dataset file located in '" + file + ".")
+                print_info('There was an list of float values named"' + str(
                     a) + '" which was used in the model_description.yaml file. Thus it must be defined in the dataset. Please make sure the spelling is correct.')
             else:
                 data[a] = sample[a]
@@ -115,8 +112,9 @@ class Generator:
         # read the output values if we are training
         if self.training:
             if self.output_name not in sample:
-                raise Exception('The model_description.yaml file defined a label named "' + str(
-                    self.output_name) + '". This was, however, not found. Make sure the spelling is correct, and that it is a valid array of float values.')
+                if file is not None:
+                    print_info("Error in the dataset file located in '" + file + ".")
+                print('The model_description.yaml file defined an output_label named "' + self.output_name + '". This was, however, not found. Make sure the spelling is correct, and that it is a valid array of float values.')
             else:
                 value = sample[self.output_name]
                 if not isinstance(value, list):
@@ -126,15 +124,16 @@ class Generator:
 
         dict = {}
 
-        num_nodes, indices = self.make_indices(sample, self.entity_names)
+        num_nodes, indices = self.__make_indices(sample, self.entity_names)
 
         # create the adjacencies
         for a in self.adj_names:
             name, src_entity, dst_entity, uses_parameters = a
 
             if name not in sample:
-                raise Exception(
-                    'A list for the adjecency list named "' + name + '" was not found although being expected.\n'
+                if file is not None:
+                    print_info("Error in the dataset file located in '" + file + ".")
+                print_info('A list for the adjecency list named "' + name + '" was not found although being expected.\n'
                                                                      'Remember that an adjacecy list connecting entity "a" to "b" should be defined as follows:\n'
                                                                      '{"b1":["a1","a2",...], "b2":["a2","a4"...]')
 
@@ -149,15 +148,17 @@ class Generator:
                     try:
                         indices_src = indices[src_entity]
                     except:
-                        raise Exception(
-                            'The adjecency list "' + name + '" was expected to be from ' + src_entity + ' to ' + dst_entity +
+                        if file is not None:
+                            print_info("Error in the dataset file located in '" + file + ".")
+                        print_info('The adjecency list "' + name + '" was expected to be from ' + src_entity + ' to ' + dst_entity +
                             '.\n However the source entity defined in the dataset does not match')
 
                     try:
                         indices_dst = indices[dst_entity]
                     except:
-                        raise Exception(
-                            'The adjecency list "' + name + '" was expected to be from ' + src_entity + ' to ' + dst_entity +
+                        if file is not None:
+                            print_info("Error in the dataset file located in '" + file + ".")
+                        print_info('The adjecency list "' + name + '" was expected to be from ' + src_entity + ' to ' + dst_entity +
                             '.\n However the destination entity defined in the dataset does not match')
 
                     seq += range(0, len(sources))
@@ -236,8 +237,7 @@ class Generator:
                             interleave_names,
                             additional_input,
                             training,
-                            shuffle=False,
-                            batch_size=8):
+                            shuffle=False):
         """
         Parameters
         ----------
@@ -282,15 +282,10 @@ class Generator:
                 sys.exit
 
             except Exception as inf:
-                print_info("There was an unexpected error: \n" + str(inf))
-                print_info('Please make sure that all the names used for the definition of the model '
-                           'are defined in your dataset. For instance, you should define a list for: \n'
-                           '1) A list for each of the entities defined with all its nodes of the graph\n'
-                           '2) Each of the features used to define an entity\n'
-                           '3) Additional lists/values used for the definition\n'
-                           '4) The label aimed to predict\n'
-                           '---------------------------------------------------------')
-                sys.exit
+                print_info("\n There was an unexpected error: \n" + str(inf))
+                print_info('Please make sure that all the names used in the sample passed ')
+
+            sys.exit
 
     def generate_from_dataset(self,
                               dir,
@@ -301,8 +296,7 @@ class Generator:
                               interleave_names,
                               additional_input,
                               training,
-                              shuffle=False,
-                              batch_size=8):
+                              shuffle=False):
         """
         Parameters
         ----------
@@ -354,7 +348,7 @@ class Generator:
                 file_samples.read(1)
                 data = self.stream_read_json(file_samples)
                 while True:
-                    processed_sample = self.__process_sample(next(data))
+                    processed_sample = self.__process_sample(next(data), sample_file)
                     yield processed_sample
 
             except StopIteration:

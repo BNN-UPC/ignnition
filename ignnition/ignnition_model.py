@@ -223,7 +223,7 @@ class Ignnition_model:
         return x
 
     @tf.autograph.experimental.do_not_convert
-    def __input_fn_generator(self, filenames, shuffle=False, training=True, batch_size=1, data_samples=None):
+    def __input_fn_generator(self, filenames, shuffle=False, training=True,data_samples=None):
         """
         Parameters
         ----------
@@ -286,7 +286,7 @@ class Ignnition_model:
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
                                                                      output_name, adjacency_info,
                                                                      interleave_list, unique_additional_input, training,
-                                                                     shuffle, batch_size),
+                                                                     shuffle),
                         output_types=(types, tf.float32),
                         output_shapes=(shapes, tf.TensorShape(None)))
                     ds = ds.repeat()
@@ -296,8 +296,7 @@ class Ignnition_model:
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
                                                                    output_name,
                                                                    adjacency_info, interleave_list,
-                                                                   unique_additional_input, training, shuffle,
-                                                                   batch_size),
+                                                                   unique_additional_input, training, shuffle),
                         output_types=(types, tf.float32),
                         output_shapes=(shapes, tf.TensorShape(None)))
 
@@ -307,7 +306,7 @@ class Ignnition_model:
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
                                                                      output_name, adjacency_info,
                                                                      interleave_list, unique_additional_input, training,
-                                                                     shuffle, batch_size),
+                                                                     shuffle),
                         output_types=(types),
                         output_shapes=(shapes))
 
@@ -317,8 +316,7 @@ class Ignnition_model:
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
                                                                    output_name,
                                                                    adjacency_info, interleave_list,
-                                                                   unique_additional_input, training, shuffle,
-                                                                   batch_size),
+                                                                   unique_additional_input, training, shuffle),
                         output_types=(types),
                         output_shapes=(shapes))
 
@@ -384,19 +382,16 @@ class Ignnition_model:
         train_dataset = self.__input_fn_generator(filenames_train,
                                                   shuffle=str_to_bool(
                                                       self.CONFIG['shuffle_training_set']),
-                                                  batch_size=int(self.CONFIG['batch_size']),
                                                   data_samples=training_samples)
         validation_dataset = self.__input_fn_generator(filenames_eval,
                                                        shuffle=str_to_bool(
                                                            self.CONFIG['shuffle_validation_set']),
-                                                       batch_size=int(self.CONFIG['batch_size']),
                                                        data_samples=eval_samples)
 
         mini_epoch_size = None if self.CONFIG['epoch_size'] == 'All' else int(
             self.CONFIG['epoch_size'])
         num_epochs = int(self.CONFIG['epochs'])
         metrics = self.CONFIG['metrics']
-        #metrics = ['sample_num', 'loss', 'mean_absolute_error', 'BinaryAccuracy']
         # pass the validation data to the callback and do this manually??
         callbacks = self.__get_model_callbacks(model_dir=model_dir, mini_epoch_size=mini_epoch_size,
                                                num_epochs=num_epochs, metric_names=metrics)
@@ -404,6 +399,7 @@ class Ignnition_model:
         self.gnn_model.fit(train_dataset,
                            epochs=num_epochs,
                            steps_per_epoch=mini_epoch_size,
+                           batch_size= self.CONFIG.get('batch_size', 1),
                            validation_data=validation_dataset,
                            validation_freq=int(self.CONFIG['val_frequency']),
                            validation_steps=int(self.CONFIG['val_samples']),
@@ -413,8 +409,8 @@ class Ignnition_model:
 
     def __create_model(self):
         model_description_path = self.CONFIG['model_description_path']
-        dimensions = self.find_dataset_dimensions(self.CONFIG['train_dataset'])
-        self.model_info = Json_preprocessing(model_description_path, dimensions)  # read json
+        dimensions, len1_features = self.find_dataset_dimensions(self.CONFIG['train_dataset'])
+        self.model_info = Json_preprocessing(model_description_path, dimensions, len1_features)  # read json
 
         return self.__make_model(self.model_info)
 
@@ -428,7 +424,7 @@ class Ignnition_model:
             print("Restoring from", checkpoint_path)
             # in this case we need to initialize the weights to be able to use a warm-start checkpoint
             sample_it = self.__input_fn_generator(self.CONFIG['train_dataset'], training=False,
-                                                  data_samples=None, batch_size=1)
+                                                  data_samples=None)
             sample = sample_it.get_next()
 
             # Call only one tf.function when tracing.
@@ -458,6 +454,9 @@ class Ignnition_model:
 
             sample_data = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
             dimensions = {}  # for each key, we have a tuple of (length, num_elements)
+
+            # note that all the features that are 1d will have dimension 1. o/w it has 2 dimensions
+            len_1_features = []
             for k, v in sample_data.items():
                 # if it's a feature
                 if not isinstance(v, dict):
@@ -472,6 +471,7 @@ class Ignnition_model:
                         # set always to len(v). In run time, if its a 1-d feature of a node, replace for dimension = 1
                         else:
                             dimensions[k] = len(v)
+                            len_1_features.append(k)
 
                     # if it is one single value
                     else:
@@ -487,7 +487,7 @@ class Ignnition_model:
                     else:
                         dimensions[k] = 0
 
-            return dimensions
+            return dimensions, len_1_features
 
         except:
             print_failure('Failed to read the data file ' + sample)
@@ -551,7 +551,7 @@ class Ignnition_model:
         tf.summary.trace_on(graph=True, profiler=True)
 
         # evaluate one single input
-        sample_it = self.__input_fn_generator(filenames_train, training=False, data_samples=None, batch_size=1)
+        sample_it = self.__input_fn_generator(filenames_train, training=False, data_samples=None)
         sample = sample_it.get_next()
         # Call only one tf.function when tracing.
         _ = self.gnn_model(sample, training=False)
