@@ -1,0 +1,94 @@
+# Definition of the entities
+entities:
+- name: router
+  hidden_state_dimension: 160
+  features: [router_id]
+- name: interface
+  hidden_state_dimension: 160
+  features: [link_speed]
+
+# Definition of the message passing phase
+message_passing:
+  num_iterations: 8
+  stages:
+  # STAGE 1:
+  - stage_message_passings:
+    - destination_entity: interface
+      source_entities:
+      - name: router
+        adj_vector: adj_routers_interfaces
+        message:
+        - type: direct_assignation
+      - name: interface
+        adj_vector: adj_interfaces_interfaces
+        message:
+        - type: direct_assignation
+      aggregation:
+        type: edge_attention
+        nn_name: edge_att_nn
+      update:
+        type: recurrent_neural_network
+        nn_name: recurrent1
+
+    - destination_entity: router
+      source_entities:
+      - name: interface
+        adj_vector: adj_interfaces_routers
+        message:
+        - type: direct_assignation
+      aggregation:
+        type: edge_attention
+        nn_name: edge_att_nn
+      update:
+        type: recurrent_neural_network
+        nn_name: recurrent1
+
+# Definition of the readout
+readout:
+- type: feed_forward
+  input: [target_router]
+  nn_name: Q
+  output_name: q_values
+
+- type: product
+  type_product: element_wise
+  input: [q_values, interface]
+  output_name: aux
+
+- type: feed_forward
+  input: [aux]
+  output_label: label
+  nn_name: F
+
+neural_networks:
+  ## Feed forward models
+- nn_name: edge_att_nn
+  nn_type: feed_forward
+  nn_architecture:
+  - type_layer: Dense
+    units: 256
+    activation: leaky_relu
+  - type_layer: Dense
+    units: 1
+    activation: leaky_relu
+
+- nn_name: Q
+  nn_type: feed_forward
+  nn_architecture:
+  - type_layer: Dense
+    units: 160
+    activation: leaky_relu
+  - type_layer: Dropout
+    rate: 0.5
+
+- nn_name: F
+  nn_type: feed_forward
+  nn_architecture:
+  - type_layer: Dense
+    units: 1
+    activation: sigmoid
+
+## RNN model
+- nn_name: recurrent1
+  nn_type: recurrent_neural_network
+  recurrent_type: GRU

@@ -47,15 +47,12 @@ class Gnn_model(tf.keras.Model):
         self.model_info = model_info
         self.dimensions = self.model_info.get_input_dimensions()
         self.instances_per_stage = self.model_info.get_mp_instances()
-
         with tf.name_scope('model_initializations') as _:
             for stage in self.instances_per_stage:
                 # here we save the input for each of the updates that will be done at the end of the stage
                 for message in stage[1]:
                     dst_name = message.destination_entity
-
                     with tf.name_scope('message_creation_models') as _:
-
                         # acces each source entity of this destination
                         for src in message.source_entities:
                             operations = src.message_formation
@@ -191,24 +188,28 @@ class Gnn_model(tf.keras.Model):
                         self.save_global_variable('readout_model_' + str(counter), model)
 
                     # save the dimensions of the output
-                    self.dimensions[operation.output_name] = model.layers[-1].output.shape[1]
+                    dimensionality = model.layers[-1].output.shape[1]
 
                 elif operation.type == 'pooling':
                     dimensionality = self.dimensions.get(operation.input[0])
 
                     # add the new dimensionality to the input_dimensions tensor
-                    self.dimensions[operation.output_name] = dimensionality
+                    if operation.output_name is not None:
+                        dimensionality = dimensionality
 
                 elif operation.type == 'product':
                     if operation.type_product == 'element_wise':
-                        self.dimensions[operation.output_name] = self.dimensions.get(operation.input[0])
+                        dimensionality = self.dimensions.get(operation.input[0])
 
                     elif operation.type_product == 'dot_product':
-                        self.dimensions[operation.output_name] = 1
+                        dimensionality = 1
 
                 elif operation.type == 'extend_adjacencies':
                     self.dimensions[operation.output_name[0]] = self.dimensions.get(operation.input[0])
                     self.dimensions[operation.output_name[1]] = self.dimensions.get(operation.input[1])
+
+                if operation.type!= 'extend_adjacencies' and operation.output_name is not None:
+                    self.dimensions[operation.output_name] = dimensionality
 
                 counter += 1
 
@@ -383,7 +384,7 @@ class Gnn_model(tf.keras.Model):
                                                                     final_len = tf.math.add(final_len, lens)
 
 
-                                                        # if we must aggregate them together into a single embedding (sum, attention, edge_attention ordered)
+                                                        # if we must aggregate them together into a single embedding (sum, attention, edge_attention, ordered)
                                                         else:
                                                             # obtain the overall input of each of the destinations
                                                             if first_src:
@@ -474,14 +475,11 @@ class Gnn_model(tf.keras.Model):
                                                 # if the aggregation was ordered or concat
                                                 else:
                                                     final_len = self.get_global_variable('update_lens_' + dst_name)
-                                                    num_dst = int(f_.get('num_' + dst_name))
-
                                                     new_state = update_model.model.perform_sorted_update(model,
                                                                                                          src_input,
                                                                                                          dst_name,
                                                                                                          old_state,
-                                                                                                         final_len,
-                                                                                                         num_dst)
+                                                                                                         final_len)
 
                                             # feed-forward update:
                                             # restriction: It can only be used if the aggreagation was not ordered.
@@ -501,13 +499,11 @@ class Gnn_model(tf.keras.Model):
             with tf.name_scope('readout_predictions') as _:
                 readout_operations = self.model_info.get_readout_operations()
                 counter = 0
-                for operation in readout_operations:
+                n = len(readout_operations)
+                for j in range(n):
+                    operation = readout_operations[j]
                     with tf.name_scope(operation.type) as _:
-                        if operation.type == 'predict':
-                            prediction = self.get_global_var_or_input(operation.input[0], f_)
-                            return prediction
-
-                        elif operation.type == 'feed_forward':
+                        if operation.type == 'feed_forward':
                             first = True
                             for i in operation.input:
                                 new_input = self.get_global_var_or_input(i, f_)
@@ -523,8 +519,6 @@ class Gnn_model(tf.keras.Model):
                                 nn_input = tf.expand_dims(nn_input, axis=0)
                             result = readout_nn(nn_input, training=True)
 
-                            self.save_global_variable(operation.output_name + '_state', result)
-
                         elif operation.type == "pooling":
                             # obtain the input of the pooling operation
                             first = True
@@ -537,14 +531,11 @@ class Gnn_model(tf.keras.Model):
                                     pooling_input = tf.concat([pooling_input, aux], axis=0)
 
                             result = operation.calculate(pooling_input)
-                            self.save_global_variable(operation.output_name + '_state', result)
 
                         elif operation.type == 'product':
                             product_input1 = self.get_global_var_or_input(operation.input[0], f_)
                             product_input2 = self.get_global_var_or_input(operation.input[1], f_)
-
                             result = operation.calculate(product_input1, product_input2)
-                            self.save_global_variable(operation.output_name + '_state', result)
 
                         # extends the two inputs following the adjacency list that connects them both. CHECK!!
                         elif operation.type == 'extend_adjacencies':
@@ -557,6 +548,13 @@ class Gnn_model(tf.keras.Model):
                             extended_src, extended_dst = operation.calculate(src_states, adj_src, dst_states, adj_dst)
                             self.save_global_variable(operation.output_name[0] + '_state', extended_src)
                             self.save_global_variable(operation.output_name[1] + '_state', extended_dst)
+
+                        if operation.type != 'extend_adjacencies':
+                            if j == n-1:
+                                return result
+                            else:
+                                self.save_global_variable(operation.output_name + '_state', result)
+
 
                     counter += 1
 

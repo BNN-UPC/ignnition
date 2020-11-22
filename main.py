@@ -21,8 +21,23 @@
 import sys
 import tensorflow as tf
 import ignnition
+
+def normalization_routenet(feature, feature_name):
+    if feature_name == 'traffic':
+        feature = (feature - 170) / 130
+    if feature_name == 'link_capacity':
+        feature = (feature - 25000) / 40000
+
+    return feature
+
+def log(feature, feature_name):
+    return tf.math.log(feature)
+
+def exp(feature, feature_name):
+    return tf.math.exp(feature)
+
 def main():
-    model = ignnition.create_model('./train_options.ini')
+    model = ignnition.create_model('./train_options.yaml')
     model.computational_graph()
     model.train_and_evaluate()
 

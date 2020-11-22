@@ -19,8 +19,7 @@
                   },
                   "hidden_state_dimension": {
                       "description": "Size of the hidden state of this entity",
-                      "type": "number",
-                      "exclusiveMinimum": 0
+                      "type": ["number", "string"]
 
                   },
                   "features":
@@ -28,22 +27,8 @@
                     "type": "array",
                     "items":
                     {
-                        "description": "Feature names of this entity",
-                        "type": "object",
-                        "properties":
-                        {
-                            "name":
-                            {
-                                "description": "Name of the feature",
-                                "type": "string"
-                            },
-                            "normalization":
-                            {
-                                "description": "What kind of regularization apply to this feature",
-                                "type": "string"
-                            }
-                        },
-                        "required": ["name"]
+                        "description": "Define the features of this entity",
+                        "type": "string"
                     }
                   }
               },
@@ -70,10 +55,7 @@
                         "type": "object",
                         "properties":
                         {
-                            "stage_name": {
-                                "type": "string"
-                            },
-                            "stage_mp":
+                            "stage_message_passings":
                             {
                                 "type": "array",
                                 "items": {
@@ -281,7 +263,7 @@
                                 }
                             }
                         },
-                        "required": ["stage_name", "stage_mp"]
+                        "required": ["stage_message_passings"]
                     }
                 }
             },
@@ -300,7 +282,7 @@
                     {
                         "description": "Type of operation",
                         "type": "string",
-                        "enum" : ["predict", "pooling", "product", "feed_forward", "extend_tensor", "extend_adjacencies"]
+                        "enum" : ["pooling", "product", "feed_forward", "extend_tensor", "extend_adjacencies"]
                     },
                     "type_pooling":
                     {
@@ -324,19 +306,9 @@
                             "type": "string"
                         }
                     },
-                    "label":
+                    "output_label":
                     {
                         "description": "Label matching the dataset which contains the true labels of the predictions we aim to make.",
-                        "type": "string"
-                    },
-                    "label_normalization":
-                    {
-                        "description": "Normalization of the label",
-                        "type": "string"
-                    },
-                    "label_denormalization":
-                    {
-                        "description": "Denormalization of the label",
                         "type": "string"
                     },
                     "nn_name":
@@ -369,18 +341,10 @@
                 [
                     {
                         "if": {
-                            "properties": { "type": { "const": "predict" } }
-                        },
-                        "then": {
-                            "required": ["label"]
-                        }
-                    },
-                    {
-                        "if": {
                             "properties": { "type": { "const": "pooling" } }
                         },
                         "then": {
-                            "required": ["type_pooling", "output_name"]
+                            "required": ["type_pooling"]
                         }
                     },
                     {
@@ -388,7 +352,7 @@
                             "properties": { "type": { "const": "product" } }
                         },
                         "then": {
-                            "required": ["type_product", "output_name"]
+                            "required": ["type_product"]
                         }
                     },
                     {
@@ -396,7 +360,7 @@
                             "properties": { "type": { "const": "feed_forward" } }
                         },
                         "then": {
-                            "required": ["nn_name", "output_name"]
+                            "required": ["nn_name"]
                         }
                     },
                     {
@@ -416,50 +380,51 @@
         {
             "description": "Here we describe all the feed_forward models that will be referenced later",
             "type": "array",
-            "items":
-            {
+            "items": {
                 "description": "Single feed_forward model",
                 "type": "object",
-                "properties":
-                {
-                    "nn_name":
-                    {
+                "properties": {
+                    "nn_name": {
                         "description": "Define the name of the model",
                         "type": "string"
                     },
-                    "nn_type":
-                    {
+                    "nn_type": {
                         "description": "Define the type of neural network",
                         "type": "string",
-                        "enum": ["feed_forward", "recurrent_neural_network", "weight_matrix"]
+                        "enum": [
+                            "feed_forward",
+                            "recurrent_neural_network",
+                            "weight_matrix"
+                        ]
                     },
-                    "weight_dimensions":
-                    {
+                    "weight_dimensions": {
                         "description": "Describes the dimension of the weight matrix",
                         "type": "array",
-                        "items":[
+                        "items": [
                             {
                                 "description": "One of the dimensions (either a number of an entity (taking the number of nodes of that entity",
-                                "type": ["string", "integer"]
+                                "type": [
+                                    "string",
+                                    "integer"
+                                ]
                             }
                         ]
                     },
-                    "recurrent_type":
-                    {
+                    "recurrent_type": {
                         "description": "Type of recurrent neural network",
                         "type": "string",
-                        "enum": ["GRU", "LSTM"]
+                        "enum": [
+                            "GRU",
+                            "LSTM"
+                        ]
                     },
-                    "nn_architecture":
-                    {
+                    "nn_architecture": {
                         "description": "Define the architecture",
                         "type": "array",
-                        "items":
-                        {
+                        "items": {
                             "description": "Definition of a single layer of the neural network",
-                            "type":"object",
-                            "properties":
-                            {
+                            "type": "object",
+                            "properties": {
                                 "type_layer": {
                                     "description": "Type of layer",
                                     "type": "string"
@@ -470,83 +435,57 @@
                                 }
                             }
                         },
-                        "required": ["type_layer"]
+                        "required": [
+                            "type_layer"
+                        ]
                     }
                 },
-                "allOf":
-                [
+                "allOf": [
                     {
                         "if": {
-                            "properties": { "nn_type": { "const": "feed_forward" } }
+                            "properties": {
+                                "nn_type": {
+                                    "const": "feed_forward"
+                                }
+                            }
                         },
-                        "then":
-                        {
-                            "required": ["nn_architecture"]
+                        "then": {
+                            "required": [
+                                "nn_architecture"
+                            ]
                         }
                     },
                     {
                         "if": {
-                            "properties": { "nn_type": { "const": "recurrent_neural_network" } }
+                            "properties": {
+                                "nn_type": {
+                                    "const": "recurrent_neural_network"
+                                }
+                            }
                         },
-                        "then":
-                        {
-                            "required": ["nn_name", "nn_type"]
+                        "then": {
+                            "required": [
+                                "nn_name",
+                                "nn_type"
+                            ]
                         }
                     },
                     {
                         "if": {
-                            "properties": { "nn_type": { "const": "weight_matrix" } }
+                            "properties": {
+                                "nn_type": {
+                                    "const": "weight_matrix"
+                                }
+                            }
                         },
-                        "then":
-                        {
-                            "required": ["weight_dimensions"]
+                        "then": {
+                            "required": [
+                                "weight_dimensions"
+                            ]
                         }
                     }
                 ]
             }
-        },
-
-
-        "learning_options":
-        {
-            "description": "Definition of training hyperparameters",
-            "type": "object",
-            "properties":
-            {
-                "loss":
-                {
-                    "description": "Name of the loss function to use",
-                    "type": "string"
-                },
-                "optimizer":
-                {
-                    "description": "Definition of the optimizer to use.",
-                    "type": "object",
-                    "properties":
-                    {
-                        "type":
-                        {
-                            "description": "Name of the optimizer.",
-                            "type": "string"
-                        },
-                        "schedule":
-                        {
-                            "description": "Definition of the schedule to use",
-                            "type": "object",
-                            "properties":
-                            {
-                                "type":
-                                {
-                                    "description": "Name of the schedule type",
-                                    "type": "string"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "required": ["loss", "optimizer"]
-
         }
 
     }
