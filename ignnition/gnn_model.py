@@ -69,9 +69,9 @@ class Gnn_model(tf.keras.Model):
                                         input_nn = operation.input
                                         input_dim = 0
                                         for i in input_nn:
-                                            if i == 'hs_source':
+                                            if i == 'source':
                                                 input_dim += int(self.dimensions.get(src_name))
-                                            elif i == 'hs_dst':
+                                            elif i == 'destination':
                                                 input_dim += int(self.dimensions.get(dst_name))
                                             elif i == 'edge_params':
                                                 input_dim += int(src.extra_parameters)  # size of the extra parameter
@@ -595,9 +595,9 @@ class Gnn_model(tf.keras.Model):
         return getattr(self, var_name)
 
     def treat_message_function_input(self, var_name, adj_vector_name, f_):
-        if var_name == 'hs_source':
+        if var_name == 'source':
             new_input = self.src_messages
-        elif var_name == 'hs_dst':
+        elif var_name == 'destination':
             new_input = self.dst_messages
         elif var_name == 'edge_params':
             new_input = tf.cast(
