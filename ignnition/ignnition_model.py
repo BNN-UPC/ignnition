@@ -18,7 +18,6 @@
 
 # -*- coding: utf-8 -*-
 
-import configparser
 import tensorflow as tf
 import datetime
 import warnings
@@ -36,6 +35,7 @@ from ignnition.utils import *
 from ignnition.custom_callbacks import *
 import sys
 import yaml
+import collections
 
 
 class Ignnition_model:
@@ -77,21 +77,15 @@ class Ignnition_model:
 
         return total_loss
 
-    def __get_keras_metrics(self):  # check
-        # do this by default.
-        # TODO: Let the user define an array of names of metrics
+    def __get_keras_metrics(self):
+        metric_names = self.CONFIG['metrics']
 
-        # metric_name = ["mae", "mape", "r_squared"]
-        metric_name = ["mae", "mape"]
         metrics = []
-        for name in metric_name:
+        for name in metric_names:
             try:
-                metrics.append(getattr(tf.keras.metrics, name))
-
-            # if we cannot find this name
+                metrics.append(getattr(tf.keras.metrics, name)())
             except:
                 metrics.append(getattr(self.module, name))
-
         return metrics
 
     @tf.autograph.experimental.do_not_convert
@@ -99,7 +93,6 @@ class Ignnition_model:
         gnn_model = Gnn_model(model_info)
 
         # dynamically define the optimizer
-        #optimizer_params = model_info.get_optimizer()
         optimizer_params = self.CONFIG['optimizer']
         op_type = optimizer_params['type']
         del optimizer_params['type']
@@ -181,7 +174,7 @@ class Ignnition_model:
             return x, y
         return x
 
-    def __global_normalization(self, x, feature_list, output_name, output_normalization, y=None):
+    def __global_normalization(self, x, feature_list, output_name, y=None):
         """
         Parameters
         ----------
@@ -196,31 +189,35 @@ class Ignnition_model:
         output_normalizations: dict
             Maps each feature or label with its normalization strategy if any
         """
-        # input data
-        for f in feature_list:
-            f_name = f.name
-            norm_type = f.normalization
-            if str(norm_type) != str(None):
-                try:
-                    norm_func = getattr(self.module, norm_type)
-                    x[f_name] = tf.py_function(func=norm_func, inp=[x.get(f_name), f_name], Tout=tf.float32)
 
+        try:
+            norm_func = getattr(self.module, 'normalization')
+        except:
+            norm_func = None
+
+        if norm_func is not None:
+            # input data
+            for f in feature_list:
+                try:
+                    x[f.name] = tf.py_function(func=norm_func, inp=[x.get(f.name), f.name], Tout=tf.float32)
                 except:
-                    print_failure('The normalization function ' + str(norm_type) + ' is not defined in the main file.')
+                    print_failure('The normalization function failed with feature ' + f.name + '.')
 
-        # output
-        if y is not None:
-            if output_normalization is not None:
+            # output
+            if y is not None:
                 try:
-                    norm_func = getattr(self.module, output_normalization)
                     y = tf.py_function(func=norm_func, inp=[y, output_name], Tout=tf.float32)
 
                 except:
-                    print_failure('The normalization function ' + str(
-                        output_normalization) + ' is not defined in the main file.')
-            return x, y
+                    print_failure('The normalization function computing the output label' + output_name + '.')
 
+                return x, y
+            return x
+
+        if y is not None:
+            return x,y
         return x
+
 
     @tf.autograph.experimental.do_not_convert
     def __input_fn_generator(self, filenames, shuffle=False, training=True,data_samples=None):
@@ -243,7 +240,7 @@ class Ignnition_model:
             adjacency_info = self.model_info.get_adjecency_info()
             interleave_list = self.model_info.get_interleave_tensors()
             interleave_sources = self.model_info.get_interleave_sources()
-            output_name, output_normalization, _ = self.model_info.get_output_info()
+            output_name = self.model_info.get_output_info()
             additional_input = self.model_info.get_additional_input_names()
             unique_additional_input = [a for a in additional_input if a not in feature_list]
             entity_names = self.model_info.get_entity_names()
@@ -325,14 +322,13 @@ class Ignnition_model:
                 if global_norm:
                     if training:
                         ds = ds.map(
-                            lambda x, y: self.__global_normalization(x, feature_list, output_name, output_normalization,
-                                                                     y),
+                            lambda x, y: self.__global_normalization(x, feature_list, output_name,y),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
                         ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
                     else:
                         ds = ds.map(
-                            lambda x: self.__global_normalization(x, feature_list, output_name, output_normalization),
+                            lambda x: self.__global_normalization(x, feature_list, output_name),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
                         ds = iter(ds)
 
@@ -519,13 +515,19 @@ class Ignnition_model:
             while True:
                 pred = self.gnn_model(sample_it.get_next(), training=False)
                 pred = tf.squeeze(pred)
-                output_name, _, output_denormalization = self.model_info.get_output_info()  # for now suppose we only have one output type
+                output_name = self.model_info.get_output_info()  # for now suppose we only have one output type
+
                 try:
-                    denorm_func = getattr(self.module, output_denormalization)
-                    pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
+                    denorm_func = getattr(self.module, 'denormalization')
                 except:
-                    print_info(
-                        'A denormalization function for output ' + output_name + ' was not defined. The output will be normalized.')
+                    denorm_func = None
+
+                if denorm_func is not None:
+                    try:
+                        pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
+                    except:
+                        print_info(
+                            'A denormalization function for output ' + output_name + ' was not defined. The output will be normalized.')
 
                 all_predictions.append(pred)
 

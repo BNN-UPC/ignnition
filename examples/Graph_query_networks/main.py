@@ -22,26 +22,11 @@ import sys
 import tensorflow as tf
 import ignnition
 
-def normalization(feature, feature_name):
-    if feature_name == 'traffic':
-        feature = (feature - 170) / 130
-    elif feature_name == 'traffic':
-        feature = (feature - 25000) / 40000
-    elif feature_name == 'delay':
-        feature = tf.math.log(feature)
-    return feature
-
-def denormalization(feature, feature_name):
-    if feature_name == 'delay':
-        feature = tf.math.exp(feature)
-    return feature
-
-
 def main():
     model = ignnition.create_model('./train_options.yaml')
     model.computational_graph()
     model.train_and_evaluate()
-    #model.predict()
+    # model.predict()
 
 
 if __name__ == "__main__":
