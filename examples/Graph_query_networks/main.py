@@ -25,7 +25,7 @@ import ignnition
 def main():
     model = ignnition.create_model('./train_options.yaml')
     model.computational_graph()
-    model.train_and_evaluate()
+    model.train_and_validate()
     # model.predict()
 
 

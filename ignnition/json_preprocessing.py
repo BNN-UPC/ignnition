@@ -141,8 +141,12 @@ class Json_preprocessing:
             validate(instance=data,schema=self.__read_json(schema_file))  # validate that the json is well defined
 
         # add the global variables
-        global_variables = self.__read_yaml('./global_variables.yaml')
-        data = self.__add_global_variables(data, global_variables)
+        try:
+            global_variables = self.__read_yaml('./global_variables.yaml')
+            data = self.__add_global_variables(data, global_variables)
+        except:
+            print_info("Global variables file not found")
+
         self.__validate_model_description(data)
         self.__add_dimensions(data, dimensions, len1_features)  # add the dimension of the features and of the edges
         self.nn_architectures = self.__get_nn_mapping(data['neural_networks'])

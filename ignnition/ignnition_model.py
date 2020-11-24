@@ -220,7 +220,7 @@ class Ignnition_model:
 
 
     @tf.autograph.experimental.do_not_convert
-    def __input_fn_generator(self, filenames, shuffle=False, training=True,data_samples=None):
+    def __input_fn_generator(self, filenames, shuffle=False, training=True,data_samples=None, iterator=False):
         """
         Parameters
         ----------
@@ -341,7 +341,9 @@ class Ignnition_model:
                     else:
                         ds = ds.map(lambda x: self.__batch_normalization(x, feature_list, output_name),
                                     num_parallel_calls=tf.data.experimental.AUTOTUNE)
-                        ds = iter(ds)
+
+            if iterator:
+                ds = iter(ds)
 
         return ds
 
@@ -351,57 +353,6 @@ class Ignnition_model:
         gnn_model = self.__get_compiled_model(model_info)
 
         return gnn_model
-
-    # FUNCTIONALITIES
-    def train_and_evaluate(self, training_samples=None, eval_samples=None):
-        # training_files is a list of strings (paths)
-        # eval_files is a list of strings (paths)
-        print()
-        print_header(
-            'Starting the training and validation process...\n---------------------------------------------------------------------------\n')
-
-        filenames_train = os.path.normpath(self.CONFIG['train_dataset'])
-        filenames_eval = os.path.normpath(self.CONFIG['validation_dataset'])
-
-        model_dir = os.path.normpath(self.CONFIG['model_dir'])
-
-        model_dir = os.path.join(model_dir, 'CheckPoint')
-
-        if not os.path.isdir(model_dir):
-            os.mkdir(model_dir)
-
-        model_dir = os.path.join(model_dir, 'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
-        os.mkdir(model_dir)
-
-        strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
-        print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
-        train_dataset = self.__input_fn_generator(filenames_train,
-                                                  shuffle=str_to_bool(
-                                                      self.CONFIG['shuffle_training_set']),
-                                                  data_samples=training_samples)
-        validation_dataset = self.__input_fn_generator(filenames_eval,
-                                                       shuffle=str_to_bool(
-                                                           self.CONFIG['shuffle_validation_set']),
-                                                       data_samples=eval_samples)
-
-        mini_epoch_size = None if self.CONFIG['epoch_size'] == 'All' else int(
-            self.CONFIG['epoch_size'])
-        num_epochs = int(self.CONFIG['epochs'])
-        metrics = self.CONFIG['metrics']
-        # pass the validation data to the callback and do this manually??
-        callbacks = self.__get_model_callbacks(model_dir=model_dir, mini_epoch_size=mini_epoch_size,
-                                               num_epochs=num_epochs, metric_names=metrics)
-
-        self.gnn_model.fit(train_dataset,
-                           epochs=num_epochs,
-                           steps_per_epoch=mini_epoch_size,
-                           batch_size= self.CONFIG.get('batch_size', 1),
-                           validation_data=validation_dataset,
-                           validation_freq=int(self.CONFIG['val_frequency']),
-                           validation_steps=int(self.CONFIG['val_samples']),
-                           callbacks=callbacks,
-                           use_multiprocessing=True,
-                           verbose=0)
 
     def __create_model(self):
         model_description_path = self.CONFIG['model_description_path']
@@ -488,6 +439,58 @@ class Ignnition_model:
         except:
             print_failure('Failed to read the data file ' + sample)
 
+        # FUNCTIONALITIES
+        def train_and_validate(self, training_samples=None, eval_samples=None):
+            # training_files is a list of strings (paths)
+            # eval_files is a list of strings (paths)
+            print()
+            print_header(
+                'Starting the training and validation process...\n---------------------------------------------------------------------------\n')
+
+            filenames_train = os.path.normpath(self.CONFIG['train_dataset'])
+            filenames_eval = os.path.normpath(self.CONFIG['validation_dataset'])
+
+            model_dir = os.path.normpath(self.CONFIG['model_dir'])
+
+            model_dir = os.path.join(model_dir, 'CheckPoint')
+
+            if not os.path.isdir(model_dir):
+                os.mkdir(model_dir)
+
+            model_dir = os.path.join(model_dir,
+                                     'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
+            os.mkdir(model_dir)
+
+            strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
+            print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
+            train_dataset = self.__input_fn_generator(filenames_train,
+                                                      shuffle=str_to_bool(
+                                                          self.CONFIG['shuffle_training_set']),
+                                                      data_samples=training_samples)
+            validation_dataset = self.__input_fn_generator(filenames_eval,
+                                                           shuffle=str_to_bool(
+                                                               self.CONFIG['shuffle_validation_set']),
+                                                           data_samples=eval_samples)
+
+            mini_epoch_size = None if self.CONFIG['epoch_size'] == 'All' else int(
+                self.CONFIG['epoch_size'])
+            num_epochs = int(self.CONFIG['epochs'])
+            metrics = self.CONFIG['metrics']
+            # pass the validation data to the callback and do this manually??
+            callbacks = self.__get_model_callbacks(model_dir=model_dir, mini_epoch_size=mini_epoch_size,
+                                                   num_epochs=num_epochs, metric_names=metrics)
+
+            self.gnn_model.fit(train_dataset,
+                               epochs=num_epochs,
+                               steps_per_epoch=mini_epoch_size,
+                               batch_size=self.CONFIG.get('batch_size', 1),
+                               validation_data=validation_dataset,
+                               validation_freq=int(self.CONFIG['val_frequency']),
+                               validation_steps=int(self.CONFIG['val_samples']),
+                               callbacks=callbacks,
+                               use_multiprocessing=True,
+                               verbose=0)
+
     def predict(self, prediction_samples=None):
         """
             Parameters
@@ -503,31 +506,31 @@ class Ignnition_model:
                 data_path = self.CONFIG['predict_dataset']
             except:
                 print_failure(
-                    'Make sure to either pass an array of samples or to define in the train_options.ini the path to the prediction dataset')
+                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the prediction dataset')
 
         else:
             data_path = None
 
-        sample_it = self.__input_fn_generator(data_path, training=False, data_samples=prediction_samples)
+        sample_it = self.__input_fn_generator(data_path, training=False, data_samples=prediction_samples, iterator=True)
         all_predictions = []
         try:
+            # find the denormalization function
+            try:
+                denorm_func = getattr(self.module, 'denormalization')
+            except:
+                denorm_func = None
+
             # while there are predictions
             while True:
                 pred = self.gnn_model(sample_it.get_next(), training=False)
                 pred = tf.squeeze(pred)
                 output_name = self.model_info.get_output_info()  # for now suppose we only have one output type
 
-                try:
-                    denorm_func = getattr(self.module, 'denormalization')
-                except:
-                    denorm_func = None
-
                 if denorm_func is not None:
                     try:
                         pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
                     except:
-                        print_info(
-                            'A denormalization function for output ' + output_name + ' was not defined. The output will be normalized.')
+                        print_failure('The denormalization function failed')
 
                 all_predictions.append(pred)
 
@@ -553,7 +556,7 @@ class Ignnition_model:
         tf.summary.trace_on(graph=True, profiler=True)
 
         # evaluate one single input
-        sample_it = self.__input_fn_generator(filenames_train, training=False, data_samples=None)
+        sample_it = self.__input_fn_generator(filenames_train, training=False, data_samples=None, iterator=True)
         sample = sample_it.get_next()
         # Call only one tf.function when tracing.
         _ = self.gnn_model(sample, training=False)
@@ -563,3 +566,63 @@ class Ignnition_model:
                 name="computational_graph_" + str(datetime.datetime.now()),
                 step=0,
                 profiler_outdir=path)
+
+
+    def evaluate(self, evaluation_samples = None):
+        """
+        Parameters
+        ----------
+        evaluation_samples: Samples to be tested.
+        """
+        print()
+        print_header('Starting to make evaluations...\n---------------------------------------------------------\n')
+
+        if evaluation_samples is None:
+            try:
+                data_path = self.CONFIG['predict_dataset']
+            except:
+                print_failure(
+                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the prediction dataset')
+        else:
+            data_path = None
+
+        sample_it = self.__input_fn_generator(data_path, training=True, data_samples=evaluation_samples, iterator=True)
+
+        all_metrics = []
+        try:
+            try:
+                denorm_func = getattr(self.module, 'denormalization')
+            except:
+                denorm_func = None
+
+            # metric for the evaluation
+            try:
+                metric_func = getattr(self.module, 'evaluation_metric')
+
+            except:
+                print_failure('The evaluation metric function failed. '
+                              'Please make sure you define a valid python function taking as input the label '
+                              'and the prediction, and returning one single numerical value.')
+
+            # while there are predictions
+            while True:
+                features, label = sample_it.get_next()
+                pred = self.gnn_model(features, training=False)
+                pred = tf.squeeze(pred)
+                output_name = self.model_info.get_output_info()  # for now suppose we only have one output type
+
+                if denorm_func is not None:
+                    try:
+                        pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
+                        label = tf.py_function(func=denorm_func, inp=[label, output_name], Tout=tf.float32)
+                    except:
+                        print_failure('The denormalization function failed')
+
+                # compute the metric value
+                value = tf.py_function(func=metric_func, inp=[label, pred], Tout=tf.float32)
+                all_metrics.append(value)
+
+        except tf.errors.OutOfRangeError:
+            pass
+
+        return all_metrics
