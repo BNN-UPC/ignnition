@@ -39,13 +39,16 @@ import collections
 
 
 class Ignnition_model:
-    def __init__(self, path):
+    def __init__(self, model_dir):
+        self.model_dir = os.path.normpath(model_dir)
+
+        train_options_path = os.path.join(self.model_dir, 'train_options.yaml')
         # read the train_options file
-        with open(path, 'r') as stream:
+        with open(train_options_path, 'r') as stream:
             try:
                 self.CONFIG = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                print("The training options file was not found in " + path)
+                print("The training options file was not found in " + train_options_path)
 
         tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
         warnings.filterwarnings("ignore")
@@ -72,7 +75,6 @@ class Ignnition_model:
 
         except:  # go to the main file and find the function by this name
             loss_function = getattr(self.module, loss_func_name)
-            # loss_function = getattr(self.add_file_name, loss_func_name)
             total_loss = tf.py_function(func=loss_function, inp=[predictions, labels, self.gnn_model], Tout=tf.float32)
 
         return total_loss
@@ -118,15 +120,15 @@ class Ignnition_model:
                           run_eagerly=False)
         return gnn_model
 
-    def __get_model_callbacks(self, model_dir, mini_epoch_size, num_epochs, metric_names):
-        os.mkdir(model_dir + '/ckpt')
+    def __get_model_callbacks(self, output_path, mini_epoch_size, num_epochs, metric_names):
+        os.mkdir(output_path + '/ckpt')
 
         # HERE WE CAN ADD AN OPTION FOR EARLY STOPPING
-        return [tf.keras.callbacks.TensorBoard(log_dir=model_dir + '/logs', update_freq='epoch', write_images=False,
+        return [tf.keras.callbacks.TensorBoard(log_dir=output_path + '/logs', update_freq='epoch', write_images=False,
                                                histogram_freq=1),
-                tf.keras.callbacks.ModelCheckpoint(filepath=model_dir + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
+                tf.keras.callbacks.ModelCheckpoint(filepath=output_path + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
                                                    save_freq='epoch', monitor='loss'),
-                Custom_progressbar(model_dir=model_dir + '/logs', mini_epoch_size=mini_epoch_size,
+                Custom_progressbar(output_path=output_path + '/logs', mini_epoch_size=mini_epoch_size,
                                    num_epochs=num_epochs, metric_names=metric_names, k=None)]
 
     # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
@@ -220,7 +222,7 @@ class Ignnition_model:
 
 
     @tf.autograph.experimental.do_not_convert
-    def __input_fn_generator(self, filenames, shuffle=False, training=True,data_samples=None, iterator=False):
+    def __input_fn_generator(self, filenames=None, shuffle=False, training=True,data_samples=None, iterator=False):
         """
         Parameters
         ----------
@@ -355,9 +357,8 @@ class Ignnition_model:
         return gnn_model
 
     def __create_model(self):
-        model_description_path = self.CONFIG['model_description_path']
         dimensions, len1_features = self.find_dataset_dimensions(self.CONFIG['train_dataset'])
-        self.model_info = Json_preprocessing(model_description_path, dimensions, len1_features)  # read json
+        self.model_info = Json_preprocessing(self.model_dir, dimensions, len1_features)  # read json
 
         return self.__make_model(self.model_info)
 
@@ -439,57 +440,56 @@ class Ignnition_model:
         except:
             print_failure('Failed to read the data file ' + sample)
 
-        # FUNCTIONALITIES
-        def train_and_validate(self, training_samples=None, eval_samples=None):
-            # training_files is a list of strings (paths)
-            # eval_files is a list of strings (paths)
-            print()
-            print_header(
-                'Starting the training and validation process...\n---------------------------------------------------------------------------\n')
+    # FUNCTIONALITIES
+    def train_and_validate(self, training_samples=None, eval_samples=None):
+        # training_files is a list of strings (paths)
+        # eval_files is a list of strings (paths)
+        print()
+        print_header(
+            'Starting the training and validation process...\n---------------------------------------------------------------------------\n')
 
-            filenames_train = os.path.normpath(self.CONFIG['train_dataset'])
-            filenames_eval = os.path.normpath(self.CONFIG['validation_dataset'])
+        filenames_train = os.path.normpath(self.CONFIG['train_dataset'])
+        filenames_eval = os.path.normpath(self.CONFIG['validation_dataset'])
 
-            model_dir = os.path.normpath(self.CONFIG['model_dir'])
+        output_path = os.path.normpath(self.CONFIG['output_path'])
+        output_path = os.path.join(output_path, 'CheckPoint')
 
-            model_dir = os.path.join(model_dir, 'CheckPoint')
+        if not os.path.isdir(output_path):
+            os.mkdir(output_path)
 
-            if not os.path.isdir(model_dir):
-                os.mkdir(model_dir)
+        output_path = os.path.join(output_path,
+                                 'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
+        os.mkdir(output_path)
 
-            model_dir = os.path.join(model_dir,
-                                     'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
-            os.mkdir(model_dir)
+        strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
+        print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
+        train_dataset = self.__input_fn_generator(filenames_train,
+                                                  shuffle=str_to_bool(
+                                                      self.CONFIG['shuffle_training_set']),
+                                                  data_samples=training_samples)
+        validation_dataset = self.__input_fn_generator(filenames_eval,
+                                                       shuffle=str_to_bool(
+                                                           self.CONFIG['shuffle_validation_set']),
+                                                       data_samples=eval_samples)
 
-            strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
-            print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
-            train_dataset = self.__input_fn_generator(filenames_train,
-                                                      shuffle=str_to_bool(
-                                                          self.CONFIG['shuffle_training_set']),
-                                                      data_samples=training_samples)
-            validation_dataset = self.__input_fn_generator(filenames_eval,
-                                                           shuffle=str_to_bool(
-                                                               self.CONFIG['shuffle_validation_set']),
-                                                           data_samples=eval_samples)
+        mini_epoch_size = None if self.CONFIG['epoch_size'] == 'All' else int(
+            self.CONFIG['epoch_size'])
+        num_epochs = int(self.CONFIG['epochs'])
+        metrics = self.CONFIG['metrics']
+        # pass the validation data to the callback and do this manually??
+        callbacks = self.__get_model_callbacks(output_path=output_path, mini_epoch_size=mini_epoch_size,
+                                               num_epochs=num_epochs, metric_names=metrics)
 
-            mini_epoch_size = None if self.CONFIG['epoch_size'] == 'All' else int(
-                self.CONFIG['epoch_size'])
-            num_epochs = int(self.CONFIG['epochs'])
-            metrics = self.CONFIG['metrics']
-            # pass the validation data to the callback and do this manually??
-            callbacks = self.__get_model_callbacks(model_dir=model_dir, mini_epoch_size=mini_epoch_size,
-                                                   num_epochs=num_epochs, metric_names=metrics)
-
-            self.gnn_model.fit(train_dataset,
-                               epochs=num_epochs,
-                               steps_per_epoch=mini_epoch_size,
-                               batch_size=self.CONFIG.get('batch_size', 1),
-                               validation_data=validation_dataset,
-                               validation_freq=int(self.CONFIG['val_frequency']),
-                               validation_steps=int(self.CONFIG['val_samples']),
-                               callbacks=callbacks,
-                               use_multiprocessing=True,
-                               verbose=0)
+        self.gnn_model.fit(train_dataset,
+                           epochs=num_epochs,
+                           steps_per_epoch=mini_epoch_size,
+                           batch_size=self.CONFIG.get('batch_size', 1),
+                           validation_data=validation_dataset,
+                           validation_freq=int(self.CONFIG['val_frequency']),
+                           validation_steps=int(self.CONFIG['val_samples']),
+                           callbacks=callbacks,
+                           use_multiprocessing=True,
+                           verbose=0)
 
     def predict(self, prediction_samples=None):
         """
@@ -546,7 +546,7 @@ class Ignnition_model:
 
         filenames_train = os.path.normpath(self.CONFIG['train_dataset'])
 
-        path = os.path.normpath(self.CONFIG['model_dir'])
+        path = os.path.normpath(self.CONFIG['output_path'])
 
         path = os.path.join(path, 'computational_graphs',
                             'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
@@ -579,7 +579,7 @@ class Ignnition_model:
 
         if evaluation_samples is None:
             try:
-                data_path = self.CONFIG['predict_dataset']
+                data_path = self.CONFIG['validation_dataset']
             except:
                 print_failure(
                     'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the prediction dataset')
@@ -624,5 +624,8 @@ class Ignnition_model:
 
         except tf.errors.OutOfRangeError:
             pass
-
         return all_metrics
+
+    def one_step_training(self, input_samples):
+        dataset = self.__input_fn_generator(None, training=True, data_samples=input_samples, iterator=False)
+        self.gnn_model.fit(dataset, batch_size=32, verbose=0)

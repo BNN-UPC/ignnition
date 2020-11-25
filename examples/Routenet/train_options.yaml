@@ -3,9 +3,8 @@ train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/train
 validation_dataset: ../Datasets/Datasets_framework/Dataset_routenet/eval
 #predict_dataset:
 #warm_start_path:
-model_description_path: ./examples/Routenet/model_description.yaml
 additional_functions_file: ./main.py
-model_dir: ./examples/Routenet/
+output_path: ./examples/Routenet/
 
 # OPTIMIZATION OPTIONS
 loss: MeanSquaredError
@@ -16,12 +15,12 @@ optimizer:
     initial_learning_rate: 0.001
     decay_steps: 80000
     decay_rate: 0.6
-metrics: [sample_num, loss, mean_absolute_error]
+metrics: [MeanAbsoluteError]
 
 # TRAINING OPTIONS
 batch_size: 1
-epochs: 3
-epoch_size: 1000
+epochs: 1000
+epoch_size: 10000
 shuffle_training_set: True
 shuffle_validation_set: False
 val_samples: 100

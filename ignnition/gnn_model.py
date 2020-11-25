@@ -24,9 +24,6 @@ from keras import backend as K
 from ignnition.auxilary_classes import *
 from functools import reduce
 
-import numpy as np
-
-
 class Gnn_model(tf.keras.Model):
     """
     Class that represents the final GNN

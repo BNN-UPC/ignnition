@@ -3,9 +3,8 @@ train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/train
 validation_dataset: ../Datasets/Datasets_framework/Dataset_routenet/eval
 #predict_dataset:
 #warm_start_path:
-model_description_path: ./examples/Graph_query_networks/model_description.yaml
 additional_functions_file: ./main.py
-model_dir: ./examples/Graph_query_networks/
+output_path: ./examples/Graph_query_networks/
 
 # OPTIMIZATION OPTIONS
 loss: BinaryCrossentropy

@@ -126,7 +126,7 @@ class Json_preprocessing:
     get_adjecency_info(self)
     """
 
-    def __init__(self, path, dimensions, len1_features):
+    def __init__(self, model_dir, dimensions, len1_features):
         """
         Parameters
         ----------
@@ -134,7 +134,11 @@ class Json_preprocessing:
             Path of the json file with the model description
         """
         # read and validate the json file
-        data = self.__read_yaml(path)
+        try:
+            model_description_path = os.path.join(model_dir, 'model_description.yaml')
+            data = self.__read_yaml(model_description_path)
+        except:
+            print_failure("The model_description.yaml file was not found in the path " + model_dir)
 
         # validate with the schema
         with importlib.resources.path('ignnition', "schema.json") as schema_file:
@@ -142,7 +146,8 @@ class Json_preprocessing:
 
         # add the global variables
         try:
-            global_variables = self.__read_yaml('./global_variables.yaml')
+            global_variables_path = os.path.join(model_dir, 'global_variables.yaml')
+            global_variables = self.__read_yaml(global_variables_path)
             data = self.__add_global_variables(data, global_variables)
         except:
             print_info("Global variables file not found")
