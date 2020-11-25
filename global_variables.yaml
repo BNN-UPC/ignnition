@@ -1,6 +1,0 @@
-hidden_state_dim: 32
-N: 8
-r_l2: 0.1
-r_l2_2: 0.01
-readout_units: 256
-output_units: 1

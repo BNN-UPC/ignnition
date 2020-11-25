@@ -25,7 +25,7 @@ import ignnition
 def normalization(feature, feature_name):
     if feature_name == 'traffic':
         feature = (feature - 170) / 130
-    elif feature_name == 'traffic':
+    elif feature_name == 'link_capacity':
         feature = (feature - 25000) / 40000
     elif feature_name == 'delay':
         feature = tf.math.log(feature)
@@ -38,9 +38,9 @@ def denormalization(feature, feature_name):
 
 
 def main():
-    model = ignnition.create_model('./train_options.yaml')
+    model = ignnition.create_model(model_dir= './')
     model.computational_graph()
-    model.train_and_evaluate()
+    model.train_and_validate()
     #model.predict()
 
 

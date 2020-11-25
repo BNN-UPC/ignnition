@@ -2,14 +2,17 @@ from distutils.core import setup
 
 setup(
   name = 'ignnition',         # How you named your package folder (MyLib)
-  packages = ['ignnition'],   # Chose the same as "name"
+  packages = ['ignnition'],   # Choose the same as "name"
   version = '0.01',      # Start with a small number and increase it with every change you make
   license='MIT',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
   description = 'Library for fast prototyping of GNN',   # Give a short description about your library
   author = 'Barcelona Neural Networking Center',                   # Type in your name
-  author_email = 'david.pujolperich@gmail.com',      # Type in your E-Mail
+  author_email = 'david.pujolperich@estudiantat.upc.edu',      # Type in your E-Mail
   url = 'https://github.com/dpujol14/ignnition',   # Provide either the link to your github or to your website
   download_url = 'https://github.com/dpujol14/ignnition/archive/0.01.tar.gz',    # I explain this later on
+  package_data={
+      'ignnition': ['ignnition/*.json'],
+   },
   keywords = ['ML', 'GNN', 'NETWORKING'],   # Keywords that define your package best
   install_requires=[            # I get to this in a second
           'validators',

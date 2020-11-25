@@ -23,9 +23,9 @@ import tensorflow as tf
 import ignnition
 
 def main():
-    model = ignnition.create_model('./train_options.yaml')
+    model = ignnition.create_model(model_dir = './')
     model.computational_graph()
-    model.train_and_evaluate()
+    model.train_and_validate()
     # model.predict()
 
 

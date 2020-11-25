@@ -5,8 +5,8 @@ import os
 from collections import OrderedDict
 
 class Custom_progressbar(tf.keras.callbacks.Callback):
-    def __init__(self, model_dir, num_epochs, mini_epoch_size, metric_names, k=None):
-        self.model_dir = model_dir
+    def __init__(self, output_path, num_epochs, mini_epoch_size, metric_names, k=None):
+        self.output_path = output_path
         self.files_loss = {}
         self.k = k
         self.epoch = 0
@@ -46,6 +46,6 @@ class Custom_progressbar(tf.keras.callbacks.Callback):
                 num_deletions = n - self.k
                 file_delete = list(d_descending.items())[0:num_deletions]
                 for name, _ in file_delete:
-                    path = self.model_dir + '/ckpt/' + name
+                    path = self.output_path + '/ckpt/' + name
                     os.remove(path)
                     del self.files_loss[name]

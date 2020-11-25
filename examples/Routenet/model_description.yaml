@@ -54,21 +54,18 @@ neural_networks:
 - nn_name: readout_model
   nn_type: feed_forward
   nn_architecture:
-  - name: 1st_dense_layer
-    type_layer: Dense
+  - type_layer: Dense
     units: readout_units
-    kernel_regularizer: r_l2
+    kernel_regularizer: 0.1
     activation: selu
-  - name: 2nd_dense_layer
-    type_layer: Dense
+  - type_layer: Dense
     units: readout_units
-    kernel_regularizer: r_l2
+    kernel_regularizer: 0.1
     activation: selu
-  - name: Output
-    type_layer: Dense
+  - type_layer: Dense
     units: output_units
-    kernel_regularizer: r_l2_2
-    activation: selu
+    kernel_regularizer: 0.01
+    activation: None
 
 # RNN model
 - nn_name: recurrent1
