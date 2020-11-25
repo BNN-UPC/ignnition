@@ -626,6 +626,6 @@ class Ignnition_model:
             pass
         return all_metrics
 
-    def one_step_training(self, input_samples):
+    def batch_training(self, input_samples):
         dataset = self.__input_fn_generator(None, training=True, data_samples=input_samples, iterator=False)
-        self.gnn_model.fit(dataset, batch_size=32, verbose=0)
+        self.gnn_model.fit(dataset, batch_size=len(input_samples), verbose=0)

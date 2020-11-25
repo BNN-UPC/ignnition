@@ -36,45 +36,13 @@ def denormalization(feature, feature_name):
         feature = tf.math.exp(feature)
     return feature
 
-
-#import numpy as np
-#def evaluation_metric(label, prediction):
-#    return np.abs(label - prediction) / np.abs(label)
-
-import tarfile
-import json
-import glob
-import time
 def main():
     model = ignnition.create_model(model_dir = './examples/Routenet')
     #model.computational_graph()
-    model.train_and_validate()
+    #model.train_and_validate()
     #model.predict()
 
-    #evaluation_files = glob.glob(
-    #     '../Datasets/Datasets_framework/Dataset_routenet/eval/*.tar.gz')
-
-    #results = {}
-    #for f in evaluation_files:
-    #    tar = tarfile.open(f, 'r:gz')  # read the tar files
-    #    file_samples = tar.extractfile('data.json')
-    #    samples = json.load(file_samples)
-        #model.one_step_training(samples[0:32])
-    #    evaluation_metrics = model.evaluate(samples)
-
-         # for each sample in the file
-         #counter = 0
-         #for e in evaluation_metrics:
-         #    mre = np.mean(e)
-         #    results[f + '_sample_' + str(counter)] = mre
-
-    #
-    # print(results)
-    # sorted_samples = {k:v for k, v in sorted(results.items(), key=lambda item: item[1], reverse=True)}
-    # print(sorted_samples)
-    # k_top = sorted_samples.keys()[0:10]
-    # print("The k top are: ", k_top)
-    #
+    
 
 if __name__ == "__main__":
         main ()
