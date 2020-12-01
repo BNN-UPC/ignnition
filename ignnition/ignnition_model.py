@@ -43,10 +43,12 @@ class Ignnition_model:
         self.model_dir = os.path.normpath(model_dir)
 
         train_options_path = os.path.join(self.model_dir, 'train_options.yaml')
+
         # read the train_options file
         with open(train_options_path, 'r') as stream:
             try:
                 self.CONFIG = yaml.safe_load(stream)
+                print(self.CONFIG)
             except yaml.YAMLError as exc:
                 print("The training options file was not found in " + train_options_path)
 
@@ -129,7 +131,7 @@ class Ignnition_model:
                 tf.keras.callbacks.ModelCheckpoint(filepath=output_path + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
                                                    save_freq='epoch', monitor='loss'),
                 Custom_progressbar(output_path=output_path + '/logs', mini_epoch_size=mini_epoch_size,
-                                   num_epochs=num_epochs, metric_names=metric_names, k=None)]
+                                   num_epochs=num_epochs, metric_names=metric_names, k=self.CONFIG.get('k_best',None))]
 
     # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
     def __batch_normalization(self, x, feature_list, output_name, y=None):
@@ -191,7 +193,6 @@ class Ignnition_model:
         output_normalizations: dict
             Maps each feature or label with its normalization strategy if any
         """
-
         try:
             norm_func = getattr(self.module, 'normalization')
         except:
@@ -209,17 +210,14 @@ class Ignnition_model:
             if y is not None:
                 try:
                     y = tf.py_function(func=norm_func, inp=[y, output_name], Tout=tf.float32)
-
                 except:
-                    print_failure('The normalization function computing the output label' + output_name + '.')
-
+                    print_failure('The normalization function computing the output label' + output_name + ' failed.')
                 return x, y
             return x
 
         if y is not None:
             return x,y
         return x
-
 
     @tf.autograph.experimental.do_not_convert
     def __input_fn_generator(self, filenames=None, shuffle=False, training=True,data_samples=None, iterator=False):
@@ -364,7 +362,7 @@ class Ignnition_model:
 
     def __restore_model(self):
         if 'warm_start_path' in self.CONFIG:
-            checkpoint_path = self.CONFIG['warm_start_path']
+            checkpoint_path = self.CONFIG['warm_start_path']    # THIS MUST BE THE FILE DIRECTLY
         else:
             checkpoint_path = ''
 
@@ -380,6 +378,8 @@ class Ignnition_model:
 
             return self.gnn_model.load_weights(checkpoint_path)
 
+        elif checkpoint_path != '':
+            print_info("The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
 
 
     def find_dataset_dimensions(self, path):
@@ -476,7 +476,7 @@ class Ignnition_model:
             self.CONFIG['epoch_size'])
         num_epochs = int(self.CONFIG['epochs'])
         metrics = self.CONFIG['metrics']
-        # pass the validation data to the callback and do this manually??
+
         callbacks = self.__get_model_callbacks(output_path=output_path, mini_epoch_size=mini_epoch_size,
                                                num_epochs=num_epochs, metric_names=metrics)
 
@@ -489,7 +489,7 @@ class Ignnition_model:
                            validation_steps=int(self.CONFIG['val_samples']),
                            callbacks=callbacks,
                            use_multiprocessing=True,
-                           verbose=0)
+                           verbose=1)
 
     def predict(self, prediction_samples=None):
         """
@@ -610,7 +610,6 @@ class Ignnition_model:
                 pred = self.gnn_model(features, training=False)
                 pred = tf.squeeze(pred)
                 output_name = self.model_info.get_output_info()  # for now suppose we only have one output type
-
                 if denorm_func is not None:
                     try:
                         pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
