@@ -24,8 +24,8 @@ message_passing:
         message:
         - type: direct_assignation
       aggregation:
-        type: edge_attention
-        nn_name: edge_att_nn
+        - type: edge_attention
+          nn_name: edge_att_nn
       update:
         type: recurrent_neural_network
         nn_name: recurrent1
@@ -37,8 +37,8 @@ message_passing:
         message:
         - type: direct_assignation
       aggregation:
-        type: edge_attention
-        nn_name: edge_att_nn
+        - type: edge_attention
+          nn_name: edge_att_nn
       update:
         type: recurrent_neural_network
         nn_name: recurrent1

@@ -163,6 +163,7 @@ class Aggregation:
     """
     def __init__(self, dict):
         self.type = dict.get('type')
+        self.output_name = dict.get('output_name', None)
 
 
 class Sum_aggr(Aggregation):
@@ -188,7 +189,7 @@ class Sum_aggr(Aggregation):
         src_input = tf.math.unsorted_segment_sum(comb_src_states, comb_dst_idx, num_dst)
         return src_input
 
-class Average_aggr(Aggregation):
+class Mean_aggr(Aggregation):
     """
     A subclass that represents the average aggreagtion operation
 
@@ -199,7 +200,7 @@ class Average_aggr(Aggregation):
     """
 
     def __init__(self, dict):
-        super(Average_aggr, self).__init__(dict)
+        super(Mean_aggr, self).__init__(dict)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
         """
@@ -208,17 +209,77 @@ class Average_aggr(Aggregation):
         src_input:    tensor
            Source entity hs
         """
-        neighbours_sum = tf.math.unsorted_segment_sum(comb_src_states, comb_dst_idx, num_dst)
+        neighbours_mean = tf.math.unsorted_segment_mean(comb_src_states, comb_dst_idx, num_dst)
+        return neighbours_mean
 
-        # obtain the degrees of each dst_node
-        dst_deg = tf.math.unsorted_segment_sum(tf.ones_like(comb_dst_idx), comb_dst_idx,num_dst)
-        dst_deg = tf.cast(dst_deg, dtype=tf.float32)
-        dst_deg = tf.math.sqrt(dst_deg)
-        dst_deg = tf.reshape(dst_deg, (-1, 1))
+class Max_aggr(Aggregation):
+    """
+    A subclass that represents the Sum aggreagtion operation
 
-        # normalize all the values dividing by sqrt(dst_deg)
-        return tf.math.divide(neighbours_sum, dst_deg)
+    Methods:
+    ----------
+    calculate_input(self, src_input)
+        Caclulates the result of applying the sum aggregation
+    """
 
+    def __init__(self, dict):
+        super(Max_aggr, self).__init__(dict)
+
+    def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
+        """
+        Parameters
+        ----------
+        src_input:    tensor
+           Source entity hs
+        """
+        src_input = tf.math.unsorted_segment_max(comb_src_states, comb_dst_idx, num_dst)
+        return src_input
+
+class Min_aggr(Aggregation):
+    """
+    A subclass that represents the Sum aggreagtion operation
+
+    Methods:
+    ----------
+    calculate_input(self, src_input)
+        Caclulates the result of applying the sum aggregation
+    """
+
+    def __init__(self, dict):
+        super(Min_aggr, self).__init__(dict)
+
+    def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
+        """
+        Parameters
+        ----------
+        src_input:    tensor
+           Source entity hs
+        """
+        src_input = tf.math.unsorted_segment_min(comb_src_states, comb_dst_idx, num_dst)
+        return src_input
+
+# FINISH THIS ONE
+class Std_aggr(Aggregation):
+    """
+    A subclass that represents the Sum aggreagtion operation
+
+    Methods:
+    ----------
+    calculate_input(self, src_input)
+        Caclulates the result of applying the sum aggregation
+    """
+    def __init__(self, dict):
+        super(Std_aggr, self).__init__(dict)
+
+    def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
+        """
+        Parameters
+        ----------
+        src_input:    tensor
+           Source entity hs
+        """
+        src_input = tf.math.unsorted_segment_sum(comb_src_states, comb_dst_idx, num_dst)
+        return src_input
 
 class Attention_aggr(Aggregation):
     """
@@ -522,7 +583,7 @@ class Message_Passing:
         self.destination_entity = m.get('destination_entity')
         self.source_entities = [Source_Entity(s) for s in m.get('source_entities')]
 
-        self.aggregation = self.create_aggregation(m.get('aggregation'))
+        self.aggregations, self.aggregations_global_type = self.create_aggregations(m.get('aggregation'))
         self.update = self.create_update(m.get('update', {'type': 'direct_assignment'}))
 
     def create_update(self, u):
@@ -543,28 +604,63 @@ class Message_Passing:
         elif type_update == 'direct_assignment':
             return None
 
-    def create_aggregation(self, attr):
+    def create_aggregations(self, attrs):
         """
         Parameters
         ----------
         dict:    dict
             Dictionary with the required attributes for the aggregation
         """
-        type = attr.get('type')
-        if type == 'interleave':
-            return Interleave_aggr(attr)
-        elif type == 'concat':
-            return Concat_aggr(attr)
-        elif type == 'sum':
-            return Sum_aggr(attr)
-        elif type == 'attention':
-            return Attention_aggr(attr)
-        elif type == 'edge_attention':
-            return Edge_attention_aggr(attr)
-        elif type == 'convolution':
-            return Conv_aggr(attr)
+        aggregations = []
+        single_embedding = None
+        multiple_embedding = None
+        for attr in attrs:
+            type = attr.get('type')
+            if type == 'interleave':
+                aggregations.append(Interleave_aggr(attr))
+                multiple_embedding = True
+            elif type == 'feed_forward':
+                aggregations.append(Feed_forward_operation(attr, model_role='aggregation'))
+                single_embedding = True
+            elif type == 'concat':
+                aggregations.append(Concat_aggr(attr))
+                multiple_embedding = True
+            elif type == 'sum':
+                aggregations.append(Sum_aggr(attr))
+                single_embedding = True
+            elif type == 'mean':
+                aggregations.append(Mean_aggr(attr))
+                single_embedding = True
+            elif type == 'min':
+                aggregations.append(Min_aggr(attr))
+                single_embedding = True
+            elif type == 'max':
+                aggregations.append(Max_aggr(attr))
+                single_embedding = True
+            elif type == 'std':
+                aggregations.append(Std_aggr(attr))
+                single_embedding = True
+            elif type == 'attention':
+                aggregations.append(Attention_aggr(attr))
+                single_embedding = True
+            elif type == 'edge_attention':
+                aggregations.append(Edge_attention_aggr(attr))
+                single_embedding = True
+            elif type == 'convolution':
+                aggregations.append(Conv_aggr(attr))
+                single_embedding = True
+            else:   # this is for the ordered aggregation
+                multiple_embedding = True
+
+
+        if single_embedding and multiple_embedding:
+            print_failure("You cannot combine aggregations which return a sequence of tensors, and aggregations that return a single embedding")
+
+        elif single_embedding:
+            return aggregations, 0
+
         else:
-            return Aggregation(attr)
+            return aggregations, 1
 
     def get_instance_info(self):
         return [src.get_instance_info(self.destination_entity) for src in self.source_entities]

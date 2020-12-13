@@ -248,6 +248,8 @@ class Json_preprocessing:
             for mp in stage_mp:  # for every message-passing
                 dst_names.append(mp.get('destination_entity'))
                 sources = mp.get('source_entities')
+
+                # check the message functions
                 for src in sources:
                     src_names.append(src.get('name'))
                     messages = src.get('message', None)
@@ -259,6 +261,15 @@ class Json_preprocessing:
 
                             if 'output_name' in op:
                                 output_names.append(op.get('output_name'))
+
+                # check the aggregation functions
+                aggregations = mp.get('aggregation')
+                for aggr in aggregations:
+                    if aggr.get('type') == 'feed_forward':
+                        input_names += aggr.get('input')
+
+                    if 'output_name' in aggr:
+                        output_names.append(aggr.get('output_name'))
 
         readout_op = data.get('readout')
         called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == 'feed_forward']
@@ -305,7 +316,6 @@ class Json_preprocessing:
         models:    array
            Array of nn models
         """
-
         result = {}
         for m in models:
             result[m.get('nn_name')] = m
@@ -340,11 +350,14 @@ class Json_preprocessing:
                         del op['nn_name']
                         op['architecture'] = info.get('nn_architecture')
 
-        aggr = m['aggregation']
-        if aggr.get('type') == 'edge_attention':
-            info = copy.deepcopy(self.nn_architectures[aggr['nn_name']])
-            del aggr['nn_name']
-            aggr['architecture'] = info.get('nn_architecture')
+        # add the aggregation nn architectures
+        aggrs = m.get('aggregation')
+        for aggr in aggrs:
+            type =aggr.get('type')
+            if type == 'edge_attention' or type == 'feed_forward':
+                info = copy.deepcopy(self.nn_architectures[aggr['nn_name']])
+                del aggr['nn_name']
+                aggr['architecture'] = info.get('nn_architecture')
 
         # add the update nn architecture
         if 'update' in m:
@@ -396,10 +409,7 @@ class Json_preprocessing:
         result = []
         for op in output_operations:
             type = op.get('type')
-            if type == 'predict':
-                result.append(Predicting_operation(op))
-
-            elif type == 'pooling':
+            if type == 'pooling':
                 result.append(Pooling_operation(op))
 
             elif type== 'product':
@@ -443,34 +453,15 @@ class Json_preprocessing:
     def get_entities(self):
         return self.entities
 
-    def get_combined_mp_sources(self, dst_entity, step_name):
-        """
-        Parameters
-        ----------
-        dst_entity:    str
-           Name of the destination entity
-        step_name:      str
-            Name of the message passing step
-        """
-
-        sources = []
-        for step in self.mp_instances:
-            if step[0] == step_name:  # check if we are in fact within the step we care about
-                for m in step[1]:  # this is just one value
-                    if (m.type == "multi_source") & (m.destination_entity == dst_entity):
-                        sources.append(m.source_entity)
-
-        return sources
-
     def get_interleave_sources(self):
-        aux =  [[[src.name, mp.destination_entity] for src in mp.source_entities] for stage_name, mps in self.mp_instances for mp in mps if isinstance(mp.aggregation,Interleave_aggr)]
+        aux =  [[[src.name, mp.destination_entity] for src in mp.source_entities] for stage_name, mps in self.mp_instances for mp in mps if isinstance(mp.aggregations,Interleave_aggr)]
         return reduce(lambda accum, a: accum +a, aux, [])
 
     def get_mp_iterations(self):
         return self.iterations_mp
 
     def get_interleave_tensors(self):
-        return [[mp.aggregation.combination_definition, mp.destination_entity] for stage_name, mps in self.mp_instances for mp in mps if isinstance(mp.aggregation, Interleave_aggr)]
+        return [[mp.aggregations.combination_definition, mp.destination_entity] for stage_name, mps in self.mp_instances for mp in mps if isinstance(mp.aggregations, Interleave_aggr)]
 
     def get_mp_instances(self):
         return self.mp_instances

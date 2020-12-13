@@ -123,6 +123,15 @@
                                                                 {
                                                                     "description": "Define an output name for the result, to reference it later",
                                                                     "type": "string"
+                                                                },
+                                                                "input":
+                                                                {
+                                                                    "description": "Input of this operation",
+                                                                    "type": "array",
+                                                                    "items":{
+                                                                        "description": "define the inputs",
+                                                                        "type": "string"
+                                                                    }
                                                                 }
                                                             },
                                                             "allOf":
@@ -155,69 +164,108 @@
                                         },
                                         "aggregation":
                                         {
-                                            "description": "How the messages are combined by the destination source",
-                                            "type": "object",
-                                            "properties":
-                                            {
-                                                "type":
-                                                {
-                                                    "type": "string",
-                                                    "enum": ["sum", "ordered", "attention", "concat", "interleave", "convolution", "edge_attention"]
-                                                },
-                                                "concat_axis": {
-                                                    "description": "Define how to concatenate the messages together",
-                                                    "type": "integer",
-                                                    "enum": [1, 2]
-                                                },
-                                                "interleave_definition": {
-                                                    "description": "Descrives how the interleaving is done",
-                                                    "type": "string"
-                                                },
-                                                "activation_function": {
-                                                    "description": "Activation function to use for convoluting",
-                                                    "type": "string"
-                                                },
-                                                "nn_name":
-                                                {
-                                                    "description": "Reference the name of a neural network",
-                                                    "type": "string"
-                                                },
-                                                "weight_initialization":
-                                                {
-                                                    "description": "Name of the function to be used for the weight initialization",
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "allOf":
-                                            [
-                                                {
-                                                    "if": {
-                                                        "properties": { "type": { "const": "interleave" } }
+                                            "type": "array",
+                                            "items": {
+                                                "description": "How the messages are combined by the destination source",
+                                                "type": "object",
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "sum",
+                                                            "mean",
+                                                            "max",
+                                                            "min",
+                                                            "ordered",
+                                                            "attention",
+                                                            "concat",
+                                                            "interleave",
+                                                            "convolution",
+                                                            "edge_attention",
+                                                            "feed_forward"
+                                                        ]
                                                     },
-                                                    "then":
+                                                    "concat_axis": {
+                                                        "description": "Define how to concatenate the messages together",
+                                                        "type": "integer",
+                                                        "enum": [1,2]
+                                                    },
+                                                    "interleave_definition": {
+                                                        "description": "Describes how the interleaving is done",
+                                                        "type": "string"
+                                                    },
+                                                    "activation_function": {
+                                                        "description": "Activation function to use for convoluting",
+                                                        "type": "string"
+                                                    },
+                                                    "nn_name": {
+                                                        "description": "Reference the name of a neural network",
+                                                        "type": "string"
+                                                    },
+                                                    "weight_initialization": {
+                                                        "description": "Name of the function to be used for the weight initialization",
+                                                        "type": "string"
+                                                    },
+                                                    "output_name":
                                                     {
-                                                        "required": ["interleave_definition"]
+                                                        "description": "Define an output name for the result, to reference it later",
+                                                        "type": "string"
+                                                    },
+                                                    "input":
+                                                    {
+                                                        "description": "Input of this operation",
+                                                        "type": "array",
+                                                        "items":{
+                                                            "description": "Define the inputs",
+                                                            "type": "string"
+                                                        }
                                                     }
                                                 },
-                                                {
-                                                    "if": {
-                                                        "properties": { "type": { "const": "concat" } }
-                                                    },
-                                                    "then":
+                                                "allOf": [
                                                     {
-                                                        "required": ["concat_axis"]
-                                                    }
-                                                },
-                                                {
-                                                    "if": {
-                                                        "properties": { "type": { "const": "edge_attention" } }
+                                                        "if": {
+                                                            "properties": {
+                                                                "type": {
+                                                                    "const": "interleave"
+                                                                }
+                                                            }
+                                                        },
+                                                        "then": {
+                                                            "required": [
+                                                                "interleave_definition"
+                                                            ]
+                                                        }
                                                     },
-                                                    "then":
                                                     {
-                                                        "required": ["nn_name"]
+                                                        "if": {
+                                                            "properties": {
+                                                                "type": {
+                                                                    "const": "concat"
+                                                                }
+                                                            }
+                                                        },
+                                                        "then": {
+                                                            "required": [
+                                                                "concat_axis"
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "if": {
+                                                            "properties": {
+                                                                "type": {
+                                                                    "const": "edge_attention"
+                                                                }
+                                                            }
+                                                        },
+                                                        "then": {
+                                                            "required": [
+                                                                "nn_name"
+                                                            ]
+                                                        }
                                                     }
-                                                }
-                                            ]
+                                                ]
+                                            }
                                         },
                                         "update":
                                         {

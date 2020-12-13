@@ -44,7 +44,7 @@ message_passing:
         message:
         - type: direct_assignation
       aggregation:
-        type: sum
+        - type: sum
       update:
         type: recurrent_neural_network
         nn_name: recurrent1
@@ -57,7 +57,7 @@ message_passing:
         message:
         - type: direct_assignation
       aggregation:
-        type: sum
+        - type: sum
       update:
         type: recurrent_neural_network
         nn_name: recurrent1

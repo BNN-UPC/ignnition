@@ -88,40 +88,64 @@ class Gnn_model(tf.keras.Model):
                                         if operation.type_product == 'dot_product':
                                             output_shape = 1
 
-
                             self.save_global_variable("final_message_dim_" + src.adj_vector, output_shape)
 
                             counter += 1
 
                     with tf.name_scope('aggregation_models') as _:
-                        aggregation = message.aggregation
+                        aggregations = message.aggregations
                         F_dst = int(self.dimensions.get(dst_name))
                         F_src = int(output_shape)
 
-                        if aggregation.type == 'attention':
-                            self.node_kernel = self.add_weight(shape=(F_src, F_src),
-                                                           initializer=aggregation.weight_initialization)
-                            self.attn_kernel = self.add_weight(shape=(2 * F_dst, 1),
+                        for aggregation in aggregations:
+                            # what is the shape if we are using ordered / interleave??
+                            output_shape = F_dst    #by default we don't change the shape of the final output
+
+                            if aggregation.type == 'attention':
+                                self.node_kernel = self.add_weight(shape=(F_src, F_src),
                                                                initializer=aggregation.weight_initialization)
+                                self.attn_kernel = self.add_weight(shape=(2 * F_dst, 1),
+                                                                   initializer=aggregation.weight_initialization)
 
-                        elif aggregation.type == 'edge_attention':
-                            # create a neural network that takes the concatenation of the source and dst message and results in the weight
-                            message_dimensionality = F_src + F_dst
-                            var_name = 'edge_attention_' + src_name + '_to_' + dst_name  # choose the src_name of the last?
-                            model, _ = aggregation.get_model().construct_tf_model(var_name=var_name,
-                                                                                  input_dim=message_dimensionality)
-                            self.save_global_variable(var_name, model)
+                            elif aggregation.type == 'edge_attention':
+                                # create a neural network that takes the concatenation of the source and dst message and results in the weight
+                                message_dimensionality = F_src + F_dst
+                                var_name = 'edge_attention_' + src_name + '_to_' + dst_name  # choose the src_name of the last?
+                                model, _ = aggregation.get_model().construct_tf_model(var_name=var_name,
+                                                                                      input_dim=message_dimensionality)
+                                self.save_global_variable(var_name, model)
 
-                        elif aggregation.type == 'convolution':
-                            if F_dst != F_src:
-                                tf.compat.v1.logging.error(
-                                    'IGNNITION: When doing the a convolution, both the dimension of the messages sent and the destination hidden states should match. '
-                                    'In this case, however,the dimensions are ' + F_src + ' and ' + F_dst + ' of the source and destination respectively.')
-                                sys.exit(1)
 
-                            self.conv_kernel = self.add_weight(shape=(F_dst, F_dst),
-                                                               initializer=aggregation.weight_initialization)
+                            elif aggregation.type == 'convolution':
+                                if F_dst != F_src:
+                                    print_failure(
+                                        'When doing the a convolution, both the dimension of the messages sent and the destination hidden states should match. '
+                                        'In this case, however,the dimensions are ' + F_src + ' and ' + F_dst + ' of the source and destination respectively.')
+                                    sys.exit(1)
 
+                                self.conv_kernel = self.add_weight(shape=(F_dst, F_dst),
+                                                                   initializer=aggregation.weight_initialization)
+
+                            elif aggregation.type == 'feed_forward':
+                                var_name = 'aggr_feed_forward'
+
+                                # Find out the dimension of the model
+                                input_nn = aggregation.input
+                                input_dim = 0
+                                for i in input_nn:
+                                    dimension = self.get_global_variable(i + '_dim')
+                                    input_dim += dimension
+
+                                model, output_shape = aggregation.model.construct_tf_model(var_name, input_dim)
+
+                                self.save_global_variable(var_name, model)
+
+
+                            # Need to keep track of the output dimension of this one, in case we need it for a new model
+                            if aggregation.output_name is not None:
+                                self.save_global_variable(aggregation.output_name + '_dim', output_shape)
+
+                        self.save_global_variable("final_message_dim_" + src.adj_vector, output_shape)
 
                     # -----------------------------
                     # Creation of the update models
@@ -158,7 +182,7 @@ class Gnn_model(tf.keras.Model):
                                 message_dimensionality = self.get_global_variable(
                                     "final_message_dim_" + source_entities[0].adj_vector)
 
-                                # if we are concatenating by message
+                                # if we are concatenating by message (CHECK!!)
                                 aggr = message.aggregation
                                 if aggr.type == 'concat' and aggr.concat_axis == 2:
                                     message_dimensionality = reduce(lambda accum, s: accum + int(
@@ -332,8 +356,8 @@ class Gnn_model(tf.keras.Model):
 
                                                         counter += 1
 
-                                                    with tf.name_scope(
-                                                            'combine_messages_' + src_name + '_to_' + dst_name) as _:
+                                                    # PREPARE FOR THE AGGREGATION
+                                                    with tf.name_scope('combine_messages_' + src_name + '_to_' + dst_name) as _:
                                                         ids = tf.stack([dst_idx, seq], axis=1)
 
                                                         lens = tf.math.unsorted_segment_sum(tf.ones_like(dst_idx),
@@ -349,7 +373,7 @@ class Gnn_model(tf.keras.Model):
                                                         s = tf.scatter_nd(ids, final_messages,
                                                                           shape)  # find the input ordering it by sequence
 
-                                                        aggr = mp.aggregation
+                                                        aggr = mp.aggregations
                                                         if isinstance(aggr, Concat_aggr):
                                                             with tf.name_scope("concat_" + src_name) as _:
                                                                 if first_src:
@@ -380,6 +404,7 @@ class Gnn_model(tf.keras.Model):
 
 
                                                         # if we must aggregate them together into a single embedding (sum, attention, edge_attention, ordered)
+                                                        # the pipeline will either use the operations below or from above.
                                                         else:
                                                             # obtain the overall input of each of the destinations
                                                             if first_src:
@@ -406,39 +431,73 @@ class Gnn_model(tf.keras.Model):
 
                                         # --------------
                                         # perform the actual aggregation
-                                        aggr = mp.aggregation
+                                        aggrs = mp.aggregations
 
                                         # if ordered, we dont need to do anything. Already in the right shape
+                                        # It only makes sense to do a pipeline with sum/attention/edge... operations??
+                                        with tf.name_scope('aggregation_function') as _:
+                                            for aggr in aggrs:
+                                                with tf.name_scope('single_aggregation') as _:
+                                                    if aggr.type == 'sum':
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst)
 
-                                        with tf.name_scope('aggregation') as _:
-                                            if aggr.type == 'sum':
-                                                src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst)
+                                                    elif aggr.type == 'mean':
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst)
 
-                                            elif aggr.type == 'attention':
-                                                src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                 dst_states,
-                                                                                 comb_seq, num_dst, self.node_kernel,
-                                                                                 self.attn_kernel)
+                                                    elif aggr.type == 'min':
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst)
 
-                                            elif aggr.type == 'edge_attention':
-                                                var_name = 'edge_attention_' + src_name + '_to_' + dst_name
-                                                edge_att_model = self.get_global_variable(var_name)
-                                                comb_dst_states = tf.gather(dst_states,
-                                                                            comb_dst_idx)  # the destination state of each adjacency
-                                                model_input = tf.concat([comb_src_states, comb_dst_states], axis=1)
-                                                weights = edge_att_model(model_input)
-                                                src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst,
-                                                                                 weights)
+                                                    elif aggr.type == 'max':
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst)
 
-                                            # convolutional aggregation (the messages sent by the destination must have the same shape as the destinations)
-                                            elif aggr.type == 'convolution':
-                                                src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                 dst_states,
-                                                                                 num_dst, self.conv_kernel)
+                                                    elif aggr.type == 'std':
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst)
 
-                                            elif aggr.type == 'interleave':
-                                                src_input = aggr.calculate_input(src_input, indices)
+                                                    elif aggr.type == 'attention':
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
+                                                                                         dst_states,
+                                                                                         comb_seq, num_dst, self.node_kernel,
+                                                                                         self.attn_kernel)
 
+                                                    elif aggr.type == 'edge_attention':
+                                                        var_name = 'edge_attention_' + src_name + '_to_' + dst_name
+                                                        edge_att_model = self.get_global_variable(var_name)
+                                                        comb_dst_states = tf.gather(dst_states,
+                                                                                    comb_dst_idx)  # the destination state of each adjacency
+                                                        model_input = tf.concat([comb_src_states, comb_dst_states], axis=1)
+                                                        weights = edge_att_model(model_input)
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst,
+                                                                                         weights)
+
+                                                    # convolutional aggregation (the messages sent by the destination must have the same shape as the destinations)
+                                                    elif aggr.type == 'convolution':
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
+                                                                                         dst_states,
+                                                                                         num_dst, self.conv_kernel)
+
+                                                    elif aggr.type == 'interleave':
+                                                        src_input = aggr.calculate_input(src_input, indices)
+
+                                                    elif aggr.type == 'feed_forward':
+                                                        # concatenate in the axis 0 all the input tensors
+                                                        var_name = 'aggr_feed_forward'
+                                                        aggr_input_name = aggr.input
+                                                        first = True
+                                                        for ag_name in aggr_input_name:
+                                                            value = self.get_global_variable(ag_name)
+                                                            if first:
+                                                                first = False
+                                                                aggr_input = value
+                                                            else:
+                                                                aggr_input = tf.concat([aggr_input, value], axis=1) #concat each adjacency together
+                                                        aggregator_nn = self.get_global_variable(var_name)
+                                                        src_input = aggregator_nn(aggr_input)
+
+                                                    # save the result of this operation with its output_name
+                                                    if aggr.output_name is not None:
+                                                        self.save_global_variable(aggr.output_name, src_input)
+
+                                            # this is the final one that passes to the update
                                             # save the src_input used for the update
                                             self.save_global_variable('update_lens_' + dst_name, final_len)
                                             self.save_global_variable('update_input_' + dst_name, src_input)
@@ -447,7 +506,6 @@ class Gnn_model(tf.keras.Model):
                                 # updates
                                 with tf.name_scope('updates') as _:
                                     for mp in stage[1]:
-                                        aggr = mp.aggregation
                                         dst_name = mp.destination_entity
                                         with tf.name_scope('update_' + dst_name + 's') as _:
                                             update_model = mp.update
@@ -462,8 +520,7 @@ class Gnn_model(tf.keras.Model):
                                             # recurrent update
                                             elif update_model.type == "recurrent_neural_network":
                                                 model = self.get_global_variable(dst_name + '_update')
-
-                                                if aggr.type == 'sum' or aggr.type == 'attention' or aggr.type == 'convolution' or aggr.type == 'edge_attention':
+                                                if not mp.aggregations_global_type:
                                                     dst_dim = int(self.dimensions[
                                                                       dst_name])  # should this be the source dimensions??? CHECK
                                                     new_state = update_model.model.perform_unsorted_update(model,
