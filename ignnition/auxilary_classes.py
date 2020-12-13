@@ -233,7 +233,7 @@ class Attention_aggr(Aggregation):
         super(Attention_aggr, self).__init__(dict)
         self.weight_initialization = dict.get('weight_initialization', None)
 
-    def calculate_input(self, comb_src_states, comb_dst_idx, dst_states, comb_seq, num_dst, kernel1, kernel2, attn_kernel):
+    def calculate_input(self, comb_src_states, comb_dst_idx, dst_states, comb_seq, num_dst, node_kernel, attn_kernel):
         """
         Parameters
         ----------
@@ -264,20 +264,20 @@ class Attention_aggr(Aggregation):
         # new number of features (right now set to F1, but could be different)
         #F_ = F1
 
-        # now apply a linear transformation for the sources (NxF1 -> NxF_)
-        #kernel1 = self.add_weight(shape=(F1, F_))
-        transformed_states_sources = K.dot(h_src, kernel1)  # NxF_   (W h_i for every source)
+        # node_kernel = F1 x F1 (we could change the output dimension)
+        # transformed_states_sources = NxF1 X F1xF1 = NxF1
+        transformed_states_sources = K.dot(h_src, node_kernel) # (W h_i for every source)
 
-        # now apply a linear transformation for the destinations (NxF2 -> NxF_)
-        #kernel2 = self.add_weight(shape=(F2, F_))
+        # node_kernel = F2 x F1 (we change the shape of the output hidden state to the same of the source)
+        # transformed_states_dest = NxF2 X F2xF1 = NxF1
         dst_states_2 = tf.gather(dst_states, comb_dst_idx)
-        transformed_states_dest = K.dot(dst_states_2, kernel2)  # NxF'   (W h_i for every dst)
+        transformed_states_dest = K.dot(dst_states_2, node_kernel)  # NxF1   (W h_i for every dst)
 
         # concat source and dest for each edge
-        attention_input = tf.concat([transformed_states_sources, transformed_states_dest], axis=1)  # Nx2F'
+        attention_input = tf.concat([transformed_states_sources, transformed_states_dest], axis=1)  # Nx2F1
 
-        # apply the attention weight vector    (N x 2F_) * (2F_ x 1) = (N x 1)
-        #attn_kernel = self.add_weight(shape=(2 * F_, 1))
+        # apply the attention weight vector    (N x 2F1) * (2F1 x 1) = (N x 1)
+        # atnn_kernel = 2F1 x 1
         attention_input = K.dot(attention_input, attn_kernel)  # Nx1
 
         # apply the non linearity
@@ -523,7 +523,7 @@ class Message_Passing:
         self.source_entities = [Source_Entity(s) for s in m.get('source_entities')]
 
         self.aggregation = self.create_aggregation(m.get('aggregation'))
-        self.update = self.create_update(m.get('update'))
+        self.update = self.create_update(m.get('update', {'type': 'direct_assignment'}))
 
     def create_update(self, u):
         """
@@ -540,6 +540,8 @@ class Message_Passing:
         elif type_update == 'recurrent_neural_network':
             return RNN_operation(u, model_role= 'update')
 
+        elif type_update == 'direct_assignment':
+            return None
 
     def create_aggregation(self, attr):
         """
@@ -612,12 +614,11 @@ class Source_Entity:
             if type == 'feed_forward':
                 result.append(Feed_forward_operation(op, model_role='message_creation_' + str(counter)))
 
-            elif type == 'direct_assignation':
+            elif type == 'direct_assignment':
                 result.append(None)
 
             elif type == 'product':
                 result.append(Product_operation(op))
-
             counter += 1
         return result
 

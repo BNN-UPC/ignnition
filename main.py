@@ -22,6 +22,12 @@ import sys
 import tensorflow as tf
 import ignnition
 
+#def normalization(features):
+#   features['traffic'] = (features['traffic'] - 170) / 130
+#   features['link_capacity'] = (features['link_capacity'] - 25000) / 40000
+#   features['delay'] = tf.math.log(features['delay'])
+#   return features
+
 def normalization(feature, feature_name):
    if feature_name == 'traffic':
         feature = (feature - 170) / 130
@@ -36,13 +42,40 @@ def denormalization(feature, feature_name):
         feature = tf.math.exp(feature)
     return feature
 
+import tarfile
+import json
+import glob
+import time
 def main():
     model = ignnition.create_model(model_dir = './examples/Routenet')
     #model.computational_graph()
-    #model.train_and_validate()
+    model.train_and_validate()
     #model.predict()
 
-    
+    #evaluation_files = glob.glob(
+    #     '../Datasets/Datasets_framework/Dataset_routenet/eval/*.tar.gz')
+
+    #results = {}
+    #for f in evaluation_files:
+    #    tar = tarfile.open(f, 'r:gz')  # read the tar files
+    #    file_samples = tar.extractfile('data.json')
+    #    samples = json.load(file_samples)
+    #    model.batch_training(samples[0:32])
+    #    evaluation_metrics = model.evaluate(samples)
+
+         # for each sample in the file
+         #counter = 0
+         #for e in evaluation_metrics:
+         #    mre = np.mean(e)
+         #    results[f + '_sample_' + str(counter)] = mre
+
+    #
+    # print(results)
+    # sorted_samples = {k:v for k, v in sorted(results.items(), key=lambda item: item[1], reverse=True)}
+    # print(sorted_samples)
+    # k_top = sorted_samples.keys()[0:10]
+    # print("The k top are: ", k_top)
+
 
 if __name__ == "__main__":
         main ()

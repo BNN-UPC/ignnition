@@ -99,9 +99,7 @@ class Gnn_model(tf.keras.Model):
                         F_src = int(output_shape)
 
                         if aggregation.type == 'attention':
-                            self.kernel1 = self.add_weight(shape=(F_src, F_src),
-                                                           initializer=aggregation.weight_initialization)
-                            self.kernel2 = self.add_weight(shape=(F_dst, F_src),
+                            self.node_kernel = self.add_weight(shape=(F_src, F_src),
                                                            initializer=aggregation.weight_initialization)
                             self.attn_kernel = self.add_weight(shape=(2 * F_dst, 1),
                                                                initializer=aggregation.weight_initialization)
@@ -132,13 +130,13 @@ class Gnn_model(tf.keras.Model):
 
                         # ------------------------------
                         # create the recurrent update models
-                        if update_model.type == "recurrent_neural_network":
+                        if update_model is not None and update_model.type == "recurrent_neural_network":
                             recurrent_cell = update_model.model
                             try:
                                 recurrent_instance = recurrent_cell.get_tensorflow_object(self.dimensions.get(dst_name))
                                 self.save_global_variable(dst_name + '_update', recurrent_instance)
                             except:
-                                tf.compat.v1.logging.error(
+                                print_failure(
                                     'IGNNITION: The definition of the recurrent cell in message passsing to ' + message.destination_entity +
                                     ' is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
                                 sys.exit(1)
@@ -147,7 +145,7 @@ class Gnn_model(tf.keras.Model):
                         # ----------------------------------
                         # create the feed-forward upddate models
                         # This only makes sense with aggregation functions that preserve one single input (not sequence)
-                        else:
+                        elif update_model is not None and update_model.type == 'feed_forward':
                             model = update_model.model
                             source_entities = message.source_entities
                             var_name = dst_name + "_ff_update"
@@ -419,8 +417,7 @@ class Gnn_model(tf.keras.Model):
                                             elif aggr.type == 'attention':
                                                 src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
                                                                                  dst_states,
-                                                                                 comb_seq, num_dst, self.kernel1,
-                                                                                 self.kernel2,
+                                                                                 comb_seq, num_dst, self.node_kernel,
                                                                                  self.attn_kernel)
 
                                             elif aggr.type == 'edge_attention':
@@ -457,8 +454,13 @@ class Gnn_model(tf.keras.Model):
                                             src_input = self.get_global_variable('update_input_' + dst_name)
                                             old_state = self.get_global_variable(dst_name + '_state')
 
+                                            # by default use the aggregated messages as new state
+                                            # This should only be compatible with sum/attention/convolution (obtain a single tensor)
+                                            if update_model is None:
+                                                new_state = src_input
+
                                             # recurrent update
-                                            if update_model.type == "recurrent_neural_network":
+                                            elif update_model.type == "recurrent_neural_network":
                                                 model = self.get_global_variable(dst_name + '_update')
 
                                                 if aggr.type == 'sum' or aggr.type == 'attention' or aggr.type == 'convolution' or aggr.type == 'edge_attention':
@@ -490,6 +492,8 @@ class Gnn_model(tf.keras.Model):
 
                                             # update the old state
                                             self.save_global_variable(dst_name + '_state', new_state)
+
+
 
             # -----------------------------------------------------------------------------------
             # READOUT PHASE

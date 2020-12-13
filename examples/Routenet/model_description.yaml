@@ -19,7 +19,7 @@ message_passing:
           - name: link
             adj_vector: adj_links_paths
             message:
-              - type: direct_assignation
+              - type: direct_assignment
         aggregation:
           type: ordered
         update:
@@ -34,7 +34,7 @@ message_passing:
         - name: path
           adj_vector: adj_paths_links
           message:
-          - type: direct_assignation
+          - type: direct_assignment
         aggregation:
           type: sum
         update:
@@ -56,15 +56,15 @@ neural_networks:
   nn_architecture:
   - type_layer: Dense
     units: readout_units
-    kernel_regularizer: 0.1
+    kernel_regularizer: r_l2
     activation: selu
   - type_layer: Dense
     units: readout_units
-    kernel_regularizer: 0.1
+    kernel_regularizer: r_l2
     activation: selu
   - type_layer: Dense
     units: output_units
-    kernel_regularizer: 0.01
+    kernel_regularizer: r_l2_2
     activation: None
 
 # RNN model

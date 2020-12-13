@@ -250,14 +250,15 @@ class Json_preprocessing:
                 sources = mp.get('source_entities')
                 for src in sources:
                     src_names.append(src.get('name'))
-                    messages = src.get('message')
-                    for op in messages:  # for every operation
-                        if op.get('type') == 'feed_forward':
-                            called_nn_names.append(op.get('nn_name'))
-                            input_names += op.get('input')
+                    messages = src.get('message', None)
+                    if messages is not None:
+                        for op in messages:  # for every operation
+                            if op.get('type') == 'feed_forward':
+                                called_nn_names.append(op.get('nn_name'))
+                                input_names += op.get('input')
 
-                        if 'output_name' in op:
-                            output_names.append(op.get('output_name'))
+                            if 'output_name' in op:
+                                output_names.append(op.get('output_name'))
 
         readout_op = data.get('readout')
         called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == 'feed_forward']
@@ -295,7 +296,7 @@ class Json_preprocessing:
                         'The name "' + i + '" was used as input of a message creation operation even though it was not the output of one.')
 
         except Exception as inf:
-            print_failure(inf + '\n')
+            print_failure(str(inf) + '\n')
 
     def __get_nn_mapping(self, models):
         """
@@ -331,12 +332,13 @@ class Json_preprocessing:
         # add the message_creation nn architecture
         sources = m.get('source_entities')
         for s in sources:
-            messages = s.get('message')
-            for op in messages:
-                if op.get('type') == 'feed_forward':
-                    info = copy.deepcopy(self.nn_architectures[op['nn_name']])
-                    del op['nn_name']
-                    op['architecture'] = info.get('nn_architecture')
+            messages = s.get('message', None)
+            if messages is not None:
+                for op in messages:
+                    if op.get('type') == 'feed_forward':
+                        info = copy.deepcopy(self.nn_architectures[op['nn_name']])
+                        del op['nn_name']
+                        op['architecture'] = info.get('nn_architecture')
 
         aggr = m['aggregation']
         if aggr.get('type') == 'edge_attention':

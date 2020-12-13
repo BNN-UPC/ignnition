@@ -40,8 +40,8 @@ import collections
 
 class Ignnition_model:
     def __init__(self, model_dir):
-        self.model_dir = os.path.normpath(model_dir)
-
+        self.model_dir = model_dir
+        self.model_dir = os.path.normpath(self.model_dir)
         train_options_path = os.path.join(self.model_dir, 'train_options.yaml')
 
         # read the train_options file
@@ -57,9 +57,9 @@ class Ignnition_model:
 
         # add the file with any additional function, if any
         if 'additional_functions_file' in self.CONFIG:
-            aux = self.CONFIG['additional_functions_file']
-            sys.path.insert(1, aux)
-            self.module = __import__(aux.split('/')[-1][0:-3])
+            additional_path = os.path.normpath(self.CONFIG['additional_functions_file'])
+            sys.path.insert(1, additional_path)
+            self.module = __import__(additional_path.split('/')[-1][0:-3])
 
         self.gnn_model = self.__create_model()
         self.generator = Generator()
@@ -355,7 +355,8 @@ class Ignnition_model:
         return gnn_model
 
     def __create_model(self):
-        dimensions, len1_features = self.find_dataset_dimensions(self.CONFIG['train_dataset'])
+        training_path = os.path.normpath(self.CONFIG['train_dataset'])
+        dimensions, len1_features = self.find_dataset_dimensions(training_path)
         self.model_info = Json_preprocessing(self.model_dir, dimensions, len1_features)  # read json
 
         return self.__make_model(self.model_info)

@@ -97,7 +97,7 @@
                                                                 {
                                                                     "description": "Type of operation to apply",
                                                                     "type": "string",
-                                                                    "enum": ["feed_forward", "direct_assignation", "product"]
+                                                                    "enum": ["feed_forward", "direct_assignment", "product"]
                                                                 },
                                                                 "nn_name":
                                                                 {
@@ -150,7 +150,7 @@
 
                                                     }
                                                 },
-                                                "required": ["name", "adj_vector", "message"]
+                                                "required": ["name", "adj_vector"]
                                             }
                                         },
                                         "aggregation":
@@ -228,7 +228,7 @@
                                                 {
                                                     "description": "Type of operation for the update given the aggregated and the current hs",
                                                     "type": "string",
-                                                    "enum": ["feed_forward", "recurrent_neural_network"]
+                                                    "enum": ["feed_forward", "recurrent_neural_network", "direct_assignment"]
                                                 },
                                                 "nn_name":
                                                 {
@@ -258,7 +258,7 @@
                                         }
 
                                     },
-                                    "required": [ "source_entities", "destination_entity", "aggregation", "update"]
+                                    "required": [ "source_entities", "destination_entity", "aggregation"]
 
                                 }
                             }
