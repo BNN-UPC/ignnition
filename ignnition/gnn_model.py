@@ -45,6 +45,33 @@ class Gnn_model(tf.keras.Model):
         self.dimensions = self.model_info.get_input_dimensions()
         self.instances_per_stage = self.model_info.get_mp_instances()
         with tf.name_scope('model_initializations') as _:
+            for entity in model_info.entities:
+                operations = entity.operations
+                counter = 0
+                for op in operations:
+                    if op.type == 'feed_forward':
+                        var_name = entity.name + "_hs_creation_" + str(counter)
+
+                        # Find out the dimension of the model
+                        input_nn = op.input
+                        input_dim = 0
+                        for i in input_nn:
+                            if i in self.dimensions:
+                                dimension = self.dimensions[i]
+                            else:
+                                dimension = self.get_global_variable(i + '_dim')    #take the dimension from here or from self.dimensions
+                            input_dim += dimension
+
+                        model, output_shape = op.model.construct_tf_model(var_name, input_dim)
+
+                        self.save_global_variable(var_name, model)
+
+                        # Need to keep track of the output dimension of this one, in case we need it for a new model
+                        if op.output_name is not None:
+                            self.save_global_variable(op.output_name + '_dim', output_shape)
+                    counter +=1
+
+
             for stage in self.instances_per_stage:
                 # here we save the input for each of the updates that will be done at the end of the stage
                 for message in stage[1]:
@@ -88,7 +115,7 @@ class Gnn_model(tf.keras.Model):
                                         if operation.type_product == 'dot_product':
                                             output_shape = 1
 
-                            self.save_global_variable("final_message_dim_" + src.adj_vector, output_shape)
+                            self.save_global_variable("final_message_dim_" + src.adj_list, output_shape)
 
                             counter += 1
 
@@ -145,7 +172,7 @@ class Gnn_model(tf.keras.Model):
                             if aggregation.output_name is not None:
                                 self.save_global_variable(aggregation.output_name + '_dim', output_shape)
 
-                        self.save_global_variable("final_message_dim_" + src.adj_vector, output_shape)
+                        self.save_global_variable("final_message_dim_" + src.adj_list, output_shape)
 
                     # -----------------------------
                     # Creation of the update models
@@ -180,13 +207,13 @@ class Gnn_model(tf.keras.Model):
                                 # calculate the message dimensionality (considering that they all have the same dim)
                                 # o/w, they are not combinable
                                 message_dimensionality = self.get_global_variable(
-                                    "final_message_dim_" + source_entities[0].adj_vector)
+                                    "final_message_dim_" + source_entities[0].adj_list)
 
                                 # if we are concatenating by message (CHECK!!)
                                 aggr = message.aggregation
                                 if aggr.type == 'concat' and aggr.concat_axis == 2:
                                     message_dimensionality = reduce(lambda accum, s: accum + int(
-                                        getattr(self, "final_message_dim_" + s.adj_vector)),
+                                        getattr(self, "final_message_dim_" + s.adj_list)),
                                                                     source_entities, 0)
 
                                 input_dim = message_dimensionality + dst_dim  # we will concatenate the sources and destinations
@@ -249,6 +276,7 @@ class Gnn_model(tf.keras.Model):
 
                     self.save_global_variable(w.nn_name, mask)
 
+
     @tf.function
     def call(self, input, training):
         """
@@ -270,9 +298,59 @@ class Gnn_model(tf.keras.Model):
             with tf.name_scope('hidden_states') as _:
                 for entity in entities:
                     with tf.name_scope('hidden_state_' + str(entity.name)) as _:
-                        state = entity.calculate_hs(f_)
-                        self.save_global_variable(entity.name + '_state', state)
-                        self.save_global_variable(entity.name + '_initial_state', state)
+                        counter = 0
+                        operations = entity.operations
+                        for op in operations:
+                            if op.type == 'feed_forward':
+                                with tf.name_scope('apply_nn_' + str(counter)) as _:
+                                    # careful. This name could overlap with another model
+                                    var_name = entity.name + "_hs_creation_" + str(counter)
+                                    hs_creator = self.get_global_variable(var_name)
+                                    first = True
+                                    with tf.name_scope('obtain_input') as _:
+                                        inputs = op.input
+                                        for i in inputs:
+                                            new_input = self.get_global_var_or_input(i, f_)
+
+                                            if len(tf.shape(new_input)) == 1:
+                                                new_input = tf.expand_dims(new_input, axis=-1)
+
+                                            # accumulate the results
+                                            if first:
+                                                first = False
+                                                input_nn = new_input
+                                            else:
+                                                input_nn = tf.concat(
+                                                    [input_nn, new_input], axis=1)
+
+                                    with tf.name_scope('pass_to_nn') as _:
+                                        output = hs_creator(input_nn)
+
+                                    self.save_global_variable(op.output_name + '_state', output)
+
+                            elif op.type == 'build_state':
+                                first = True
+                                inputs = op.input
+                                for i in inputs:
+                                    new_input = self.get_global_var_or_input(i, f_)
+                                    if len(tf.shape(new_input)) == 1:
+                                        new_input = tf.expand_dims(new_input, axis=-1)
+
+                                    # accumulate the results
+                                    if first:
+                                        first = False
+                                        state = new_input
+                                    else:
+                                        state = tf.concat([state, new_input], axis=1)
+
+                                remaining_zeros = tf.cast(entity.state_dimension - tf.shape(state)[1], tf.int64)
+
+                                shape = tf.stack([tf.cast(f_.get('num_' + entity.name), tf.int64), remaining_zeros],axis=0)  # shape (2,)
+                                state = tf.concat([state, tf.zeros(shape)], axis=1)
+                                self.save_global_variable(entity.name + '_state', state)
+                                self.save_global_variable(entity.name + '_initial_state', state)
+                            counter += 1
+
 
             # -----------------------------------------------------------------------------------
             # MESSAGE PASSING PHASE
@@ -299,8 +377,8 @@ class Gnn_model(tf.keras.Model):
                                                 src_name = src.name
 
                                                 # prepare the information
-                                                src_idx, dst_idx, seq = f_.get('src_' + src.adj_vector), f_.get(
-                                                    'dst_' + src.adj_vector), f_.get('seq_' + src_name + '_' + dst_name)
+                                                src_idx, dst_idx, seq = f_.get('src_' + src.adj_list), f_.get(
+                                                    'dst_' + src.adj_list), f_.get('seq_' + src_name + '_' + dst_name)
                                                 src_states = self.get_global_variable(str(src_name) + '_state')
 
                                                 with tf.name_scope(
@@ -325,7 +403,7 @@ class Gnn_model(tf.keras.Model):
                                                                     first = True
                                                                     with tf.name_scope('obtain_input') as _:
                                                                         for i in operation.input:
-                                                                            new_input = self.treat_message_function_input(i, src.adj_vector, f_ )
+                                                                            new_input = self.treat_message_function_input(i, src.adj_list, f_ )
                                                                             # accumulate the results
                                                                             if first:
                                                                                 first = False
@@ -333,7 +411,6 @@ class Gnn_model(tf.keras.Model):
                                                                             else:
                                                                                 input_nn = tf.concat(
                                                                                     [input_nn, new_input], axis=1)
-
                                                                 result = message_creator(input_nn)
 
                                                             elif type_operation == 'product':
@@ -342,10 +419,10 @@ class Gnn_model(tf.keras.Model):
                                                                     with tf.name_scope('obtain_input') as _:
 
                                                                         product_input1 = self.treat_message_function_input(
-                                                                            operation.input[0], src.adj_vector, f_)
+                                                                            operation.input[0], src.adj_list, f_)
 
                                                                         product_input2 = self.treat_message_function_input(
-                                                                            operation.input[1], src.adj_vector, f_)
+                                                                            operation.input[1], src.adj_list, f_)
                                                                     result = operation.calculate(product_input1, product_input2)
 
                                                             if operation.output_name is not None:
@@ -367,7 +444,7 @@ class Gnn_model(tf.keras.Model):
                                                         max_len = tf.reduce_max(seq) + 1
 
                                                         message_dim = int(self.get_global_variable(
-                                                            "final_message_dim_" + src.adj_vector))
+                                                            "final_message_dim_" + src.adj_list))
 
                                                         shape = tf.stack([num_dst, max_len, message_dim])
                                                         s = tf.scatter_nd(ids, final_messages,
@@ -652,14 +729,14 @@ class Gnn_model(tf.keras.Model):
         """
         return getattr(self, var_name)
 
-    def treat_message_function_input(self, var_name, adj_vector_name, f_):
+    def treat_message_function_input(self, var_name, adj_list_name, f_):
         if var_name == 'source':
             new_input = self.src_messages
         elif var_name == 'destination':
             new_input = self.dst_messages
         elif var_name == 'edge_params':
             new_input = tf.cast(
-                f_['params_' + adj_vector_name],
+                f_['params_' + adj_list_name],
                 tf.float32)
         else:
             new_input = self.get_global_variable(

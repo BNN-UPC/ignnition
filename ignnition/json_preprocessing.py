@@ -214,21 +214,22 @@ class Json_preprocessing:
 
         for e in data['entities']:
             new_features = []
-            features = e.get('features')    # names of the features
-            for name in features:
-                if name in len1_features:
-                    size = 1
-                else:
-                    size = dimensions.get(name)
-                new_features.append({"name": name, "size": size})
-            e['features'] = new_features
+            operations = e.get('initial_state')    # names of the features
+            for op in operations:
+                inputs = op.get('input')
+                for i in inputs:
+                    if i in len1_features:
+                        size = 1
+                    else:
+                        size = dimensions.get(i)
+                    dimensions[i] = size
 
         for stage in data['message_passing']['stages']:
             stages = stage.get('stage_message_passings')
             for mp in stages:
                 sources = mp.get('source_entities')
                 for src in sources:
-                    src['extra_parameters'] = dimensions.get(src['adj_vector'])
+                    src['extra_parameters'] = dimensions.get(src['adj_list'])
 
     # validate that all the nn_name are correct. Validate that all source and destination entities are correct. Validate that all the inputs in the message function are correct
     def __validate_model_description(self, data):
@@ -328,10 +329,27 @@ class Json_preprocessing:
         entities:    dict
            Dictionary with the definition of each entity
         """
-        return [Entity(e) for e in entities]
+        return [Entity(self.__add_nn_architecture_entities(e)) for e in entities]
+
+    def __add_nn_architecture_entities(self, entity):
+        """
+        Parameters
+        ----------
+        entity:    dict
+           Add the information of the neural networks used in the entity
+        """
+
+        # add the message_creation nn architecture
+        operations = entity.get('initial_state')
+        for op in operations:
+            if op.get('type') == 'feed_forward':
+                info = copy.deepcopy(self.nn_architectures[op['nn_name']])
+                del op['nn_name']
+                op['architecture'] = info.get('nn_architecture')
+        return entity
 
 
-    def __add_nn_architecture(self, m):
+    def __add_nn_architecture_mp(self, m):
         """
         Parameters
         ----------
@@ -382,7 +400,7 @@ class Json_preprocessing:
         inst:    dict
            Dictionary with the definition of each message passing
         """
-        return [['stage_' + str(step_number), [Message_Passing(self.__add_nn_architecture(m)) for m in stage['stage_message_passings']]] for step_number, stage in enumerate(inst)]
+        return [['stage_' + str(step_number), [Message_Passing(self.__add_nn_architecture_mp(m)) for m in stage['stage_message_passings']]] for step_number, stage in enumerate(inst)]
 
     def __add_readout_architecture(self, output):
         """
@@ -433,8 +451,8 @@ class Json_preprocessing:
 
         dict = {}
         for entity in self.entities:
-            dict[entity.name] = entity.hidden_state_dimension
-            dict[entity.name + '_initial'] = entity.hidden_state_dimension
+            dict[entity.name] = entity.state_dimension
+            dict[entity.name + '_initial'] = entity.state_dimension
 
         # add the size of additional inputs if needed
         return {**dict, **dimensions}
@@ -474,7 +492,7 @@ class Json_preprocessing:
         return output_names
 
     def get_all_features(self):
-        return reduce(lambda accum, e: accum + e.features, self.entities, [])
+        return reduce(lambda accum, e: accum + e.features_name, self.entities, [])
 
     def get_feature_size(self, feature):
         """

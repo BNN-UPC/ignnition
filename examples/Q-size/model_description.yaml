@@ -1,14 +1,22 @@
 # Definition of the entities
 entities:
 - name: link
-  hidden_state_dimension: 32
-  features: [link_capacity]
+  state_dimension: 32
+  initial_state:
+    - type: build_state
+      input: [ link_capacity ]
+
 - name: path
-  hidden_state_dimension: 32
-  features: [traffic]
+  state_dimension: 32
+  initial_state:
+    - type: build_state
+      input: [ traffic ]
+
 - name: node
-  hidden_state_dimension: 32
-  features: [queue_sizes]
+  state_dimension: 32
+  initial_state:
+    - type: build_state
+      input: [ queue_sizes ]
 
 # Definition of the message passing phase
 message_passing:

@@ -1,11 +1,16 @@
 # Definition of the entities
 entities:
 - name: router
-  hidden_state_dimension: 160
-  features: [router_id]
+  state_dimension: 160
+  initial_state:
+    - type: build_state
+      input: [ router_id ]
+
 - name: interface
-  hidden_state_dimension: 160
-  features: [link_speed]
+  state_dimension: 160
+  initial_state:
+    - type: build_state
+      input: [ link_speed ]
 
 # Definition of the message passing phase
 message_passing:

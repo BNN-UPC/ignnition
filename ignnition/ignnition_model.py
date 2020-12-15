@@ -200,11 +200,11 @@ class Ignnition_model:
 
         if norm_func is not None:
             # input data
-            for f in feature_list:
+            for f_name in feature_list:
                 try:
-                    x[f.name] = tf.py_function(func=norm_func, inp=[x.get(f.name), f.name], Tout=tf.float32)
+                    x[f_name] = tf.py_function(func=norm_func, inp=[x.get(f_name), f_name], Tout=tf.float32)
                 except:
-                    print_failure('The normalization function failed with feature ' + f.name + '.')
+                    print_failure('The normalization function failed with feature ' + f_name + '.')
 
             # output
             if y is not None:
@@ -251,8 +251,7 @@ class Ignnition_model:
                 types[a] = tf.int64
                 shapes[a] = tf.TensorShape(None)
 
-            for f in feature_list:
-                f_name = f.name
+            for f_name in feature_list:
                 feature_names.append(f_name)
                 types[f_name] = tf.float32
                 shapes[f_name] = tf.TensorShape(None)
@@ -415,7 +414,7 @@ class Ignnition_model:
 
                         # if it's a feature (2-d array)
                         elif isinstance(v[0], list):
-                            dimensions[k] = len(v[0])
+                            dimensions[k] = len(v[0])   # take the length of the second dimension
 
                         # set always to len(v). In run time, if its a 1-d feature of a node, replace for dimension = 1
                         else:

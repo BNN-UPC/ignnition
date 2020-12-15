@@ -49,7 +49,6 @@ class Feature:
         """
         self.name = f.get('name')
         self.size = f.get('size',1)
-        self.normalization = f.get('normalization','None')
 
 class Entity:
     """
@@ -59,10 +58,10 @@ class Entity:
     ----------
     name:    str
         Name of the feature
-    hidden_state_dimension:   int
+    state_dimension:   int
         Dimension of the hiddens state of these entity node's
-    features:  array
-        Array with all the feature objects that it contains
+    operations:  array
+        Array with all the operations to construct the hidden_states
 
 
     Methods:
@@ -88,16 +87,38 @@ class Entity:
         attr:    dict
             Dictionary with the required attributes
         """
-
         self.name = attr.get('name')
-        self.hidden_state_dimension = attr.get('hidden_state_dimension')
-        self.features = [Feature(f) for f in attr.get('features', [])]
+        self.state_dimension = attr.get('state_dimension')
+        self.operations, self.features_name = self.compute_hs_operations(attr.get('initial_state'))
+        #self.features = [Feature(f) for f in attr.get('features', [])]
 
         # check that the dimension of the hidden-state is big enough
-        dim_features = self.get_entity_total_feature_size()
-        if dim_features > self.hidden_state_dimension:
-            print_failure("The dimension of the hidden_state of entity '" + self.name + "' is insufficient to fit all its features. It should be at least " + str(dim_features) )
+        #dim_features = self.get_entity_total_feature_size()
+        #if dim_features > self.state_dimension:
+        #    print_failure("The dimension of the hidden_state of entity '" + self.name + "' is insufficient to fit all its features. It should be at least " + str(dim_features) )
 
+    def compute_hs_operations(self, operations):
+        hs_operations = []
+        all_inputs = set()
+        all_outputs = set()
+        for op in operations:
+            all_inputs.update(op.get('input'))  #keep track of all the necessary features
+
+            # keep track of the outputs
+            if 'output_name' in op:
+                all_outputs.add(op.get('output_name'))
+
+            # create the new operation
+            type_update = op.get('type')
+            if type_update == 'feed_forward':
+                hs_operations.append(Feed_forward_operation(op, model_role='hs_creation'))
+
+            elif type_update == 'build_state':
+                hs_operations.append(Operation(op))
+
+        #remove all the references in the inputs that refer to a previous output
+        final_inputs = all_inputs.difference(all_outputs)
+        return hs_operations, list(final_inputs)
 
     def get_entity_total_feature_size(self):
         total = 0
@@ -108,48 +129,6 @@ class Entity:
 
     def get_features_names(self):
         return [f.name for f in self.features]
-
-    def add_feature(self, f):
-        """
-        Parameters
-        ----------
-        f:    Feature
-            Feature class instance
-        """
-        self.features.append(f)
-
-
-    def calculate_hs(self, input):
-        """
-        Parameters
-        ----------
-        input:    dict
-            Dictionary with the required attributes
-        """
-        first = True
-        total = 0
-
-        # concatenate all the features
-        for feature in self.features:
-            name_feature = feature.name
-            size = feature.size
-            total += size
-            with tf.name_scope('add_feature_' + str(name_feature)) as _:
-                aux = tf.reshape(input.get(name_feature),
-                                                 tf.stack([input.get('num_' + str(self.name)), size]))
-
-                if first:
-                    state = aux
-                    first = False
-                else:
-                    state = tf.concat([state, aux], axis=1, name="add_" + name_feature)
-
-        shape = tf.stack([input.get('num_' + self.name), self.hidden_state_dimension - total], axis=0)  # shape (2,)
-
-        # add 0s until reaching the given dimension
-        with tf.name_scope('add_zeros_to_' + str(self.name)) as _:
-            state = tf.concat([state, tf.zeros(shape)], axis=1, name="add_zeros_" + self.name)
-            return state
 
 
 class Aggregation:
@@ -529,7 +508,7 @@ class Message_Passing:
         Name of the destination entity
     source_entity:      str
         Name of the source entity
-    adj_vector:     str
+    adj_list:     str
         Name from the dataset where the adjacency list can be found
     aggregation:     str
         Type of aggregation strategy
@@ -673,8 +652,8 @@ class Source_Entity:
     ----------
     name:   str
         Name of the source entity
-    adj_vector:     str
-        Name of the adj_vector
+    adj_list:     str
+        Name of the adj_list
     message_formation:      str
         Array of Operation instances
     extra_parameter:     int
@@ -692,7 +671,7 @@ class Source_Entity:
     """
     def __init__(self, attr):
         self.name = attr.get('name')
-        self.adj_vector = attr.get('adj_vector')
+        self.adj_list = attr.get('adj_list')
         self.message_formation = self.create_message_formation(attr.get('message')) if 'message' in attr else [None]
         self.extra_parameters = attr.get('extra_parameters')
 
@@ -725,7 +704,7 @@ class Source_Entity:
         dst_name:    dict
             Name of the destination entity
         """
-        return [self.adj_vector, self.name, dst_name, str(self.extra_parameters > 0)]
+        return [self.adj_list, self.name, dst_name, str(self.extra_parameters > 0)]
 
 
 class Recurrent_Cell:
@@ -1069,7 +1048,6 @@ class Operation():
 
         if 'input' in op:
             self.input = op.get('input')
-
 
 class Product_operation(Operation):
     """

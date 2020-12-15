@@ -11,30 +11,119 @@
             "type": "array",
             "uniqueItems": true,
             "items": {
-              "type": "object",
-              "properties": {
-                  "name": {
-                      "description": "Name of the entity",
-                      "type": "string"
-                  },
-                  "hidden_state_dimension": {
-                      "description": "Size of the hidden state of this entity",
-                      "type": ["number", "string"]
-
-                  },
-                  "features":
-                 {
-                    "type": "array",
-                    "items":
-                    {
-                        "description": "Define the features of this entity",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "description": "Name of the entity",
                         "type": "string"
+                    },
+                    "state_dimension": {
+                        "description": "Size of the hidden state of this entity",
+                        "type": [
+                            "number",
+                            "string"
+                        ]
+                    },
+                    "initial_state": {
+                        "type": "array",
+                        "items": {
+                            "description": "Define each of the operations for the state creation",
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "description": "Type of operation to apply",
+                                    "type": "string",
+                                    "enum": [
+                                        "feed_forward",
+                                        "build_state",
+                                        "product"
+                                    ]
+                                },
+                                "nn_name": {
+                                    "description": "Reference the neural network to be used",
+                                    "type": "string"
+                                },
+                                "input": {
+                                    "description": "Input of this operation",
+                                    "type": "array",
+                                    "items": {
+                                        "description": "define the inputs",
+                                        "type": "string"
+                                    }
+                                },
+                                "type_product": {
+                                    "description": "Type of product to be applied",
+                                    "type": "string",
+                                    "enum": [
+                                        "dot_product",
+                                        "element_wise",
+                                        "mat_mult"
+                                    ]
+                                },
+                                "output_name": {
+                                    "description": "Define an output name for the result, to reference it later",
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "type"
+                            ],
+                            "allOf": [
+                                {
+                                    "if": {
+                                        "properties": {
+                                            "type": {
+                                                "const": "feed_forward"
+                                            }
+                                        }
+                                    },
+                                    "then": {
+                                        "required": [
+                                            "nn_name",
+                                            "input"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "if": {
+                                        "properties": {
+                                            "type": {
+                                                "const": "build_state"
+                                            }
+                                        }
+                                    },
+                                    "then": {
+                                        "required": [
+                                            "input"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "if": {
+                                        "properties": {
+                                            "type": {
+                                                "const": "product"
+                                            }
+                                        }
+                                    },
+                                    "then": {
+                                        "required": [
+                                            "type_product",
+                                            "input"
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
                     }
-                  }
-              },
-              "required": ["name", "hidden_state_dimension", "features"]
-            }},
-
+                },
+                "required": [
+                        "name",
+                        "state_dimension",
+                        "initial_state"
+                    ]
+            }
+        },
         "message_passing":
         {
             "description": "Message passing strategy",
@@ -123,17 +212,9 @@
                                                                 {
                                                                     "description": "Define an output name for the result, to reference it later",
                                                                     "type": "string"
-                                                                },
-                                                                "input":
-                                                                {
-                                                                    "description": "Input of this operation",
-                                                                    "type": "array",
-                                                                    "items":{
-                                                                        "description": "define the inputs",
-                                                                        "type": "string"
-                                                                    }
                                                                 }
                                                             },
+                                                            "required": ["type"],
                                                             "allOf":
                                                             [
                                                                 {
@@ -152,14 +233,11 @@
                                                                         "required": ["type_product", "input"]
                                                                     }
                                                                 }
-                                                            ],
-                                                            "required": ["type"]
-
+                                                            ]
                                                         }
-
                                                     }
                                                 },
-                                                "required": ["name", "adj_vector"]
+                                                "required": ["name", "adj_list"]
                                             }
                                         },
                                         "aggregation":
