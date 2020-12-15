@@ -76,5 +76,37 @@ def str_to_bool(a):
         return False
 
 
+def save_global_variable(calculations, var_name, var_value):
+    """
+    Parameters
+    ----------
+    var_name:    String
+        Name of the global variable to save
+    var_value:    tensor
+        Tensor value of the new global variable
+    """
+    calculations[var_name] = var_value
 
+def get_global_variable(calculations, var_name):
+    """
+    Parameters
+    ----------
+    var_name:    String
+        Name of the global variable to save
+    """
+    return calculations[var_name]
 
+def get_global_var_or_input(calculations, var_name, f_):
+    """
+    Parameters
+    ----------
+    var_name:    str
+        All the features to be used as input
+    input:    dict
+        Input tensors
+    """
+
+    try:
+        return get_global_variable(calculations, var_name + '_state')
+    except:
+        return f_[var_name]

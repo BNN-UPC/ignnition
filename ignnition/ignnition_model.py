@@ -381,7 +381,6 @@ class Ignnition_model:
         elif checkpoint_path != '':
             print_info("The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
 
-
     def find_dataset_dimensions(self, path):
         """
         Parameters
@@ -441,6 +440,7 @@ class Ignnition_model:
             print_failure('Failed to read the data file ' + sample)
 
     # FUNCTIONALITIES
+    # -------------------------------
     def train_and_validate(self, training_samples=None, eval_samples=None):
         # training_files is a list of strings (paths)
         # eval_files is a list of strings (paths)
@@ -566,7 +566,6 @@ class Ignnition_model:
                 name="computational_graph_" + str(datetime.datetime.now()),
                 step=0,
                 profiler_outdir=path)
-
 
     def evaluate(self, evaluation_samples = None):
         """

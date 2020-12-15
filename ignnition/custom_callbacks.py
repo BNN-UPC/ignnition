@@ -9,26 +9,6 @@ class Custom_progressbar(tf.keras.callbacks.Callback):
         self.output_path = output_path
         self.files_loss = {}
         self.k = k
-        #self.epoch = 0
-        #self.metric_names = metric_names
-        #self.num_epochs = num_epochs
-        #self.mini_epoch_size = mini_epoch_size
-        #self.num_samples = 0
-
-    # def on_epoch_begin(self, epoch, logs):
-    #     self.epoch = epoch + 1
-    #     print("\nEpoch {}/{}".format(self.epoch, self.num_epochs))
-    #     self.progBar = tf.keras.utils.Progbar(self.mini_epoch_size, stateful_metrics=self.metric_names)
-    #
-    # def on_train_batch_end(self, batch_id, logs=None):
-    #     self.num_samples += 1
-    #     logs['sample_num'] = self.num_samples
-    #     self.progBar.update(batch_id, values=logs.items())
-    #
-    # def on_test_end(self, logs=None):
-    #     logs = [('val_' + k, v) for k, v in logs.items()]
-    #     logs.append(('sample_num', self.num_samples))
-    #     self.progBar.update(self.mini_epoch_size, values=logs)
 
     def on_epoch_end(self, epoch, logs={}):
         # if we are aiming to save only the k best models

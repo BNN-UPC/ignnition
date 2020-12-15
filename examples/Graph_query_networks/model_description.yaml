@@ -21,11 +21,11 @@ message_passing:
     - destination_entity: interface
       source_entities:
       - name: router
-        adj_vector: adj_routers_interfaces
+        adj_list: adj_routers_interfaces
         message:
         - type: direct_assignation
       - name: interface
-        adj_vector: adj_interfaces_interfaces
+        adj_list: adj_interfaces_interfaces
         message:
         - type: direct_assignation
       aggregation:
@@ -38,7 +38,7 @@ message_passing:
     - destination_entity: router
       source_entities:
       - name: interface
-        adj_vector: adj_interfaces_routers
+        adj_list: adj_interfaces_routers
         message:
         - type: direct_assignation
       aggregation:

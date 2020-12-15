@@ -24,7 +24,7 @@ from jsonschema import validate
 import copy
 import sys
 import json
-from ignnition.auxilary_classes import *
+from ignnition.mp_classes import *
 from functools import reduce
 import importlib
 
@@ -161,7 +161,6 @@ class Json_preprocessing:
         self.mp_instances = self.__get_mp_instances(data['message_passing']['stages'])
         self.readout_op = self.__get_readout_op(data['readout'])
         self.input_dim = self.__get_input_dims(dimensions)
-        self.weight_matrices = self.__get_weight_matrices(data['neural_networks'])
 
     # PRIVATE
     def __read_json(self, path):
@@ -456,10 +455,6 @@ class Json_preprocessing:
 
         # add the size of additional inputs if needed
         return {**dict, **dimensions}
-
-
-    def __get_weight_matrices(self, neural_networks):
-        return [Weight_matrix(nn) for nn in neural_networks if nn.get('nn_type') == 'weight_matrix']
 
 
 
