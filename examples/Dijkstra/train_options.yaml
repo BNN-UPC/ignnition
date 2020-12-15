@@ -1,0 +1,24 @@
+# PATHS
+train_dataset: ./data/train
+validation_dataset: ./data/test
+predict_dataset: ./data/test
+#warm_start_path:
+additional_functions_file: ./main.py
+output_path: .
+
+# OPTIMIZATION OPTIONS
+loss: BinaryCrossentropy
+optimizer:
+  type: Adam
+  learning_rate: 0.01
+metrics: [BinaryAccuracy]
+
+# TRAINING OPTIONS
+batch_size: 1
+epochs: 1000
+epoch_size: 100
+shuffle_training_set: True
+shuffle_validation_set: False
+val_samples: 100
+val_frequency: 1
+execute_gpu: False
