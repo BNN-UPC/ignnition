@@ -282,6 +282,10 @@ class Json_preprocessing:
         # now check the entities
         entity_names = [a.get('name') for a in data.get('entities')]
         nn_names = [n.get('nn_name') for n in data.get('neural_networks')]
+        # check if the name of two NN defined match
+        if len(nn_names) != len(set(nn_names)):
+            print_failure("The names of two NN are repeated. Please ensure that each NN has a unique name.")
+
 
         try:
             # check the source entities

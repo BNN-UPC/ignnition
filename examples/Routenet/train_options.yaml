@@ -1,6 +1,8 @@
 # PATHS
-train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/train
-validation_dataset: ../Datasets/Datasets_framework/Dataset_routenet/eval
+#train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/train
+#validation_dataset: ../Datasets/Datasets_framework/Dataset_routenet/eval
+train_dataset: ./examples/Routenet/Dataset_routenet/train
+validation_dataset: ./examples/Routenet/Dataset_routenet/eval
 #predict_dataset:
 #warm_start_path:
 additional_functions_file: ./main.py

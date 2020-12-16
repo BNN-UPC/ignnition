@@ -79,13 +79,13 @@ class Ignnition_model:
 
     def __get_keras_metrics(self):
         metric_names = self.CONFIG['metrics']
-
         metrics = []
         for name in metric_names:
-            try:
+            if hasattr(tf.keras.metrics, name):
                 metrics.append(getattr(tf.keras.metrics, name)())
-            except:
+            elif hasattr(self.module, name):
                 metrics.append(getattr(self.module, name))
+
         return metrics
 
     @tf.autograph.experimental.do_not_convert
@@ -590,6 +590,7 @@ class Ignnition_model:
                 name="computational_graph_" + str(datetime.datetime.now()),
                 step=0,
                 profiler_outdir=path)
+
 
     def evaluate(self, evaluation_samples = None, verbose=True):
         """

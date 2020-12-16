@@ -122,8 +122,6 @@ class Generator:
 
                 output += value
 
-        dict = {}
-
         num_nodes, indices = self.__make_indices(sample, self.entity_names)
 
         # create the adjacencies
@@ -136,59 +134,48 @@ class Generator:
                 print_info('A list for the adjecency list named "' + name + '" was not found although being expected.\n'
                                                                      'Remember that an adjacecy list connecting entity "a" to "b" should be defined as follows:\n'
                                                                      '{"b1":["a1","a2",...], "b2":["a2","a4"...]')
-
             else:
-                adjecency_lists = sample[name]
+                adjacency_lists = sample[name]  # this is the list defining the adjacency_list
                 src_idx, dst_idx, seq, parameters = [], [], [], []
 
-                # ordered always by destination. (p1: [l1,l2,l3], p2:[l4,l5,l6]...
-                items = adjecency_lists.items()
-
-                for destination, sources in items:
-                    try:
-                        indices_src = indices[src_entity]
-                    except:
-                        if file is not None:
-                            print_info("Error in the dataset file located in '" + file + ".")
+                # obtain the indices defined by the names of each of the entities
+                try:
+                    indices_src = indices[src_entity]
+                except:
+                    if file is not None:
+                        print_info("Error in the dataset file located in '" + file + ".")
                         print_info('The adjecency list "' + name + '" was expected to be from ' + src_entity + ' to ' + dst_entity +
-                            '.\n However the source entity defined in the dataset does not match')
+                             '.\n However the source entity defined in the dataset does not match')
 
-                    try:
-                        indices_dst = indices[dst_entity]
-                    except:
-                        if file is not None:
-                            print_info("Error in the dataset file located in '" + file + ".")
+                try:
+                    indices_dst = indices[dst_entity]
+                except:
+                    if file is not None:
+                        print_info("Error in the dataset file located in '" + file + ".")
                         print_info('The adjecency list "' + name + '" was expected to be from ' + src_entity + ' to ' + dst_entity +
-                            '.\n However the destination entity defined in the dataset does not match')
+                        '.\n However the destination entity defined in the dataset does not match')
 
-                    seq += range(0, len(sources))
+                # The structure of the adjacency_list is p1: [[source_node, dst_node, parameters], []...] (parameters is optional)
+                counters = {}   #this is useful to calculate the sequence order
+                for edge in adjacency_lists:
+                    src_idx.append(indices_src[edge[0]])
+                    dst_idx.append(indices_dst[edge[1]])
+                    if len(edge) == 3:
+                        parameters.append(edge[1])
 
-                    # check if this adjacency contains extra parameters. This would mean that the sources array would be of shape p0:[[l0,params],[l1,params]...]
-                    if isinstance(sources[0], list):
-                        for s in sources:
-                            src_name = s[0]
-                            src_idx.append(indices_src[src_name])
-                            dst_idx.append(indices_dst[destination])
+                    if edge[1] not in counters:
+                        counters[edge[1]] = 0
 
-                            # add the parameters. s[1] should indicate its name
-                            if uses_parameters == 'True':   parameters.append(s[1])
-
-                    # in case no extra parameters are provided
-                    else:
-                        for s in sources:
-                            src_idx.append(indices_src[s])
-                            dst_idx.append(indices_dst[destination])
+                    seq.append(counters[edge[1]])
+                    counters[edge[1]] += 1
 
                 data['src_' + name] = src_idx
                 data['dst_' + name] = dst_idx
-
-                # add sequence information
                 data['seq_' + src_entity + '_' + dst_entity] = seq
-                dict['seq_' + src_entity + '_' + dst_entity] = seq
 
                 # remains to check that all adjacencies of the same type have params or not (not a few of them)!!!!!!!!!!
                 if parameters != []:
-                    data['params_' + name] = parameters
+                     data['params_' + name] = parameters
 
         # define the graph nodes
         items = num_nodes.items()
@@ -209,7 +196,7 @@ class Generator:
                 if entity not in involved_entities:
                     involved_entities[entity] = counter  # each entity a different value (identifier)
 
-                    seq = dict['seq_' + entity + '_' + dst_entity]
+                    seq = data['seq_' + entity + '_' + dst_entity]
                     n_total += max(seq) + 1  # superior limit of the size of any destination
                     counter += 1
 
