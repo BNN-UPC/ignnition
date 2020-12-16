@@ -280,7 +280,7 @@ class Mp_source_entity:
         self.name = attr.get('name')
         self.adj_list = attr.get('adj_list')
         self.message_formation = self.create_message_formation(attr.get('message')) if 'message' in attr else [None]
-        self.extra_parameters = attr.get('extra_parameters')
+        self.extra_parameters = attr.get('extra_parameters', 0)
 
     def create_message_formation(self, operations):
         """

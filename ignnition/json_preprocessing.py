@@ -126,7 +126,7 @@ class Json_preprocessing:
     get_adjecency_info(self)
     """
 
-    def __init__(self, model_dir, dimensions, len1_features):
+    def __init__(self, model_dir):
         """
         Parameters
         ----------
@@ -148,19 +148,18 @@ class Json_preprocessing:
         try:
             global_variables_path = os.path.join(model_dir, 'global_variables.yaml')
             global_variables = self.__read_yaml(global_variables_path)
-            data = self.__add_global_variables(data, global_variables)
+            self.data = self.__add_global_variables(data, global_variables)
         except:
             print_info("Global variables file not found")
 
-        self.__validate_model_description(data)
-        self.__add_dimensions(data, dimensions, len1_features)  # add the dimension of the features and of the edges
-        self.nn_architectures = self.__get_nn_mapping(data['neural_networks'])
-        self.entities = self.__get_entities(data['entities'])
+        self.__validate_model_description(self.data)
 
-        self.iterations_mp = int(data['message_passing']['num_iterations'])
-        self.mp_instances = self.__get_mp_instances(data['message_passing']['stages'])
-        self.readout_op = self.__get_readout_op(data['readout'])
-        self.input_dim = self.__get_input_dims(dimensions)
+        self.nn_architectures = self.__get_nn_mapping(self.data['neural_networks'])
+        self.entities = self.__get_entities(self.data['entities'])
+
+        self.iterations_mp = int(self.data['message_passing']['num_iterations'])
+        self.mp_instances = self.__get_mp_instances(self.data['message_passing']['stages'])
+        self.readout_op = self.__get_readout_op(self.data['readout'])
 
     # PRIVATE
     def __read_json(self, path):
@@ -201,7 +200,7 @@ class Json_preprocessing:
 
         return data
 
-    def __add_dimensions(self, data, dimensions, len1_features):
+    def add_dimensions(self, dimensions, len1_features):
         """
         Parameters
         ----------
@@ -210,9 +209,9 @@ class Json_preprocessing:
         dimensions:      dict
             Dictionary mapping the dimension of each input
         """
-
-        for e in data['entities']:
-            new_features = []
+        for e in self.data['entities']:
+            dimensions[e.get('name')] = e.get('state_dimension')
+            dimensions[e.get('name') + '_initial'] = e.get('state_dimension')
             operations = e.get('initial_state')    # names of the features
             for op in operations:
                 inputs = op.get('input')
@@ -223,12 +222,15 @@ class Json_preprocessing:
                         size = dimensions.get(i)
                     dimensions[i] = size
 
-        for stage in data['message_passing']['stages']:
+        for stage in self.data['message_passing']['stages']:
             stages = stage.get('stage_message_passings')
             for mp in stages:
                 sources = mp.get('source_entities')
                 for src in sources:
                     src['extra_parameters'] = dimensions.get(src['adj_list'])
+
+        self.input_dim = dimensions
+        del self.data
 
     # validate that all the nn_name are correct. Validate that all source and destination entities are correct. Validate that all the inputs in the message function are correct
     def __validate_model_description(self, data):
@@ -439,23 +441,6 @@ class Json_preprocessing:
                 result.append(Extend_adjacencies(op))
 
         return result
-
-    def __get_input_dims(self, dimensions):
-        """
-        Parameters
-        ----------
-        dimensions:    dict
-           Dictionary with the dimensions of the input
-        """
-        dict = {}
-        for entity in self.entities:
-            dict[entity.name] = entity.state_dimension
-            dict[entity.name + '_initial'] = entity.state_dimension
-
-        # add the size of additional inputs if needed
-        return {**dict, **dimensions}
-
-
 
     # ----------------------------------------------------------------
     # PUBLIC FUNCTIONS GETTERS
