@@ -447,7 +447,6 @@ class Json_preprocessing:
         dimensions:    dict
            Dictionary with the dimensions of the input
         """
-
         dict = {}
         for entity in self.entities:
             dict[entity.name] = entity.state_dimension

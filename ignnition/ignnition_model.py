@@ -491,15 +491,16 @@ class Ignnition_model:
                            use_multiprocessing=True,
                            verbose=1)
 
-    def predict(self, prediction_samples=None):
+    def predict(self, prediction_samples=None, verbose=True):
         """
             Parameters
             ----------
             model_info:    object
             Object with the json information model
         """
-        print()
-        print_header('Starting to make the predictions...\n---------------------------------------------------------\n')
+        if verbose:
+            print()
+            print_header('Starting to make the predictions...\n---------------------------------------------------------\n')
 
         if prediction_samples is None:
             try:
@@ -567,14 +568,15 @@ class Ignnition_model:
                 step=0,
                 profiler_outdir=path)
 
-    def evaluate(self, evaluation_samples = None):
+    def evaluate(self, evaluation_samples = None, verbose=True):
         """
         Parameters
         ----------
         evaluation_samples: Samples to be tested.
         """
-        print()
-        print_header('Starting to make evaluations...\n---------------------------------------------------------\n')
+        if verbose:
+            print()
+            print_header('Starting to make evaluations...\n---------------------------------------------------------\n')
 
         if evaluation_samples is None:
             try:
