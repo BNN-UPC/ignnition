@@ -40,9 +40,10 @@ import collections
 
 class Ignnition_model:
     def __init__(self, model_dir):
-        self.model_dir = os.path.normpath(model_dir)
-
+        self.model_dir = model_dir
+        self.model_dir = os.path.normpath(self.model_dir)
         train_options_path = os.path.join(self.model_dir, 'train_options.yaml')
+
         # read the train_options file
         with open(train_options_path, 'r') as stream:
             try:
@@ -55,15 +56,12 @@ class Ignnition_model:
 
         # add the file with any additional function, if any
         if 'additional_functions_file' in self.CONFIG:
-            aux = self.CONFIG['additional_functions_file']
-            sys.path.insert(1, aux)
-            self.module = __import__(aux.split('/')[-1][0:-3])
+            additional_path = os.path.normpath(self.CONFIG['additional_functions_file'])
+            sys.path.insert(1, additional_path)
+            self.module = __import__(additional_path.split('/')[-1][0:-3])
 
-        self.gnn_model = self.__create_model()
+        self.model_info = self.__create_model()
         self.generator = Generator()
-
-        # restore a warm-start Checkpoint (if any)
-        self.__restore_model()
 
     def __loss_function(self, labels, predictions):
         loss_func_name = self.CONFIG['loss']
@@ -129,7 +127,7 @@ class Ignnition_model:
                 tf.keras.callbacks.ModelCheckpoint(filepath=output_path + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
                                                    save_freq='epoch', monitor='loss'),
                 Custom_progressbar(output_path=output_path + '/logs', mini_epoch_size=mini_epoch_size,
-                                   num_epochs=num_epochs, metric_names=metric_names, k=None)]
+                                   num_epochs=num_epochs, metric_names=metric_names, k=self.CONFIG.get('k_best',None))]
 
     # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
     def __batch_normalization(self, x, feature_list, output_name, y=None):
@@ -191,7 +189,6 @@ class Ignnition_model:
         output_normalizations: dict
             Maps each feature or label with its normalization strategy if any
         """
-
         try:
             norm_func = getattr(self.module, 'normalization')
         except:
@@ -199,27 +196,24 @@ class Ignnition_model:
 
         if norm_func is not None:
             # input data
-            for f in feature_list:
+            for f_name in feature_list:
                 try:
-                    x[f.name] = tf.py_function(func=norm_func, inp=[x.get(f.name), f.name], Tout=tf.float32)
+                    x[f_name] = tf.py_function(func=norm_func, inp=[x.get(f_name), f_name], Tout=tf.float32)
                 except:
-                    print_failure('The normalization function failed with feature ' + f.name + '.')
+                    print_failure('The normalization function failed with feature ' + f_name + '.')
 
             # output
             if y is not None:
                 try:
                     y = tf.py_function(func=norm_func, inp=[y, output_name], Tout=tf.float32)
-
                 except:
-                    print_failure('The normalization function computing the output label' + output_name + '.')
-
+                    print_failure('The normalization function computing the output label' + output_name + ' failed.')
                 return x, y
             return x
 
         if y is not None:
             return x,y
         return x
-
 
     @tf.autograph.experimental.do_not_convert
     def __input_fn_generator(self, filenames=None, shuffle=False, training=True,data_samples=None, iterator=False):
@@ -253,8 +247,7 @@ class Ignnition_model:
                 types[a] = tf.int64
                 shapes[a] = tf.TensorShape(None)
 
-            for f in feature_list:
-                f_name = f.name
+            for f_name in feature_list:
                 feature_names.append(f_name)
                 types[f_name] = tf.float32
                 shapes[f_name] = tf.TensorShape(None)
@@ -349,63 +342,81 @@ class Ignnition_model:
 
         return ds
 
+    # -------------------------------------
+    def __create_model(self):
+        print_header("Processing the described model...\n---------------------------------------------------------------------------\n")
+        return Json_preprocessing(self.model_dir)  # read json
+
+    def __create_gnn(self,samples=None, path=None, verbose=True):
+        if verbose:
+            print_header("Creating the GNN model...\n---------------------------------------------------------------------------\n")
+
+        dimensions, len1_features, sample = self.find_dataset_dimensions(samples=samples, path=path)
+        self.model_info.add_dimensions(dimensions, len1_features)
+
+        gnn_model = self.__make_model(self.model_info)
+        # restore a warm-start Checkpoint (if any)
+        self.gnn_model = self.__restore_model(gnn_model, sample=sample)
+
     def __make_model(self, model_info):
         # Either restore the latest model, or create a fresh one
-        print("Creating a new model")
-        gnn_model = self.__get_compiled_model(model_info)
+         gnn_model = self.__get_compiled_model(model_info)
+         return gnn_model
 
-        return gnn_model
-
-    def __create_model(self):
-        dimensions, len1_features = self.find_dataset_dimensions(self.CONFIG['train_dataset'])
-        self.model_info = Json_preprocessing(self.model_dir, dimensions, len1_features)  # read json
-
-        return self.__make_model(self.model_info)
-
-    def __restore_model(self):
-        if 'warm_start_path' in self.CONFIG:
-            checkpoint_path = self.CONFIG['warm_start_path']
-        else:
-            checkpoint_path = ''
-
+    def __restore_model(self, gnn_model, sample):
+        checkpoint_path = self.CONFIG.get('warm_start_path', '')
         if os.path.isfile(checkpoint_path):
             print("Restoring from", checkpoint_path)
             # in this case we need to initialize the weights to be able to use a warm-start checkpoint
-            sample_it = self.__input_fn_generator(self.CONFIG['train_dataset'], training=False,
-                                                  data_samples=None)
+
+            sample_it = self.__input_fn_generator(training=False,
+                                                  data_samples=[sample])
             sample = sample_it.get_next()
-
             # Call only one tf.function when tracing.
-            _ = self.gnn_model(sample, training=False)
+            _ = gnn_model(sample, training=False)
+            gnn_model.load_weights(checkpoint_path)
 
-            return self.gnn_model.load_weights(checkpoint_path)
+        elif checkpoint_path != '':
+            print_info(
+                "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
 
+        return gnn_model
 
+    # --------------------------------
 
-    def find_dataset_dimensions(self, path):
+    def find_dataset_dimensions(self, path=None, samples=None):
         """
         Parameters
         ----------
         path:    str
           Path to find the dataset
         """
-        sample = glob.glob(str(path) + '/*.tar.gz')[0]  # choose one single file to extract the dimensions
-        try:
-            tar = tarfile.open(sample, 'r:gz')  # read the tar files
-        except:
-            print_failure('The file data.json was not found in ' + sample)
+        if samples is not None:
+            sample = samples[0]    #take the first one to find the dimensions
 
-        try:
-            file_samples = tar.extractfile('data.json')
-            file_samples.read(1)
-            aux = stream_read_json(file_samples)
+        else:
+            sample_path = glob.glob(path + '/*.tar.gz')[0]  # choose one single file to extract the dimensions
+            try:
+                tar = tarfile.open(sample_path, 'r:gz')  # read the tar files
+            except:
+                print_failure('The file data.json was not found in ' + sample_path)
 
-            sample_data = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
+            try:
+                file_samples = tar.extractfile('data.json')
+                file_samples.read(1)
+                aux = stream_read_json(file_samples)
+
+                sample = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
+            except:
+                print_failure('Failed to read the data file ' + sample)
+
+
+            # Now that we have the sample, we can process the dimensions
             dimensions = {}  # for each key, we have a tuple of (length, num_elements)
 
             # note that all the features that are 1d will have dimension 1. o/w it has 2 dimensions
             len_1_features = []
-            for k, v in sample_data.items():
+            for k, v in sample.items():
                 # if it's a feature
                 if not isinstance(v, dict):
                     if isinstance(v, list):
@@ -414,7 +425,7 @@ class Ignnition_model:
 
                         # if it's a feature (2-d array)
                         elif isinstance(v[0], list):
-                            dimensions[k] = len(v[0])
+                            dimensions[k] = len(v[0])   # take the length of the second dimension
 
                         # set always to len(v). In run time, if its a 1-d feature of a node, replace for dimension = 1
                         else:
@@ -435,15 +446,21 @@ class Ignnition_model:
                     else:
                         dimensions[k] = 0
 
-            return dimensions, len_1_features
+            return dimensions, len_1_features, sample
 
-        except:
-            print_failure('Failed to read the data file ' + sample)
 
     # FUNCTIONALITIES
+    # --------------------------------------------------
     def train_and_validate(self, training_samples=None, eval_samples=None):
-        # training_files is a list of strings (paths)
-        # eval_files is a list of strings (paths)
+        # Create the GNN model
+
+        if not hasattr(self, 'gnn_model'):
+            if training_samples is None:    # look for the dataset path
+                training_path = os.path.normpath(self.CONFIG['train_dataset'])
+                self.__create_gnn(path = training_path)
+            else:
+                self.__create_gnn(samples=training_samples)
+
         print()
         print_header(
             'Starting the training and validation process...\n---------------------------------------------------------------------------\n')
@@ -476,7 +493,7 @@ class Ignnition_model:
             self.CONFIG['epoch_size'])
         num_epochs = int(self.CONFIG['epochs'])
         metrics = self.CONFIG['metrics']
-        # pass the validation data to the callback and do this manually??
+
         callbacks = self.__get_model_callbacks(output_path=output_path, mini_epoch_size=mini_epoch_size,
                                                num_epochs=num_epochs, metric_names=metrics)
 
@@ -489,29 +506,33 @@ class Ignnition_model:
                            validation_steps=int(self.CONFIG['val_samples']),
                            callbacks=callbacks,
                            use_multiprocessing=True,
-                           verbose=0)
+                           verbose=1)
 
-    def predict(self, prediction_samples=None):
+    def predict(self, prediction_samples=None, verbose=True):
         """
             Parameters
             ----------
             model_info:    object
             Object with the json information model
         """
-        print()
-        print_header('Starting to make the predictions...\n---------------------------------------------------------\n')
+        prediction_path = None
+        if not hasattr(self, 'gnn_model'):
+            if prediction_samples is None:  #look for the dataset path
+                try:
+                    prediction_path = os.path.normpath(self.CONFIG['predict_dataset'])
+                    self.__create_gnn(path=prediction_path, verbose = verbose)
+                except:
+                    print_failure(
+                        'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the prediction dataset')
 
-        if prediction_samples is None:
-            try:
-                data_path = self.CONFIG['predict_dataset']
-            except:
-                print_failure(
-                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the prediction dataset')
+            else:
+                self.__create_gnn(samples=prediction_samples, verbose=verbose)
 
-        else:
-            data_path = None
+        if verbose:
+            print()
+            print_header('Starting to make the predictions...\n---------------------------------------------------------\n')
 
-        sample_it = self.__input_fn_generator(data_path, training=False, data_samples=prediction_samples, iterator=True)
+        sample_it = self.__input_fn_generator(prediction_path, training=False, data_samples=prediction_samples, iterator=True)
         all_predictions = []
         try:
             # find the denormalization function
@@ -540,11 +561,14 @@ class Ignnition_model:
         return all_predictions
 
     def computational_graph(self):
+        # Check if we can generate the computational graph without a dataset
+        train_path = os.path.normpath(self.CONFIG['train_dataset'])
+        if not hasattr(self, 'gnn_model'):
+            self.__create_gnn(path=train_path)
+
         print()
         print_header(
             'Generating the computational graph... \n---------------------------------------------------------\n')
-
-        filenames_train = os.path.normpath(self.CONFIG['train_dataset'])
 
         path = os.path.normpath(self.CONFIG['output_path'])
 
@@ -556,7 +580,7 @@ class Ignnition_model:
         tf.summary.trace_on(graph=True, profiler=True)
 
         # evaluate one single input
-        sample_it = self.__input_fn_generator(filenames_train, training=False, data_samples=None, iterator=True)
+        sample_it = self.__input_fn_generator(train_path, training=False, data_samples=None, iterator=True)
         sample = sample_it.get_next()
         # Call only one tf.function when tracing.
         _ = self.gnn_model(sample, training=False)
@@ -567,22 +591,30 @@ class Ignnition_model:
                 step=0,
                 profiler_outdir=path)
 
-
-    def evaluate(self, evaluation_samples = None):
+    def evaluate(self, evaluation_samples = None, verbose=True):
         """
         Parameters
         ----------
         evaluation_samples: Samples to be tested.
         """
-        print()
-        print_header('Starting to make evaluations...\n---------------------------------------------------------\n')
+        # Generate the model if it doesn't exist
+        if not hasattr(self, 'gnn_model'):
+            if evaluation_samples is None:  #look for the dataset path
+                val_path = os.path.normpath(self.CONFIG['validation_dataset'])
+                self.__create_gnn(path=val_path)
+            else:
+                self.__create_gnn(samples=evaluation_samples)
+
+        if verbose:
+            print()
+            print_header('Starting to make evaluations...\n---------------------------------------------------------\n')
 
         if evaluation_samples is None:
             try:
                 data_path = self.CONFIG['validation_dataset']
             except:
                 print_failure(
-                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the prediction dataset')
+                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the validation dataset')
         else:
             data_path = None
 
@@ -610,7 +642,6 @@ class Ignnition_model:
                 pred = self.gnn_model(features, training=False)
                 pred = tf.squeeze(pred)
                 output_name = self.model_info.get_output_info()  # for now suppose we only have one output type
-
                 if denorm_func is not None:
                     try:
                         pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
@@ -627,5 +658,8 @@ class Ignnition_model:
         return all_metrics
 
     def batch_training(self, input_samples):
+        if not hasattr(self, 'gnn_model'):
+            self.__create_gnn(samples=input_samples)
+
         dataset = self.__input_fn_generator(None, training=True, data_samples=input_samples, iterator=False)
         self.gnn_model.fit(dataset, batch_size=len(input_samples), verbose=0)

@@ -11,30 +11,119 @@
             "type": "array",
             "uniqueItems": true,
             "items": {
-              "type": "object",
-              "properties": {
-                  "name": {
-                      "description": "Name of the entity",
-                      "type": "string"
-                  },
-                  "hidden_state_dimension": {
-                      "description": "Size of the hidden state of this entity",
-                      "type": ["number", "string"]
-
-                  },
-                  "features":
-                 {
-                    "type": "array",
-                    "items":
-                    {
-                        "description": "Define the features of this entity",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "description": "Name of the entity",
                         "type": "string"
+                    },
+                    "state_dimension": {
+                        "description": "Size of the hidden state of this entity",
+                        "type": [
+                            "number",
+                            "string"
+                        ]
+                    },
+                    "initial_state": {
+                        "type": "array",
+                        "items": {
+                            "description": "Define each of the operations for the state creation",
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "description": "Type of operation to apply",
+                                    "type": "string",
+                                    "enum": [
+                                        "feed_forward",
+                                        "build_state",
+                                        "product"
+                                    ]
+                                },
+                                "nn_name": {
+                                    "description": "Reference the neural network to be used",
+                                    "type": "string"
+                                },
+                                "input": {
+                                    "description": "Input of this operation",
+                                    "type": "array",
+                                    "items": {
+                                        "description": "define the inputs",
+                                        "type": "string"
+                                    }
+                                },
+                                "type_product": {
+                                    "description": "Type of product to be applied",
+                                    "type": "string",
+                                    "enum": [
+                                        "dot_product",
+                                        "element_wise",
+                                        "mat_mult"
+                                    ]
+                                },
+                                "output_name": {
+                                    "description": "Define an output name for the result, to reference it later",
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "type"
+                            ],
+                            "allOf": [
+                                {
+                                    "if": {
+                                        "properties": {
+                                            "type": {
+                                                "const": "feed_forward"
+                                            }
+                                        }
+                                    },
+                                    "then": {
+                                        "required": [
+                                            "nn_name",
+                                            "input"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "if": {
+                                        "properties": {
+                                            "type": {
+                                                "const": "build_state"
+                                            }
+                                        }
+                                    },
+                                    "then": {
+                                        "required": [
+                                            "input"
+                                        ]
+                                    }
+                                },
+                                {
+                                    "if": {
+                                        "properties": {
+                                            "type": {
+                                                "const": "product"
+                                            }
+                                        }
+                                    },
+                                    "then": {
+                                        "required": [
+                                            "type_product",
+                                            "input"
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
                     }
-                  }
-              },
-              "required": ["name", "hidden_state_dimension", "features"]
-            }},
-
+                },
+                "required": [
+                        "name",
+                        "state_dimension",
+                        "initial_state"
+                    ]
+            }
+        },
         "message_passing":
         {
             "description": "Message passing strategy",
@@ -97,7 +186,7 @@
                                                                 {
                                                                     "description": "Type of operation to apply",
                                                                     "type": "string",
-                                                                    "enum": ["feed_forward", "direct_assignation", "product"]
+                                                                    "enum": ["feed_forward", "direct_assignment", "product"]
                                                                 },
                                                                 "nn_name":
                                                                 {
@@ -125,6 +214,7 @@
                                                                     "type": "string"
                                                                 }
                                                             },
+                                                            "required": ["type"],
                                                             "allOf":
                                                             [
                                                                 {
@@ -143,81 +233,117 @@
                                                                         "required": ["type_product", "input"]
                                                                     }
                                                                 }
-                                                            ],
-                                                            "required": ["type"]
-
+                                                            ]
                                                         }
-
                                                     }
                                                 },
-                                                "required": ["name", "adj_vector", "message"]
+                                                "required": ["name", "adj_list"]
                                             }
                                         },
                                         "aggregation":
                                         {
-                                            "description": "How the messages are combined by the destination source",
-                                            "type": "object",
-                                            "properties":
-                                            {
-                                                "type":
-                                                {
-                                                    "type": "string",
-                                                    "enum": ["sum", "ordered", "attention", "concat", "interleave", "convolution", "edge_attention"]
-                                                },
-                                                "concat_axis": {
-                                                    "description": "Define how to concatenate the messages together",
-                                                    "type": "integer",
-                                                    "enum": [1, 2]
-                                                },
-                                                "interleave_definition": {
-                                                    "description": "Descrives how the interleaving is done",
-                                                    "type": "string"
-                                                },
-                                                "activation_function": {
-                                                    "description": "Activation function to use for convoluting",
-                                                    "type": "string"
-                                                },
-                                                "nn_name":
-                                                {
-                                                    "description": "Reference the name of a neural network",
-                                                    "type": "string"
-                                                },
-                                                "weight_initialization":
-                                                {
-                                                    "description": "Name of the function to be used for the weight initialization",
-                                                    "type": "string"
-                                                }
-                                            },
-                                            "allOf":
-                                            [
-                                                {
-                                                    "if": {
-                                                        "properties": { "type": { "const": "interleave" } }
+                                            "type": "array",
+                                            "items": {
+                                                "description": "How the messages are combined by the destination source",
+                                                "type": "object",
+                                                "properties": {
+                                                    "type": {
+                                                        "type": "string",
+                                                        "enum": [
+                                                            "sum",
+                                                            "mean",
+                                                            "max",
+                                                            "min",
+                                                            "ordered",
+                                                            "attention",
+                                                            "concat",
+                                                            "interleave",
+                                                            "convolution",
+                                                            "edge_attention",
+                                                            "feed_forward"
+                                                        ]
                                                     },
-                                                    "then":
+                                                    "concat_axis": {
+                                                        "description": "Define how to concatenate the messages together",
+                                                        "type": "integer",
+                                                        "enum": [1,2]
+                                                    },
+                                                    "interleave_definition": {
+                                                        "description": "Describes how the interleaving is done",
+                                                        "type": "string"
+                                                    },
+                                                    "activation_function": {
+                                                        "description": "Activation function to use for convoluting",
+                                                        "type": "string"
+                                                    },
+                                                    "nn_name": {
+                                                        "description": "Reference the name of a neural network",
+                                                        "type": "string"
+                                                    },
+                                                    "weight_initialization": {
+                                                        "description": "Name of the function to be used for the weight initialization",
+                                                        "type": "string"
+                                                    },
+                                                    "output_name":
                                                     {
-                                                        "required": ["interleave_definition"]
+                                                        "description": "Define an output name for the result, to reference it later",
+                                                        "type": "string"
+                                                    },
+                                                    "input":
+                                                    {
+                                                        "description": "Input of this operation",
+                                                        "type": "array",
+                                                        "items":{
+                                                            "description": "Define the inputs",
+                                                            "type": "string"
+                                                        }
                                                     }
                                                 },
-                                                {
-                                                    "if": {
-                                                        "properties": { "type": { "const": "concat" } }
-                                                    },
-                                                    "then":
+                                                "allOf": [
                                                     {
-                                                        "required": ["concat_axis"]
-                                                    }
-                                                },
-                                                {
-                                                    "if": {
-                                                        "properties": { "type": { "const": "edge_attention" } }
+                                                        "if": {
+                                                            "properties": {
+                                                                "type": {
+                                                                    "const": "interleave"
+                                                                }
+                                                            }
+                                                        },
+                                                        "then": {
+                                                            "required": [
+                                                                "interleave_definition"
+                                                            ]
+                                                        }
                                                     },
-                                                    "then":
                                                     {
-                                                        "required": ["nn_name"]
+                                                        "if": {
+                                                            "properties": {
+                                                                "type": {
+                                                                    "const": "concat"
+                                                                }
+                                                            }
+                                                        },
+                                                        "then": {
+                                                            "required": [
+                                                                "concat_axis"
+                                                            ]
+                                                        }
+                                                    },
+                                                    {
+                                                        "if": {
+                                                            "properties": {
+                                                                "type": {
+                                                                    "const": "edge_attention"
+                                                                }
+                                                            }
+                                                        },
+                                                        "then": {
+                                                            "required": [
+                                                                "nn_name"
+                                                            ]
+                                                        }
                                                     }
-                                                }
-                                            ]
+                                                ]
+                                            }
                                         },
                                         "update":
                                         {
@@ -228,7 +354,7 @@
                                                 {
                                                     "description": "Type of operation for the update given the aggregated and the current hs",
                                                     "type": "string",
-                                                    "enum": ["feed_forward", "recurrent_neural_network"]
+                                                    "enum": ["feed_forward", "recurrent_neural_network", "direct_assignment"]
                                                 },
                                                 "nn_name":
                                                 {
@@ -258,7 +384,7 @@
                                         }
 
                                     },
-                                    "required": [ "source_entities", "destination_entity", "aggregation", "update"]
+                                    "required": [ "source_entities", "destination_entity", "aggregation"]
 
                                 }
                             }

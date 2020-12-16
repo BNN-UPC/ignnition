@@ -37,7 +37,7 @@ def denormalization(feature, feature_name):
     return feature
 
 
-def main():
+def main(model_dir):
     model = ignnition.create_model(model_dir= './')
     model.computational_graph()
     model.train_and_validate()

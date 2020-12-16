@@ -1,11 +1,16 @@
 # Definition of the entities
 entities:
 - name: link
-  hidden_state_dimension: hidden_state_dim
-  features: [link_capacity]
+  state_dimension: hidden_state_dim
+  initial_state:
+    - type: build_state
+      input: [link_capacity]
+
 - name: path
-  hidden_state_dimension: hidden_state_dim
-  features: [traffic]
+  state_dimension: hidden_state_dim
+  initial_state:
+    - type: build_state
+      input: [traffic]
 
 # Definition of the message passing phase
 message_passing:
@@ -17,11 +22,11 @@ message_passing:
       - destination_entity: path
         source_entities:
           - name: link
-            adj_vector: adj_links_paths
+            adj_list: adj_links_paths
             message:
-              - type: direct_assignation
+              - type: direct_assignment
         aggregation:
-          type: ordered
+          - type: ordered
         update:
           type: recurrent_neural_network
           nn_name: recurrent1
@@ -32,11 +37,11 @@ message_passing:
       - destination_entity: link
         source_entities:
         - name: path
-          adj_vector: adj_paths_links
+          adj_list: adj_paths_links
           message:
-          - type: direct_assignation
+          - type: direct_assignment
         aggregation:
-          type: sum
+          - type: sum
         update:
           type: recurrent_neural_network
           nn_name: recurrent1
@@ -56,15 +61,15 @@ neural_networks:
   nn_architecture:
   - type_layer: Dense
     units: readout_units
-    kernel_regularizer: 0.1
+    kernel_regularizer: r_l2
     activation: selu
   - type_layer: Dense
     units: readout_units
-    kernel_regularizer: 0.1
+    kernel_regularizer: r_l2
     activation: selu
   - type_layer: Dense
     units: output_units
-    kernel_regularizer: 0.01
+    kernel_regularizer: r_l2_2
     activation: None
 
 # RNN model

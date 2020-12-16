@@ -1,11 +1,16 @@
 # Definition of the entities
 entities:
 - name: router
-  hidden_state_dimension: 160
-  features: [router_id]
+  state_dimension: 160
+  initial_state:
+    - type: build_state
+      input: [ router_id ]
+
 - name: interface
-  hidden_state_dimension: 160
-  features: [link_speed]
+  state_dimension: 160
+  initial_state:
+    - type: build_state
+      input: [ link_speed ]
 
 # Definition of the message passing phase
 message_passing:
@@ -16,16 +21,16 @@ message_passing:
     - destination_entity: interface
       source_entities:
       - name: router
-        adj_vector: adj_routers_interfaces
+        adj_list: adj_routers_interfaces
         message:
         - type: direct_assignation
       - name: interface
-        adj_vector: adj_interfaces_interfaces
+        adj_list: adj_interfaces_interfaces
         message:
         - type: direct_assignation
       aggregation:
-        type: edge_attention
-        nn_name: edge_att_nn
+        - type: edge_attention
+          nn_name: edge_att_nn
       update:
         type: recurrent_neural_network
         nn_name: recurrent1
@@ -33,12 +38,12 @@ message_passing:
     - destination_entity: router
       source_entities:
       - name: interface
-        adj_vector: adj_interfaces_routers
+        adj_list: adj_interfaces_routers
         message:
         - type: direct_assignation
       aggregation:
-        type: edge_attention
-        nn_name: edge_att_nn
+        - type: edge_attention
+          nn_name: edge_att_nn
       update:
         type: recurrent_neural_network
         nn_name: recurrent1
