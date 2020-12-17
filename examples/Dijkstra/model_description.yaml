@@ -1,12 +1,12 @@
 # Definition of the entities
 entities:
 - name: node
-  hidden_state_dimension: hidden_state_dim
+  hidden_state_dimension: 16
   features: [src_tgt]
 
 # Definition of the message passing phase
 message_passing:
-  num_iterations: N
+  num_iterations: 8
   stages:
     # STAGE 1:
     - stage_message_passings:
@@ -16,10 +16,10 @@ message_passing:
           - name: node
             adj_vector: edge
             message:
-              #- type: feed_forward
-              #  nn_name: message_function
-              #  input: [edge_params]
-              - type: direct_assignation
+              - type: feed_forward
+                nn_name: message_function
+                input: [source, edge_params]
+              #- type: direct_assignation
         aggregation:
           type: sum
         update:
@@ -46,17 +46,17 @@ neural_networks:
     units: 8
     activation: relu
   - type_layer: Dense
-    units: output_units
+    units: 1
     activation: sigmoid
 
 - nn_name: message_function
   nn_type: feed_forward
   nn_architecture:
   - type_layer: Dense
-    units: 16
+    units: 32
     activation: relu
   - type_layer: Dense
-    units: hidden_state_dim
+    units: 16
     activation: relu
 
 # RNN model

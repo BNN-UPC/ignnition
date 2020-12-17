@@ -40,7 +40,7 @@ def graph_to_json(G):
     weights = list(nx.get_edge_attributes(G, 'weight').values())
     edges = {}
     for n in G.nodes:
-        edges[n] = [e for e in G[n]]
+        edges[n] = [[e, [G[n][e]['weight']]] for e in G[n]]
 
     return dict({"src_tgt": src_tgt,
                  "sp": sp,
@@ -58,5 +58,13 @@ def generate_dataset(file_name, num_samples, min_nodes=5, max_nodes=15, min_edge
         json.dump(samples, f)
 
 
-generate_dataset("./data/train/data.json", 80000)
-generate_dataset("./data/test/data.json", 20000)
+generate_dataset("./data/train/data.json", 10000)
+generate_dataset("./data/test/data.json", 1000)
+
+"""min_nodes=5
+max_nodes=15
+min_edge_weight=1
+max_edge_weight=10
+p=0.3
+G = generate_random_graph(min_nodes, max_nodes, min_edge_weight, max_edge_weight, p)"""
+
