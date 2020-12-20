@@ -200,7 +200,7 @@ class Json_preprocessing:
 
         return data
 
-    def add_dimensions(self, dimensions, len1_features):
+    def add_dimensions(self, dimensions):
         """
         Parameters
         ----------
@@ -209,27 +209,13 @@ class Json_preprocessing:
         dimensions:      dict
             Dictionary mapping the dimension of each input
         """
+
+        # add the dimensions of the entities
         for e in self.data['entities']:
             dimensions[e.get('name')] = e.get('state_dimension')
             dimensions[e.get('name') + '_initial'] = e.get('state_dimension')
-            operations = e.get('initial_state')    # names of the features
-            for op in operations:
-                inputs = op.get('input')
-                for i in inputs:
-                    if i in len1_features:
-                        size = 1
-                    else:
-                        size = dimensions.get(i)
-                    dimensions[i] = size
 
-        for stage in self.data['message_passing']['stages']:
-            stages = stage.get('stage_message_passings')
-            for mp in stages:
-                sources = mp.get('source_entities')
-                for src in sources:
-                    src['extra_parameters'] = dimensions.get(src['adj_list'])
-
-        self.input_dim = dimensions
+        self.input_dim = dimensions # CHECK THIS
         del self.data
 
     # validate that all the nn_name are correct. Validate that all source and destination entities are correct. Validate that all the inputs in the message function are correct
@@ -243,7 +229,7 @@ class Json_preprocessing:
         stages = data['message_passing']['stages']
 
         src_names, dst_names, called_nn_names, input_names = [], [], [], []
-        output_names = ['hs_source', 'hs_dst', 'edge_params']
+        output_names = ['source', 'destination']
 
         for stage in stages:
             stage_mp = stage.get('stage_message_passings')
@@ -497,6 +483,19 @@ class Json_preprocessing:
         output_names = set()
         input_names = set()
 
+        #gather here the inputs of the message operations (that are not source or destination)
+        for stage in self.mp_instances:
+            for mp in stage[1]:
+                source_entities = mp.source_entities
+                for s in source_entities:
+                    for op in s.message_formation:  # for each operation
+                        if op is not None and op.input is not None:
+                            new_inputs = [i for i in op.input if i !='source' and i!= 'destination']
+                            input_names.update(new_inputs)
+
+                            if op.output_name is not None:
+                                output_names.add(op.output_name)
+
         for r in self.readout_op:
             if r.type == 'extend_adjacencies':
                 output_names.update(r.output_name)  # several names
@@ -509,10 +508,7 @@ class Json_preprocessing:
 
         for e in self.entities:
             output_names.add(e.name)
-            output_names.add(e.name + '_initial')
+            output_names.add(e.name + '_initial_state')
 
         return list(input_names.difference(output_names))
 
-
-    def get_weight_matrices(self):
-        return self.weight_matrices

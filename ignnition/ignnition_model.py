@@ -36,6 +36,9 @@ from ignnition.custom_callbacks import *
 import sys
 import yaml
 import collections
+import networkx as nx
+from networkx.readwrite import json_graph
+from itertools import chain
 
 
 class Ignnition_model:
@@ -233,7 +236,7 @@ class Ignnition_model:
         """
         with tf.name_scope('get_data') as _:
             feature_list = self.model_info.get_all_features()
-            adjacency_info = self.model_info.get_adjecency_info()
+            adj_names = self.model_info.get_adjecency_info()
             interleave_list = self.model_info.get_interleave_tensors()
             interleave_sources = self.model_info.get_interleave_sources()
             output_name = self.model_info.get_output_info()
@@ -252,17 +255,18 @@ class Ignnition_model:
                 types[f_name] = tf.float32
                 shapes[f_name] = tf.TensorShape(None)
 
-            for a in adjacency_info:
-                types['src_' + a[0]] = tf.int64
-                shapes['src_' + a[0]] = tf.TensorShape([None])
-                types['dst_' + a[0]] = tf.int64
-                shapes['dst_' + a[0]] = tf.TensorShape([None])
-                types['seq_' + a[1] + '_' + a[2]] = tf.int64
-                shapes['seq_' + a[1] + '_' + a[2]] = tf.TensorShape([None])
+            for a in adj_names:
+                types['src_' + a] = tf.int64
+                shapes['src_' + a] = tf.TensorShape([None])
+                types['dst_' + a] = tf.int64
+                shapes['dst_' + a] = tf.TensorShape([None])
+                types['seq_' + a] = tf.int64
+                shapes['seq_' + a] = tf.TensorShape([None])
 
-                if a[3] == 'True':
-                    types['params_' + a[0]] = tf.int64
-                    shapes['params_' + a[0]] = tf.TensorShape(None)
+                # we now include this values in the additional_params
+               # if a[3] == 'True':
+               #     types['params_' + a[0]] = tf.int64
+               #     shapes['params_' + a[0]] = tf.TensorShape(None)
 
             for e in entity_names:
                 types['num_' + e] = tf.int64
@@ -276,7 +280,7 @@ class Ignnition_model:
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
-                                                                     output_name, adjacency_info,
+                                                                     output_name, #adjacency_info,
                                                                      interleave_list, unique_additional_input, training,
                                                                      shuffle),
                         output_types=(types, tf.float32),
@@ -286,8 +290,8 @@ class Ignnition_model:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
-                                                                   output_name,
-                                                                   adjacency_info, interleave_list,
+                                                                   output_name, #adjacency_info,
+                                                                   interleave_list,
                                                                    unique_additional_input, training, shuffle),
                         output_types=(types, tf.float32),
                         output_shapes=(shapes, tf.TensorShape(None)))
@@ -296,7 +300,7 @@ class Ignnition_model:
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
-                                                                     output_name, adjacency_info,
+                                                                     output_name, #adjacency_info,
                                                                      interleave_list, unique_additional_input, training,
                                                                      shuffle),
                         output_types=(types),
@@ -306,8 +310,8 @@ class Ignnition_model:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
-                                                                   output_name,
-                                                                   adjacency_info, interleave_list,
+                                                                   output_name, #adjacency_info,
+                                                                   interleave_list,
                                                                    unique_additional_input, training, shuffle),
                         output_types=(types),
                         output_shapes=(shapes))
@@ -351,8 +355,8 @@ class Ignnition_model:
         if verbose:
             print_header("Creating the GNN model...\n---------------------------------------------------------------------------\n")
 
-        dimensions, len1_features, sample = self.find_dataset_dimensions(samples=samples, path=path)
-        self.model_info.add_dimensions(dimensions, len1_features)
+        dimensions, sample = self.find_dataset_dimensions(samples=samples, path=path)
+        self.model_info.add_dimensions(dimensions)
 
         gnn_model = self.__make_model(self.model_info)
         # restore a warm-start Checkpoint (if any)
@@ -383,7 +387,6 @@ class Ignnition_model:
         return gnn_model
 
     # --------------------------------
-
     def find_dataset_dimensions(self, path=None, samples=None):
         """
         Parameters
@@ -414,39 +417,74 @@ class Ignnition_model:
             # Now that we have the sample, we can process the dimensions
             dimensions = {}  # for each key, we have a tuple of (length, num_elements)
 
+            # COMPUTE THE DIMENSIONS USING ONE OF THE SAMPLES
+            # 1) Transform it to networkx
+            # 2) Obtain all the nodes attributes
+            # 3) Obtain all the edge attributes
+            # 4) Obtain all the graph attributes
+
+            # 1) Obtain the corresponding graph
+            G = json_graph.node_link_graph(sample)
+
+            # 1) Node attributes
+            node_attrs = list(set(chain.from_iterable(d.keys() for _, d in G.nodes(data=True))))
+            for n in node_attrs:
+                if n != 'entity:':
+                    features = list(nx.get_node_attributes(G, n).values())
+                    elem = features[0]
+                    # if features has dimension 1, then dim = 1.
+                    if isinstance(elem, list):
+                        dimensions[n] = len(elem)
+                    else:
+                        dimensions[n] = 1
+
+            # 2) Edge attributes
+            edge_attrs = list(set(chain.from_iterable(d.keys() for *_, d in G.edges(data=True))))
+            for e in edge_attrs:
+                features = list(nx.get_edge_attributes(G, e).values())
+                dimensions[e] = len(features[0])
+
+            # 3) Graph attributes
+            graph_attrs = list(G.graph.keys())
+            for g in graph_attrs:
+                feature = G.graph[g]
+                dimensions[g] = len(feature)
+
+            print(dimensions)
+            return dimensions, sample
             # note that all the features that are 1d will have dimension 1. o/w it has 2 dimensions
-            len_1_features = []
-            for k, v in sample.items():
-                # if it's a feature
-                if not isinstance(v, dict):
-                    if isinstance(v, list):
-                        if isinstance(v[0], str):
-                            pass
-
-                        # if it's a feature (2-d array)
-                        elif isinstance(v[0], list):
-                            dimensions[k] = len(v[0])   # take the length of the second dimension
-
-                        # set always to len(v). In run time, if its a 1-d feature of a node, replace for dimension = 1
-                        else:
-                            dimensions[k] = len(v)
-                            len_1_features.append(k)
-
-                    # if it is one single value
-                    else:
-                        dimensions[k] = 1
-
-                # if its either the entity or an adjacency (it is a dictionary, that is non-empty)
-                elif v:
-                    first_key = list(v.keys())[0]  # first key of the list
-                    element = v[first_key]  # first value of the list (another list)
-                    if (not isinstance(element[0], str)) and isinstance(element[0], list):
-                        # the element[0][0] is the adjacency node. The element[0][1] is the edge information
-                        dimensions[k] = len(element[0][1])
-                    else:
-                        dimensions[k] = 0
-
-            return dimensions, len_1_features, sample
+            # len_1_features = []
+            # for k, v in sample.items():
+            #     # if it's a feature
+            #     if not isinstance(v, dict):
+            #         if isinstance(v, list):
+            #             if isinstance(v[0], str):
+            #                 pass
+            #
+            #             # if it's a feature (2-d array)
+            #             elif isinstance(v[0], list):
+            #                 dimensions[k] = len(v[0])   # take the length of the second dimension
+            #
+            #             # set always to len(v). In run time, if its a 1-d feature of a node, replace for dimension = 1
+            #             else:
+            #                 dimensions[k] = len(v)
+            #                 len_1_features.append(k)
+            #
+            #         # if it is one single value
+            #         else:
+            #             dimensions[k] = 1
+            #
+            #     # if its either the entity or an adjacency (it is a dictionary, that is non-empty)
+            #     elif v:
+            #         first_key = list(v.keys())[0]  # first key of the list
+            #         element = v[first_key]  # first value of the list (another list)
+            #         if (not isinstance(element[0], str)) and isinstance(element[0], list):
+            #             # the element[0][0] is the adjacency node. The element[0][1] is the edge information
+            #             dimensions[k] = len(element[0][1])
+            #         else:
+            #             dimensions[k] = 0
+            #
+            # return dimensions, len_1_features, sample
 
 
     # FUNCTIONALITIES
