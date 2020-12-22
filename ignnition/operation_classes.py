@@ -31,16 +31,13 @@ class Operation():
         if self.input is not None:
             input_nn = self.input
             input_dim = 0
-            print("dimensions:", dimensions)
             for i in input_nn:
                 if '_initial_state' in i:
                     i = i.split('_initial_state')[0]
-                print(i)
                 if i in dimensions:
                     dimension = dimensions[i]
                 else:
                     dimension = calculations[i + '_dim']# take the dimension from here or from self.dimensions
-                print(input_dim)
                 input_dim += dimension
             return input_dim
 

@@ -450,42 +450,7 @@ class Ignnition_model:
                 feature = G.graph[g]
                 dimensions[g] = len(feature)
 
-            print(dimensions)
             return dimensions, sample
-            # note that all the features that are 1d will have dimension 1. o/w it has 2 dimensions
-            # len_1_features = []
-            # for k, v in sample.items():
-            #     # if it's a feature
-            #     if not isinstance(v, dict):
-            #         if isinstance(v, list):
-            #             if isinstance(v[0], str):
-            #                 pass
-            #
-            #             # if it's a feature (2-d array)
-            #             elif isinstance(v[0], list):
-            #                 dimensions[k] = len(v[0])   # take the length of the second dimension
-            #
-            #             # set always to len(v). In run time, if its a 1-d feature of a node, replace for dimension = 1
-            #             else:
-            #                 dimensions[k] = len(v)
-            #                 len_1_features.append(k)
-            #
-            #         # if it is one single value
-            #         else:
-            #             dimensions[k] = 1
-            #
-            #     # if its either the entity or an adjacency (it is a dictionary, that is non-empty)
-            #     elif v:
-            #         first_key = list(v.keys())[0]  # first key of the list
-            #         element = v[first_key]  # first value of the list (another list)
-            #         if (not isinstance(element[0], str)) and isinstance(element[0], list):
-            #             # the element[0][0] is the adjacency node. The element[0][1] is the edge information
-            #             dimensions[k] = len(element[0][1])
-            #         else:
-            #             dimensions[k] = 0
-            #
-            # return dimensions, len_1_features, sample
-
 
     # FUNCTIONALITIES
     # --------------------------------------------------

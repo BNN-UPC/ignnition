@@ -164,7 +164,7 @@ class Gnn_model(tf.keras.Model):
                                 save_global_variable(self.calculations,dst_name + '_update', recurrent_instance)
                             except:
                                 print_failure(
-                                    'IGNNITION: The definition of the recurrent cell in message passsing to ' + message.destination_entity +
+                                    'The definition of the recurrent cell in message passsing to ' + message.destination_entity +
                                     ' is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
                                 sys.exit(1)
 

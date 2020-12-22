@@ -1,8 +1,8 @@
 # PATHS
 #train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/train
 #validation_dataset: ../Datasets/Datasets_framework/Dataset_routenet/eval
-train_dataset: ./examples/Routenet/Dataset_routenet/train
-validation_dataset: ./examples/Routenet/Dataset_routenet/eval
+train_dataset: ./examples/Routenet/Dataset_routenet_networkx/TRAIN
+validation_dataset: ./examples/Routenet/Dataset_routenet_networkx/EVAL
 #predict_dataset:
 #warm_start_path:
 additional_functions_file: ./main.py
@@ -22,7 +22,7 @@ metrics: [MeanAbsoluteError]
 # TRAINING OPTIONS
 batch_size: 1
 epochs: 1000
-epoch_size: 200
+epoch_size: 1000
 shuffle_training_set: True
 shuffle_validation_set: False
 val_samples: 100
