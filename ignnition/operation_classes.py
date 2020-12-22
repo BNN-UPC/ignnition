@@ -32,16 +32,16 @@ class Operation():
             input_nn = self.input
             input_dim = 0
             for i in input_nn:
+                if '_initial_state' in i:
+                    i = i.split('_initial_state')[0]
                 if i in dimensions:
                     dimension = dimensions[i]
                 else:
                     dimension = calculations[i + '_dim']# take the dimension from here or from self.dimensions
-
                 input_dim += dimension
             return input_dim
 
     def obtain_total_input_dim_message(self, dimensions, calculations, dst_name, src):
-
         # Find out the dimension of the model
         input_nn = self.input
         input_dim = 0
@@ -50,8 +50,6 @@ class Operation():
                 input_dim += int(dimensions.get(src.name))
             elif i == 'destination':
                 input_dim += int(dimensions.get(dst_name))
-            elif i == 'edge_params':
-                input_dim += int(src.extra_parameters)  # size of the extra parameter
             else:
                 dimension = calculations[i + '_dim']
                 input_dim += dimension
@@ -60,6 +58,9 @@ class Operation():
     def compute_all_input(self, calculations, f_):
         first = True
         for i in self.input:
+            if '_initial_state' in i:
+                i = i.split('_initial_state')[0]
+
             new_input = get_global_var_or_input(calculations, i, f_)
 
             if len(tf.shape(new_input)) == 1:
@@ -70,10 +71,32 @@ class Operation():
                 first = False
                 input_nn = new_input
             else:
-                input_nn = tf.concat(
-                    [input_nn, new_input], axis=1)
+                input_nn = tf.concat([input_nn, new_input], axis=1)
 
-            return input_nn
+        return input_nn
+
+    def compute_all_input_msg(self, calculations, f_, src_msgs, dst_msgs):
+        first = True
+        for i in self.input:
+            if i == 'source':
+                new_input = src_msgs
+            elif i == 'destination':
+                new_input = dst_msgs
+            else:
+                new_input = get_global_var_or_input(calculations, i, f_)
+
+            if len(tf.shape(new_input)) == 1:
+                new_input = tf.expand_dims(new_input, axis=-1)
+
+            # accumulate the results
+            if first:
+                first = False
+                input_nn = new_input
+            else:
+                input_nn = tf.concat([input_nn, new_input], axis=1)
+
+        return input_nn
+
 
 class Build_state(Operation):
     """
@@ -142,6 +165,8 @@ class Product_operation(Operation):
             elif self.type_product == 'mat_mult':
                 result = tf.tensordot(product_input1, product_input2, axes=[[2],[1]])
                 result = tf.squeeze(result, axis=2)
+
+            result = tf.cast(result, tf.float32)
 
             return result
 
@@ -223,6 +248,12 @@ class Feed_forward_operation(Operation):
 
         if readout and len(tf.shape(input_nn)) == 1:
                 input_nn = tf.expand_dims(input_nn, axis=0)
+
+        with tf.name_scope('pass_to_nn') as _:
+            return model(input_nn)
+
+    def apply_nn_msg(self, model, calculations, f_, src_msgs, dst_msgs):
+        input_nn = self.compute_all_input_msg(calculations, f_, src_msgs, dst_msgs)
 
         with tf.name_scope('pass_to_nn') as _:
             return model(input_nn)

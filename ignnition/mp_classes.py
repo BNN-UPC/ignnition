@@ -114,8 +114,6 @@ class Message_Passing:
         Name of the destination entity
     Mp_source_entity:      str
         Name of the source entity
-    adj_list:     str
-        Name from the dataset where the adjacency list can be found
     aggregation:     str
         Type of aggregation strategy
     update:     object
@@ -259,8 +257,6 @@ class Mp_source_entity:
     ----------
     name:   str
         Name of the source entity
-    adj_list:     str
-        Name of the adj_list
     message_formation:      str
         Array of Operation instances
     extra_parameter:     int
@@ -278,9 +274,7 @@ class Mp_source_entity:
     """
     def __init__(self, attr):
         self.name = attr.get('name')
-        self.adj_list = attr.get('adj_list')
         self.message_formation = self.create_message_formation(attr.get('message')) if 'message' in attr else [None]
-        self.extra_parameters = attr.get('extra_parameters', 0)
 
     def create_message_formation(self, operations):
         """
@@ -304,6 +298,7 @@ class Mp_source_entity:
             counter += 1
         return result
 
+
     def get_instance_info(self, dst_name):
         """
         Parameters
@@ -311,5 +306,5 @@ class Mp_source_entity:
         dst_name:    dict
             Name of the destination entity
         """
-        return [self.adj_list, self.name, dst_name, str(self.extra_parameters > 0)]
+        return self.name + '_to_' + dst_name
 

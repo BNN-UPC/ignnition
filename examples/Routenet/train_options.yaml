@@ -1,6 +1,6 @@
 # PATHS
-train_dataset: .
-validation_dataset: .
+train_dataset: <PATH>
+validation_dataset: <PATH>
 #predict_dataset:
 #warm_start_path:
 additional_functions_file: ./main.py
@@ -20,7 +20,7 @@ metrics: [MeanAbsoluteError]
 # TRAINING OPTIONS
 batch_size: 1
 epochs: 1000
-epoch_size: 200
+epoch_size: 1000
 shuffle_training_set: True
 shuffle_validation_set: False
 val_samples: 100

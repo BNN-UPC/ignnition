@@ -107,6 +107,6 @@ def get_global_var_or_input(calculations, var_name, f_):
     """
 
     try:
-        return get_global_variable(calculations, var_name + '_state')
+        return get_global_variable(calculations, var_name)
     except:
         return f_[var_name]

@@ -169,10 +169,6 @@
                                                         "description": "Name of the source entity",
                                                         "type": "string"
                                                     },
-                                                    "adj_vector": {
-                                                        "description": "Name of the adjacency list which defines the adjacencies from the source to the destiantion entity.",
-                                                        "type": "string"
-                                                    },
                                                     "message":
                                                     {
                                                         "type": "array",
@@ -237,7 +233,7 @@
                                                         }
                                                     }
                                                 },
-                                                "required": ["name", "adj_list"]
+                                                "required": ["name"]
                                             }
                                         },
                                         "aggregation":
