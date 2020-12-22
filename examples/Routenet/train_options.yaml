@@ -1,12 +1,10 @@
 # PATHS
-#train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/train
-#validation_dataset: ../Datasets/Datasets_framework/Dataset_routenet/eval
-train_dataset: ./examples/Routenet/Dataset_routenet_networkx/TRAIN
-validation_dataset: ./examples/Routenet/Dataset_routenet_networkx/EVAL
+train_dataset: <PATH>
+validation_dataset: <PATH>
 #predict_dataset:
 #warm_start_path:
 additional_functions_file: ./main.py
-output_path: ./examples/Routenet/
+output_path: .
 
 # OPTIMIZATION OPTIONS
 loss: MeanSquaredError
