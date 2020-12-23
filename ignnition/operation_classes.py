@@ -259,18 +259,14 @@ class Feed_forward_operation(Operation):
             return model(input_nn)
 
 class RNN_operation(Operation):
-    def __init__(self, op, model_role):
+    def __init__(self, op):
         super(RNN_operation, self).__init__(op)
 
-        if 'input' in op:
-            self.input = op.get('input')
-
-        del op['type']
-        self.recurrent_type = op.get('recurrent_type')
-        del op['recurrent_type']
-
         # we need somehow to find the number of extra_parameters beforehand
-        self.model = Recurrent_Cell(self.recurrent_type, op)
+        cell_architecture = op['architecture']['nn_architecture'][0]   #in this case only one layer will be specified.
+        type = cell_architecture['type_layer']
+        self.model = Recurrent_Update_Cell(type=type, parameters=cell_architecture)
+        self.input = op.get('input', None)
 
 class Extend_adjacencies(Operation):
     """

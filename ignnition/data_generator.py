@@ -228,8 +228,8 @@ class Generator:
                 sys.exit
 
             except Exception as inf:
-                print_info("\n There was an unexpected error: \n" + str(inf))
-                print_info('Please make sure that all the names used in the sample passed ')
+                print_failure("\n There was an unexpected error: \n" + str(inf))
+                print_failure('Please make sure that all the names used in the sample passed ')
 
             sys.exit
 

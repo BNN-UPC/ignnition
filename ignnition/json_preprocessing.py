@@ -183,7 +183,7 @@ class Json_preprocessing:
             try:
                 return yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                print("The model description file was not found in: " + path)
+                print_failure("The model description file was not found in: " + path)
 
     def __add_global_variables(self, data, global_variables):
         if isinstance(data, dict):
@@ -301,6 +301,7 @@ class Json_preprocessing:
         except Exception as inf:
             print_failure(str(inf) + '\n')
 
+
     def __get_nn_mapping(self, models):
         """
         Parameters
@@ -368,6 +369,7 @@ class Json_preprocessing:
                 del aggr['nn_name']
                 aggr['architecture'] = info.get('nn_architecture')
 
+
         # add the update nn architecture
         if 'update' in m:
             if m['update']['type'] == 'feed_forward':
@@ -379,9 +381,8 @@ class Json_preprocessing:
                 architecture = copy.deepcopy((self.nn_architectures[m['update']['nn_name']]))
                 del m['update']['nn_name']
 
-                for k, v in architecture.items():
-                    if k != 'nn_name' and k != 'nn_type':
-                        m['update'][k] = v
+                m['update']['architecture'] = architecture
+
         return m
 
     def __get_mp_instances(self, inst):

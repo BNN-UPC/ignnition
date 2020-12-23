@@ -182,7 +182,7 @@ class Message_Passing:
             return Feed_forward_operation(u, model_role='update')
 
         elif type_update == 'recurrent_neural_network':
-            return RNN_operation(u, model_role= 'update')
+            return RNN_operation(u)
 
         elif type_update == 'direct_assignment':
             return None

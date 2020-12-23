@@ -510,36 +510,6 @@
                         "description": "Define the name of the model",
                         "type": "string"
                     },
-                    "nn_type": {
-                        "description": "Define the type of neural network",
-                        "type": "string",
-                        "enum": [
-                            "feed_forward",
-                            "recurrent_neural_network",
-                            "weight_matrix"
-                        ]
-                    },
-                    "weight_dimensions": {
-                        "description": "Describes the dimension of the weight matrix",
-                        "type": "array",
-                        "items": [
-                            {
-                                "description": "One of the dimensions (either a number of an entity (taking the number of nodes of that entity",
-                                "type": [
-                                    "string",
-                                    "integer"
-                                ]
-                            }
-                        ]
-                    },
-                    "recurrent_type": {
-                        "description": "Type of recurrent neural network",
-                        "type": "string",
-                        "enum": [
-                            "GRU",
-                            "LSTM"
-                        ]
-                    },
                     "nn_architecture": {
                         "description": "Define the architecture",
                         "type": "array",
@@ -561,52 +531,7 @@
                             "type_layer"
                         ]
                     }
-                },
-                "allOf": [
-                    {
-                        "if": {
-                            "properties": {
-                                "nn_type": {
-                                    "const": "feed_forward"
-                                }
-                            }
-                        },
-                        "then": {
-                            "required": [
-                                "nn_architecture"
-                            ]
-                        }
-                    },
-                    {
-                        "if": {
-                            "properties": {
-                                "nn_type": {
-                                    "const": "recurrent_neural_network"
-                                }
-                            }
-                        },
-                        "then": {
-                            "required": [
-                                "nn_name",
-                                "nn_type"
-                            ]
-                        }
-                    },
-                    {
-                        "if": {
-                            "properties": {
-                                "nn_type": {
-                                    "const": "weight_matrix"
-                                }
-                            }
-                        },
-                        "then": {
-                            "required": [
-                                "weight_dimensions"
-                            ]
-                        }
-                    }
-                ]
+                }
             }
         }
 
