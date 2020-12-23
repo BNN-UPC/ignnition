@@ -243,7 +243,7 @@ class Json_preprocessing:
                     messages = src.get('message', None)
                     if messages is not None:
                         for op in messages:  # for every operation
-                            if op.get('type') == 'feed_forward':
+                            if op.get('type') == 'neural_network':
                                 called_nn_names.append(op.get('nn_name'))
                                 input_names += op.get('input')
 
@@ -253,14 +253,14 @@ class Json_preprocessing:
                 # check the aggregation functions
                 aggregations = mp.get('aggregation')
                 for aggr in aggregations:
-                    if aggr.get('type') == 'feed_forward':
+                    if aggr.get('type') == 'neural_network':
                         input_names += aggr.get('input')
 
                     if 'output_name' in aggr:
                         output_names.append(aggr.get('output_name'))
 
         readout_op = data.get('readout')
-        called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == 'feed_forward']
+        called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == 'neural_network']
 
         if 'output_label' not in readout_op[-1]:
             print_failure('The last operation of the readout MUST contain the definition of the output_label')
@@ -334,7 +334,7 @@ class Json_preprocessing:
         # add the message_creation nn architecture
         operations = entity.get('initial_state')
         for op in operations:
-            if op.get('type') == 'feed_forward':
+            if op.get('type') == 'neural_network':
                 info = copy.deepcopy(self.nn_architectures[op['nn_name']])
                 del op['nn_name']
                 op['architecture'] = info.get('nn_architecture')
@@ -355,7 +355,7 @@ class Json_preprocessing:
             messages = s.get('message', None)
             if messages is not None:
                 for op in messages:
-                    if op.get('type') == 'feed_forward':
+                    if op.get('type') == 'neural_network':
                         info = copy.deepcopy(self.nn_architectures[op['nn_name']])
                         del op['nn_name']
                         op['architecture'] = info.get('nn_architecture')
@@ -364,7 +364,7 @@ class Json_preprocessing:
         aggrs = m.get('aggregation')
         for aggr in aggrs:
             type =aggr.get('type')
-            if type == 'edge_attention' or type == 'feed_forward':
+            if type == 'edge_attention' or type == 'neural_network':
                 info = copy.deepcopy(self.nn_architectures[aggr['nn_name']])
                 del aggr['nn_name']
                 aggr['architecture'] = info.get('nn_architecture')
@@ -372,16 +372,10 @@ class Json_preprocessing:
 
         # add the update nn architecture
         if 'update' in m:
-            if m['update']['type'] == 'feed_forward':
+            if m['update']['type'] == 'neural_network':
                 info = copy.deepcopy(self.nn_architectures[m['update']['nn_name']])
                 del m['update']['nn_name']
                 m['update']['architecture'] = info['nn_architecture']
-
-            if m['update']['type'] == 'recurrent_neural_network':
-                architecture = copy.deepcopy((self.nn_architectures[m['update']['nn_name']]))
-                del m['update']['nn_name']
-
-                m['update']['architecture'] = architecture
 
         return m
 
@@ -425,7 +419,7 @@ class Json_preprocessing:
             elif type== 'product':
                 result.append(Product_operation(op))
 
-            elif type == 'feed_forward':
+            elif type == 'neural_network':
                 result.append(Feed_forward_operation(self.__add_readout_architecture(op), model_role = 'readout'))
 
             elif type == 'extend_adjacencies':

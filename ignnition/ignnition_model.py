@@ -29,7 +29,7 @@ from tensorflow.keras.optimizers import *
 from tensorflow.keras.optimizers.schedules import *
 import os
 from ignnition.gnn_model import Gnn_model
-from ignnition.json_preprocessing import Json_preprocessing
+from ignnition.yaml_preprocessing import Json_preprocessing
 from ignnition.data_generator import Generator
 from ignnition.utils import *
 from ignnition.custom_callbacks import *

@@ -301,7 +301,6 @@ class Feed_forward_model:
                         ' is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
 
             layer_counter += 1
-
         output_shape = model.output_shape[-1]
         return [model, output_shape]
 

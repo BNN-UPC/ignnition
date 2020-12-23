@@ -81,7 +81,7 @@ class Entity:
 
             # create the new operation
             type_update = op.get('type')
-            if type_update == 'feed_forward':
+            if type_update == 'neural_network':
                 hs_operations.append(Feed_forward_operation(op, model_role='hs_creation'))
 
             elif type_update == 'build_state':
@@ -178,14 +178,16 @@ class Message_Passing:
         """
 
         type_update = u.get('type')
-        if type_update == 'feed_forward':
-            return Feed_forward_operation(u, model_role='update')
-
-        elif type_update == 'recurrent_neural_network':
-            return RNN_operation(u)
-
-        elif type_update == 'direct_assignment':
+        if type_update == 'direct_assignment':
             return None
+
+        # it is using a neural network
+        else:
+            first_layer_type = u['architecture'][0]['type_layer']
+            if first_layer_type == 'GRU' or first_layer_type == 'LSTM':
+                return RNN_operation(u)
+            else:
+                return Feed_forward_operation(u, model_role='update')
 
     def create_aggregations(self, attrs):
         """
@@ -202,7 +204,7 @@ class Message_Passing:
             if type == 'interleave':
                 aggregations.append(Interleave_aggr(attr))
                 multiple_embedding = True
-            elif type == 'feed_forward':
+            elif type == 'neural_network':
                 aggregations.append(Feed_forward_operation(attr, model_role='aggregation'))
                 single_embedding = True
             elif type == 'concat':
@@ -287,7 +289,7 @@ class Mp_source_entity:
         counter = 0
         for op in operations:
             type = op.get('type')
-            if type == 'feed_forward':
+            if type == 'neural_network':
                 result.append(Feed_forward_operation(op, model_role='message_creation_' + str(counter)))
 
             elif type == 'direct_assignment':

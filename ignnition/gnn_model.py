@@ -52,7 +52,7 @@ class Gnn_model(tf.keras.Model):
                 operations = entity.operations
                 counter = 0
                 for op in operations:
-                    if op.type == 'feed_forward':
+                    if op.type == 'neural_network':
                         var_name = entity.name + "_hs_creation_" + str(counter)
                         input_dim = op.find_total_input_dim(self.dimensions, self.calculations)
 
@@ -82,7 +82,7 @@ class Gnn_model(tf.keras.Model):
                             output_shape = int(self.dimensions.get(src_name))  # default if operation is direct_assignation
                             for operation in operations:
                                 if operation is not None:
-                                    if operation.type == 'feed_forward':
+                                    if operation.type == 'neural_network':
                                         var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(counter)
                                         input_dim = operation.obtain_total_input_dim_message(self.dimensions, self.calculations, dst_name, src)
                                         model, output_shape = operation.model.construct_tf_model(var_name, input_dim)
@@ -135,8 +135,8 @@ class Gnn_model(tf.keras.Model):
                                 self.conv_kernel = self.add_weight(shape=(F_dst, F_dst),
                                                                    initializer=aggregation.weight_initialization)
 
-                            elif aggregation.type == 'feed_forward':
-                                var_name = 'aggr_feed_forward'
+                            elif aggregation.type == 'neural_network':
+                                var_name = 'aggr_nn'
                                 input_dim = aggregation.find_total_input_dim(self.dimensions, self.calculations)
 
                                 model, output_shape = aggregation.model.construct_tf_model(var_name, input_dim)
@@ -157,7 +157,7 @@ class Gnn_model(tf.keras.Model):
 
                         # ------------------------------
                         # create the recurrent update models
-                        if update_model is not None and update_model.type == "recurrent_neural_network":
+                        if update_model is not None and isinstance(update_model, RNN_operation):
                             recurrent_cell = update_model.model
                             try:
                                 recurrent_instance = recurrent_cell.get_tensorflow_object(self.dimensions.get(dst_name))
@@ -172,7 +172,7 @@ class Gnn_model(tf.keras.Model):
                         # ----------------------------------
                         # create the feed-forward upddate models
                         # This only makes sense with aggregation functions that preserve one single input (not sequence)
-                        elif update_model is not None and update_model.type == 'feed_forward':
+                        elif update_model is not None:
                             model = update_model.model
                             source_entities = message.source_entities
                             var_name = dst_name + "_ff_update"
@@ -186,7 +186,7 @@ class Gnn_model(tf.keras.Model):
                                     "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg))
 
                                 # if we are concatenating by message (CHECK!!)
-                                aggr = message.aggregation
+                                aggr = message.aggregations
                                 if aggr.type == 'concat' and aggr.concat_axis == 2:
                                     message_dimensionality = reduce(lambda accum, s: accum + int(
                                         get_global_variable(self.calculations,"final_message_dim_" + str(idx_stage) + '_' + str(idx_msg))),
@@ -202,7 +202,7 @@ class Gnn_model(tf.keras.Model):
             readout_operations = self.model_info.get_readout_operations()
             counter = 0
             for operation in readout_operations:
-                if operation.type == 'feed_forward':
+                if operation.type == 'neural_network':
                     with tf.name_scope("readout_architecture"):
                         input_dim = operation.find_total_input_dim(self.dimensions, self.calculations)
                         model, _ = operation.model.construct_tf_model('readout_model' + str(counter), input_dim,
@@ -261,7 +261,7 @@ class Gnn_model(tf.keras.Model):
                         counter = 0
                         operations = entity.operations
                         for op in operations:
-                            if op.type == 'feed_forward':
+                            if op.type == 'neural_network':
                                 with tf.name_scope('apply_nn_' + str(counter)) as _:
                                     # careful. This name could overlap with another model
                                     var_name = entity.name + "_hs_creation_" + str(counter)
@@ -324,7 +324,7 @@ class Gnn_model(tf.keras.Model):
                                                         if op is not None:  # if it is not direct_assignation
                                                             type_operation = op.type
 
-                                                            if type_operation == 'feed_forward':
+                                                            if type_operation == 'neural_network':
                                                                 with tf.name_scope('apply_nn_' + str(counter)) as _:
                                                                     # careful. This name could overlap with another model
                                                                     var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(
@@ -470,9 +470,9 @@ class Gnn_model(tf.keras.Model):
                                                     elif aggr.type == 'interleave':
                                                         src_input = aggr.calculate_input(src_input, indices)
 
-                                                    elif aggr.type == 'feed_forward':
+                                                    elif aggr.type == 'neural_network':
                                                         # concatenate in the axis 0 all the input tensors
-                                                        var_name = 'aggr_feed_forward'
+                                                        var_name = 'aggr_nn'
                                                         aggregator_nn = get_global_variable(self.calculations, var_name)
                                                         src_input = aggr.apply_nn(aggregator_nn, self.calculations, f_)
 
@@ -501,7 +501,7 @@ class Gnn_model(tf.keras.Model):
                                                 new_state = src_input
 
                                             # recurrent update
-                                            elif update_model.type == "recurrent_neural_network":
+                                            elif isinstance(update_model, RNN_operation):
                                                 model = get_global_variable(self.calculations,dst_name + '_update')
                                                 if not mp.aggregations_global_type:
                                                     dst_dim = int(self.dimensions[
@@ -522,7 +522,7 @@ class Gnn_model(tf.keras.Model):
 
                                             # feed-forward update:
                                             # restriction: It can only be used if the aggreagation was not ordered.
-                                            elif update_model.type == 'feed_forward':
+                                            else:
                                                 var_name = dst_name + "_ff_update"
                                                 update = get_global_variable(self.calculations,var_name)
 
@@ -544,7 +544,7 @@ class Gnn_model(tf.keras.Model):
                 for j in range(n):
                     operation = readout_operations[j]
                     with tf.name_scope(operation.type) as _:
-                        if operation.type == 'feed_forward':
+                        if operation.type == 'neural_network':
                             var_name = 'readout_model_' + str(counter)
                             readout_nn = get_global_variable(self.calculations, var_name)
                             result = operation.apply_nn(readout_nn, self.calculations, f_, readout=True)
@@ -586,7 +586,6 @@ class Gnn_model(tf.keras.Model):
                                 save_global_variable(self.calculations,operation.output_name, result)
 
                     counter += 1
-
 
     def treat_message_function_input(self, var_name, f_):
         if var_name == 'source':

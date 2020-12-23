@@ -250,12 +250,16 @@ class Feed_forward_operation(Operation):
                 input_nn = tf.expand_dims(input_nn, axis=0)
 
         with tf.name_scope('pass_to_nn') as _:
+            input_size = model.input_shape[-1]
+            input_nn = tf.reshape(input_nn, [-1, input_size])
             return model(input_nn)
 
     def apply_nn_msg(self, model, calculations, f_, src_msgs, dst_msgs):
         input_nn = self.compute_all_input_msg(calculations, f_, src_msgs, dst_msgs)
 
         with tf.name_scope('pass_to_nn') as _:
+            input_size = model.input_shape[-1]
+            input_nn = tf.reshape(input_nn, [-1, input_size])
             return model(input_nn)
 
 class RNN_operation(Operation):
@@ -263,7 +267,7 @@ class RNN_operation(Operation):
         super(RNN_operation, self).__init__(op)
 
         # we need somehow to find the number of extra_parameters beforehand
-        cell_architecture = op['architecture']['nn_architecture'][0]   #in this case only one layer will be specified.
+        cell_architecture = op['architecture'][0]   #in this case only one layer will be specified.
         type = cell_architecture['type_layer']
         self.model = Recurrent_Update_Cell(type=type, parameters=cell_architecture)
         self.input = op.get('input', None)
