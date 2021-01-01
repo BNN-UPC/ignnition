@@ -29,110 +29,80 @@ from functools import reduce
 import importlib
 
 
-class Json_preprocessing:
+class Yaml_preprocessing:
     """
+    Class that handles all the information from a model_description file and organizes the information as a sequence of the corresponding auxiliary classes.
+
     Attributes
     ----------
+    nn_architectures: [array]
     entities:   dict
         Contains the different entity object
-
     iterations_mp:  int
         Number of iterations that the mp phase will have
-
     mp_instances:   dict
         Contains the different MP object
-
-    comb_op:    dict
+    readout_op:    dict
         Information of the different combined message passings
-
-    outputs:    dict
-        Readout architectures to be used for prediction
-
-    training_op:   dict
-        Training options and parameters
-
-    entities_dimensions:    dict
-        Maps each entity with its hidden state dimension.
-
 
     Methods:
     ----------
     __read_json(self, path)
         Reads the json file from the path and returns the data as a dictionary
-
-    __obtain_entities(self, entities)
-        Creates the entities specified in the entities dictionary
-
-    __obtain_mp_instances(self, inst)
-        Creates the message passing object
-
-    __calculate_mp_combination_options(self, data)
-        Creates the combined message passing object.
-
-    __obtain_output_models(self, outputs)
-        Creates the different readout models
-
-    __obtain_training_options(self, data)
-        Specifies the training options of the model
-
-    __get_entities_dimensions(self)
-        Obtains the dictionary that maps entities and its hidden-state dimensions
-
-    get_entities_dimensions(self)
-        Returns the dictionary that maps entities and its hidden-states dimensions
-
-    get_entities(self)
-        Returns the entities of the model
-
-    get_combined_mp_options(self)
-        Returns the combined message passings
-
-    get_combined_mp_sources(self, dst_entity, step_name)
-        Returns the sources that are part of a combined mp in step_name sending to dst_entity
-
-    get_combined_sources(self)
-        Return all sources that are part of a combined mp
-
+    __read_yaml(self, path)
+        Reads the yaml file from the path and returns the data as a dictionary
+    __add_global_variables(self, data, global_variables)
+        This method adds the values of the global variables to the data read from the model description file
+    add_dimensions(self, dimensions)
+        Computes the dimensions of the entities
+    __validate_model_description(self, data)
+        Validates the model description file by checking possible errors such as inexistent entity names, nn names or other possible misconfigurations
+    __get_nn_mapping(self, models)
+        Maps each of the NN by its name
+    __get_entities(self, entities)
+        Computes each of the entity objects, and adds to it its corresponding neural networks
+    __add_nn_architectures_entities(self, entity)
+        Adds the NN architecture corresponding to each of the NN references in the HS definition (by name)
+    __add_nn_architecture_mp(self, m)
+        Adds the NN architecture corresponding to each of the NN references in the rest of the parts of the model description file (by name)
+    __get_mp_instances(self, inst)
+        Computes the MP objects corresponding to the different message passings
+    __add_readout_architecture(self, output)
+        Adds the NN corresponding to the readout (wherever specified, by its referenced name)
+    __get_readout_op(self, output_operations)
+        Computes the pipeline of operations consistuiting the readout function
+    get_input_dimensions(self)
+        Returns the input dimension
+    get_interleave_sources(self)
+        Returns the source entities of a given interleave aggregation
+    get_interleave_sources(self)
+        Returns the number of iterations of the mp phase
     get_mp_iterations(self)
         Returns the number of iterations of the mp phase
-
     get_interleave_tensors(self)
-        ?
-
-    get_mp_instances(self)
-        Returns the message passing objects of the model
-
-    get_schedule(self)
-        Returns the schedule set in the model
-
-    get_optimizer(self)
-        Returns the optimizer set in the model
-
-    get_loss(self)
-        Returns the loss set in the model
-
-    get_output_operations(self)
-        Returns the readout architectur of the model in the form of operations
-
+        Returns a definition of the interleave pattern together with the destination name (entity name)
+    get_readout_operations(self)
+        Return the pipline of operations for the readout function
     get_output_info(self)
-        ?
-
+        Returns the operation of the output
     get_all_features(self)
-        Returns all the features defined in the model, no matter the entity they are assigned to
-
-    get_feature_size(self, feature)
-        Returns the size of a feature
-
-    get_adjecency_info(self)
+        Returns all the feature names
+    get_entity_names(self)
+        Returns all the entity names
+    get_adjacency_info(self)
+        Returns the information of the adjacencies
+    get_additional_input_names(self)
+        Returns the names of any additional tensor that was referenced in the model_description and that doesn't fall in any of the previous categories
     """
 
     def __init__(self, model_dir):
         """
         Parameters
         ----------
-        path:    str (optional)
-            Path of the json file with the model description
+        model_dir:    str
+            Path of the yaml file with the model description
         """
+
         # read and validate the json file
         try:
             model_description_path = os.path.join(model_dir, 'model_description.yaml')
@@ -166,9 +136,10 @@ class Json_preprocessing:
         """
         Parameters
         ----------
-        path:    str (optional)
+        path:    str
             Path of the json file with the model description
         """
+
         with open(path) as json_file:
             return json.load(json_file)
 
@@ -176,16 +147,26 @@ class Json_preprocessing:
         """
         Parameters
         ----------
-        path:    str (optional)
+        path:    str
             Path of the json file with the model description
         """
+
         with open(path, 'r') as stream:
             try:
                 return yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                print("The model description file was not found in: " + path)
+                print_failure("The model description file was not found in: " + path)
 
     def __add_global_variables(self, data, global_variables):
+        """
+        Parameters
+        ----------
+        data:    dict
+            Data of the model_description file
+        global_variables: dict
+            Dictionary mapping global variables to its corresponding names
+        """
+
         if isinstance(data, dict):
             for k,v in data.items():
                 if isinstance(v, str) and v in global_variables:
@@ -200,32 +181,15 @@ class Json_preprocessing:
 
         return data
 
-    def add_dimensions(self, dimensions):
-        """
-        Parameters
-        ----------
-        data:    dict
-            Dictionary with the initial data
-        dimensions:      dict
-            Dictionary mapping the dimension of each input
-        """
-
-        # add the dimensions of the entities
-        for e in self.data['entities']:
-            dimensions[e.get('name')] = e.get('state_dimension')
-            dimensions[e.get('name') + '_initial'] = e.get('state_dimension')
-
-        self.input_dim = dimensions # CHECK THIS
-        del self.data
-
     # validate that all the nn_name are correct. Validate that all source and destination entities are correct. Validate that all the inputs in the message function are correct
     def __validate_model_description(self, data):
         """
         Parameters
         ----------
         data:    dict
-           Dictonary with the initial data
+           Dictionary with the initial data
         """
+
         stages = data['message_passing']['stages']
 
         src_names, dst_names, called_nn_names, input_names = [], [], [], []
@@ -243,7 +207,7 @@ class Json_preprocessing:
                     messages = src.get('message', None)
                     if messages is not None:
                         for op in messages:  # for every operation
-                            if op.get('type') == 'feed_forward':
+                            if op.get('type') == 'neural_network':
                                 called_nn_names.append(op.get('nn_name'))
                                 input_names += op.get('input')
 
@@ -253,14 +217,14 @@ class Json_preprocessing:
                 # check the aggregation functions
                 aggregations = mp.get('aggregation')
                 for aggr in aggregations:
-                    if aggr.get('type') == 'feed_forward':
+                    if aggr.get('type') == 'neural_network':
                         input_names += aggr.get('input')
 
                     if 'output_name' in aggr:
                         output_names.append(aggr.get('output_name'))
 
         readout_op = data.get('readout')
-        called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == 'feed_forward']
+        called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == 'neural_network']
 
         if 'output_label' not in readout_op[-1]:
             print_failure('The last operation of the readout MUST contain the definition of the output_label')
@@ -308,6 +272,7 @@ class Json_preprocessing:
         models:    array
            Array of nn models
         """
+
         result = {}
         for m in models:
             result[m.get('nn_name')] = m
@@ -320,6 +285,7 @@ class Json_preprocessing:
         entities:    dict
            Dictionary with the definition of each entity
         """
+
         return [Entity(self.__add_nn_architecture_entities(e)) for e in entities]
 
     def __add_nn_architecture_entities(self, entity):
@@ -333,12 +299,11 @@ class Json_preprocessing:
         # add the message_creation nn architecture
         operations = entity.get('initial_state')
         for op in operations:
-            if op.get('type') == 'feed_forward':
+            if op.get('type') == 'neural_network':
                 info = copy.deepcopy(self.nn_architectures[op['nn_name']])
                 del op['nn_name']
                 op['architecture'] = info.get('nn_architecture')
         return entity
-
 
     def __add_nn_architecture_mp(self, m):
         """
@@ -354,7 +319,7 @@ class Json_preprocessing:
             messages = s.get('message', None)
             if messages is not None:
                 for op in messages:
-                    if op.get('type') == 'feed_forward':
+                    if op.get('type') == 'neural_network':
                         info = copy.deepcopy(self.nn_architectures[op['nn_name']])
                         del op['nn_name']
                         op['architecture'] = info.get('nn_architecture')
@@ -363,25 +328,19 @@ class Json_preprocessing:
         aggrs = m.get('aggregation')
         for aggr in aggrs:
             type =aggr.get('type')
-            if type == 'edge_attention' or type == 'feed_forward':
+            if type == 'edge_attention' or type == 'neural_network':
                 info = copy.deepcopy(self.nn_architectures[aggr['nn_name']])
                 del aggr['nn_name']
                 aggr['architecture'] = info.get('nn_architecture')
 
+
         # add the update nn architecture
         if 'update' in m:
-            if m['update']['type'] == 'feed_forward':
+            if m['update']['type'] == 'neural_network':
                 info = copy.deepcopy(self.nn_architectures[m['update']['nn_name']])
                 del m['update']['nn_name']
                 m['update']['architecture'] = info['nn_architecture']
 
-            if m['update']['type'] == 'recurrent_neural_network':
-                architecture = copy.deepcopy((self.nn_architectures[m['update']['nn_name']]))
-                del m['update']['nn_name']
-
-                for k, v in architecture.items():
-                    if k != 'nn_name' and k != 'nn_type':
-                        m['update'][k] = v
         return m
 
     def __get_mp_instances(self, inst):
@@ -391,6 +350,7 @@ class Json_preprocessing:
         inst:    dict
            Dictionary with the definition of each message passing
         """
+
         return [['stage_' + str(step_number), [Message_Passing(self.__add_nn_architecture_mp(m)) for m in stage['stage_message_passings']]] for step_number, stage in enumerate(inst)]
 
     def __add_readout_architecture(self, output):
@@ -398,7 +358,7 @@ class Json_preprocessing:
         Parameters
         ----------
         output:    dict
-           Dictonary with the info of the readout architecture
+           Dictionary with the info of the readout architecture
         """
 
         name = output['nn_name']
@@ -415,6 +375,7 @@ class Json_preprocessing:
         output_operations:    dict
            List of dictionaries with the definition of the operations forming one readout model
         """
+
         result = []
         for op in output_operations:
             type = op.get('type')
@@ -424,7 +385,7 @@ class Json_preprocessing:
             elif type== 'product':
                 result.append(Product_operation(op))
 
-            elif type == 'feed_forward':
+            elif type == 'neural_network':
                 result.append(Feed_forward_operation(self.__add_readout_architecture(op), model_role = 'readout'))
 
             elif type == 'extend_adjacencies':
@@ -433,12 +394,26 @@ class Json_preprocessing:
         return result
 
     # ----------------------------------------------------------------
-    # PUBLIC FUNCTIONS GETTERS
+    # PUBLIC FUNCTIONS
+    def add_dimensions(self, dimensions):
+        """
+        Parameters
+        ----------
+        dimensions:      dict
+            Dictionary mapping the dimension of each input
+        """
+
+        # add the dimensions of the entities
+        for e in self.data['entities']:
+            dimensions[e.get('name')] = e.get('state_dimension')
+            dimensions[e.get('name') + '_initial'] = e.get('state_dimension')
+
+        self.input_dim = dimensions # CHECK THIS
+        del self.data
+
+    # GETTERS
     def get_input_dimensions(self):
         return self.input_dim
-
-    def get_entities(self):
-        return self.entities
 
     def get_interleave_sources(self):
         aux =  [[[src.name, mp.destination_entity] for src in mp.source_entities] for stage_name, mps in self.mp_instances for mp in mps if isinstance(mp.aggregations,Interleave_aggr)]
@@ -463,19 +438,10 @@ class Json_preprocessing:
     def get_all_features(self):
         return reduce(lambda accum, e: accum + e.features_name, self.entities, [])
 
-    def get_feature_size(self, feature):
-        """
-        Parameters
-        ----------
-        feature:    dict
-           Dictionary with the sizes of each feature
-        """
-        return feature['size'] if 'size' in feature else 1
-
     def get_entity_names(self):
         return [e.name for e in self.entities]
 
-    def get_adjecency_info(self):
+    def get_adjacency_info(self):
         aux = [instance.get_instance_info() for step in self.mp_instances for instance in step[1]]
         return reduce(lambda accum, a: accum + a, aux, [])
 

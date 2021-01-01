@@ -28,18 +28,16 @@ message_passing:
     - destination_entity: path
       source_entities:
       - name: link
-        adj_list: adj_links_paths
         message:
-        - type: direct_assignation
+        - type: direct_assignment
       - name: node
-        adj_vector: adj_nodes_paths
         message:
-        - type: direct_assignation
+        - type: direct_assignment
       aggregation:
         type: interleave
         interleave_definition: path_interleave
       update:
-        type: recurrent_neural_network
+        type: neural_network
         nn_name: recurrent1
 
   # STAGE 2
@@ -48,31 +46,29 @@ message_passing:
     - destination_entity: link
       source_entities:
       - name: path
-        adj_list: adj_paths_links
         message:
-        - type: direct_assignation
+        - type: direct_assignment
       aggregation:
         - type: sum
       update:
-        type: recurrent_neural_network
+        type: neural_network
         nn_name: recurrent1
 
     # paths to nodes
     - destination_entity: node
       source_entities:
       - name: path
-        adj_list: adj_paths_nodes
         message:
-        - type: direct_assignation
+        - type: direct_assignment
       aggregation:
         - type: sum
       update:
-        type: recurrent_neural_network
+        type: neural_network
         nn_name: recurrent1
 
 # Definition of the readout
 readout:
-- type: feed_forward
+- type: neural_network
   input: [path]
   nn_name: readout_model
   output_label: delay
@@ -81,25 +77,21 @@ readout:
 neural_networks:
 # Feed-forward model
 - nn_name: readout_model
-  nn_type: feed_forward
   nn_architecture:
-  - name: First_dense_layer
-    type_layer: Dense
+  - type_layer: Dense
     units: 256
     kernel_regularizer: 0.1
     activation: selu
-  - name: Second_dense_layer
-    type_layer: Dense
+  - type_layer: Dense
     units: 256
     kernel_regularizer: 0.1
     activation: selu
-  - name: Output_layer
-    type_layer: Dense
+  - type_layer: Dense
     units: 1
     kernel_regularizer: 0.01
     activation: None
 
 # RNN model
 - nn_name: recurrent1
-  nn_type: recurrent_neural_network
-  recurrent_type: GRU
+  nn_architecture:
+  - type_layer: GRU

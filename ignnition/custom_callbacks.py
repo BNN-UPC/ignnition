@@ -4,14 +4,48 @@ import sys
 import os
 from collections import OrderedDict
 
-class Custom_progressbar(tf.keras.callbacks.Callback):
-    def __init__(self, output_path, num_epochs, mini_epoch_size, metric_names, k=None):
+class K_best(tf.keras.callbacks.Callback):
+    """
+    A subclass of the callback preset class which implements the functionality to keep only the best k checkpoints of the execution (instead of the best one implemented in Tf).
+
+    Attributes
+    ----------
+    output_path:    str
+        Path where the checkpoints are saved
+    file_loss: dict
+        Dictionary where we keep the loss of each of the checkpoints saved
+    k: int
+        Number of checkpoints to keep
+
+    Methods:
+    ----------
+    on_epoch_end(self, src_input, indices)
+       At the end of each epoch, we check which of the checkpoints we need to delete (if any)
+    """
+
+    def __init__(self, output_path, k=None):
+        """
+        Parameters
+        ----------
+        output_path:    str
+            Path where the checkpoints are saved
+        k: int
+            Number of checkpoints to keep
+        """
         self.output_path = output_path
         self.files_loss = {}
         self.k = k
 
     def on_epoch_end(self, epoch, logs={}):
-        # if we are aiming to save only the k best models
+        """
+        Parameters
+        ----------
+        epoch:    int
+            Epoch number
+        logs:    dict
+            Dictionary with the information of the current epoch
+        """
+
         if self.k is not None:
             loss = logs["loss"]
             name = "weights." + str("{:02d}".format(self.epoch)) + '-' + str("{:.2f}".format(loss)) + '.hdf5'

@@ -27,7 +27,7 @@ message_passing:
         aggregation:
           - type: ordered
         update:
-          type: recurrent_neural_network
+          type: neural_network
           nn_name: recurrent1
 
     # STAGE 2:
@@ -41,21 +41,19 @@ message_passing:
         aggregation:
           - type: sum
         update:
-          type: recurrent_neural_network
+          type: neural_network
           nn_name: recurrent1
 
 # Definition of the readout
 readout:
-- type: feed_forward
+- type: neural_network
   input: [path]
   nn_name: readout_model
   output_label: delay
 
 # Definition of the Neural Networks
 neural_networks:
-# Feed forward model
 - nn_name: readout_model
-  nn_type: feed_forward
   nn_architecture:
   - type_layer: Dense
     units: readout_units
@@ -63,14 +61,11 @@ neural_networks:
     activation: selu
   - type_layer: Dense
     units: readout_units
-    kernel_regularizer: r_l2
-    activation: selu
   - type_layer: Dense
     units: output_units
     kernel_regularizer: r_l2_2
     activation: None
 
-# RNN model
 - nn_name: recurrent1
-  nn_type: recurrent_neural_network
-  recurrent_type: GRU
+  nn_architecture:
+    - type_layer: GRU

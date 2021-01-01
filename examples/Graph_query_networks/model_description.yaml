@@ -21,36 +21,33 @@ message_passing:
     - destination_entity: interface
       source_entities:
       - name: router
-        adj_list: adj_routers_interfaces
         message:
-        - type: direct_assignation
+        - type: direct_assignment
       - name: interface
-        adj_list: adj_interfaces_interfaces
         message:
-        - type: direct_assignation
+        - type: direct_assignment
       aggregation:
         - type: edge_attention
           nn_name: edge_att_nn
       update:
-        type: recurrent_neural_network
+        type: neural_network
         nn_name: recurrent1
 
     - destination_entity: router
       source_entities:
       - name: interface
-        adj_list: adj_interfaces_routers
         message:
-        - type: direct_assignation
+        - type: direct_assignment
       aggregation:
         - type: edge_attention
           nn_name: edge_att_nn
       update:
-        type: recurrent_neural_network
+        type: neural_network
         nn_name: recurrent1
 
 # Definition of the readout
 readout:
-- type: feed_forward
+- type: neural_network
   input: [target_router]
   nn_name: Q
   output_name: q_values
@@ -60,7 +57,7 @@ readout:
   input: [q_values, interface]
   output_name: aux
 
-- type: feed_forward
+- type: neural_network
   input: [aux]
   output_label: label
   nn_name: F
@@ -68,7 +65,6 @@ readout:
 neural_networks:
   ## Feed forward models
 - nn_name: edge_att_nn
-  nn_type: feed_forward
   nn_architecture:
   - type_layer: Dense
     units: 256
@@ -78,7 +74,6 @@ neural_networks:
     activation: leaky_relu
 
 - nn_name: Q
-  nn_type: feed_forward
   nn_architecture:
   - type_layer: Dense
     units: 160
@@ -87,7 +82,6 @@ neural_networks:
     rate: 0.5
 
 - nn_name: F
-  nn_type: feed_forward
   nn_architecture:
   - type_layer: Dense
     units: 1
@@ -95,5 +89,5 @@ neural_networks:
 
 ## RNN model
 - nn_name: recurrent1
-  nn_type: recurrent_neural_network
-  recurrent_type: GRU
+  nn_architecture:
+  - type_layer: GRU

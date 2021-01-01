@@ -24,6 +24,10 @@ import sys
 import os
 
 class bcolors:
+    """
+    Class which includes the hexadecimal code for a set of colors that are later used for printing messages
+    """
+
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKCYAN = '\033[96m'
@@ -35,16 +39,52 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 def print_failure(msg):
+    """
+    Prints a failure message
+
+    Parameters
+    ----------
+    msg:    str
+       Message to be printed
+    """
+
     tf.print(bcolors.FAIL + msg + bcolors.ENDC, output_stream=sys.stderr)
     sys.exit(1)
 
 def print_info(msg):
+    """
+    Prints an info message
+
+    Parameters
+    ----------
+    msg:    str
+       Message to be printed
+    """
+
     tf.print(bcolors.OKGREEN + msg + bcolors.ENDC, output_stream=sys.stderr)
 
 def print_header(msg):
+    """
+    Prints a header message
+
+    Parameters
+    ----------
+    msg:    str
+       Message to be printed
+    """
+
     tf.print(bcolors.OKGREEN + msg + bcolors.ENDC, output_stream=sys.stderr)
 
 def stream_read_json(f):
+    """
+    It reads as a stream a dictionary with an array of json samples, and returns a generator that returns them eagerly.
+
+    Parameters
+    ----------
+    f:    dict
+       Data
+    """
+
     end_symbol = bytes(']', 'utf-8')
     start_pos = 1
     while True:
@@ -65,6 +105,8 @@ def stream_read_json(f):
 
 def str_to_bool(a):
     """
+    It parses a string to boolean
+
     Parameters
     ----------
     a:    str
@@ -80,6 +122,8 @@ def save_global_variable(calculations, var_name, var_value):
     """
     Parameters
     ----------
+    calculations: dict
+        Dictionary with the current calculation of the GNN model indexed by name
     var_name:    String
         Name of the global variable to save
     var_value:    tensor
@@ -91,6 +135,8 @@ def get_global_variable(calculations, var_name):
     """
     Parameters
     ----------
+    calculations: dict
+        Dictionary with the current calculation of the GNN model indexed by name
     var_name:    String
         Name of the global variable to save
     """
@@ -100,10 +146,12 @@ def get_global_var_or_input(calculations, var_name, f_):
     """
     Parameters
     ----------
+    calculations: dict
+        Dictionary with the current calculation of the GNN model indexed by name
     var_name:    str
         All the features to be used as input
-    input:    dict
-        Input tensors
+    f_:    dict
+        Input tensors of the sample
     """
 
     try:
