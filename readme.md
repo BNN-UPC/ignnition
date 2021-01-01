@@ -1,5 +1,5 @@
 # IGNNITION: A framework for fast prototyping of GNNs
-#### D. Pujol Perich, J. Suárez-Varela, Miquel Ferriol, A. Cabellos-Aparicio, P. Barlet-Ros.
+#### D. Pujol-Perich, J. Suárez-Varela, Miquel Ferriol, A. Cabellos-Aparicio, P. Barlet-Ros.
  
 ## Overview
 <p align="center"> 
