@@ -29,7 +29,7 @@ from tensorflow.keras.optimizers import *
 from tensorflow.keras.optimizers.schedules import *
 import os
 from ignnition.gnn_model import Gnn_model
-from ignnition.yaml_preprocessing import Json_preprocessing
+from ignnition.yaml_preprocessing import Yaml_preprocessing
 from ignnition.data_generator import Generator
 from ignnition.utils import *
 from ignnition.custom_callbacks import *
@@ -42,9 +42,82 @@ from itertools import chain
 
 
 class Ignnition_model:
+    """
+    This class implements the main interface to execute the framework. It includes the main functionalities of the training, which can be called by the user. Additionally, it incorporates all the necessary functionalities to create/restore a model.
+
+    Attributes
+    ----------
+    model_dir:    str
+        Path to the model directory where the train_options is found as well as all the other files.
+    CONFIG: dict
+        Dictionary containing all the information from the train_options.yaml file.
+    module: obj
+        Import of the module to be used to call custom functions such as normalization ones.
+    model_info: yaml_preprocessing
+        Object which is in charge of handling all the information of the model_description file.
+    generator: Generator obj
+        Object in charge of feeding the data to the model.
+
+    Methods:
+    ----------
+    __loss_function(self, labels, predictions)
+       Function that calls executes the loss function object from the keras libarary if specified. O/w it looks for a custom loss function specified in the module file.
+
+    __get_keras_metrics(self)
+        Creates all the keras metrics corresponding to tf.keras objects, or it creates objects based on custom function specified in the module path.
+
+    __get_compiled_model(self, model_info)
+        Compiles the tf model with all the corresponding options
+
+    __get_model_callbacks(self, output_path, mini_epoch_size, num_epochs, metric_names)
+        Creates all the callbacks (these being the k-best (if specified), model checkpoints, and tensorboard)
+
+    __batch_normalization(self, x, feature_list, output_name, y=None)
+        Performs batch normalization on the data (e.g., normalizes all the batch by its max, min..)
+
+    __global_normalization(self, x, feature_list, output_name, y=None)
+        Performs a global normalization operation which must be specified in the module path (all the samples are normalized according to the same criteria).
+
+    __input_fn_generator(self, filenames=None, shuffle=False, training=True,data_samples=None, iterator=False)
+        Method that creates the dataset which is served by the generator that we created before.
+
+    __create_model(self)
+        Method that creates the yaml_preprocessing object that processed the model_description file and creates the subsequent classes to organize the info.
+
+    __create_gnn(self,samples=None, path=None, verbose=True)
+        Creates the GNN object itself.
+
+    __restore_model(self, gnn_model, sample)
+        Restores the weights from a GNN that is saved in the given path to the current GNN model.
+
+    find_dataset_dimensions(self, path=None, samples=None)
+        Looks for the first training samples and processes it to extract the dimensions of all the input tensors (necessary to create the GNN model)s
+
+    train_and_validate(self, training_samples=None, eval_samples=None)
+        Public operation that is called by the user to initiate a training and validation operation of the current GNN model.
+
+    predict(self, prediction_samples=None, verbose=True)
+        Public operation that is callable by the user to initiate a predict operatio of a given array of data/dataset using the current GNN model.
+
+    computational_graph(self)
+        Public method callable by the user to create a computation graph of the desired model which can be then used for debugging purposes.
+
+    evaluate(self, evaluation_samples = None, verbose=True)
+        Public method callable by the user that executes an evaluation functionality given some metrics.
+
+    batch_training(self, input_samples)
+        Public method callable by the user, useful in RL context, to execute a training of a single batch of data. No verbosite is set.
+    """
+
     def __init__(self, model_dir):
-        self.model_dir = model_dir
-        self.model_dir = os.path.normpath(self.model_dir)
+        """
+        Parameters
+        ----------
+        model_dir:    str
+           Path to the model directory
+        """
+
+        self.model_dir = os.path.normpath(model_dir)
         train_options_path = os.path.join(self.model_dir, 'train_options.yaml')
 
         # read the train_options file
@@ -67,6 +140,15 @@ class Ignnition_model:
         self.generator = Generator()
 
     def __loss_function(self, labels, predictions):
+        """
+        Parameters
+        ----------
+        labels:    tensor
+           Input label
+        predictions:    tensor
+           Predictions of the GNN model
+        """
+
         loss_func_name = self.CONFIG['loss']
         try:
             loss_function = getattr(tf.keras.losses, loss_func_name)()
@@ -93,6 +175,13 @@ class Ignnition_model:
 
     @tf.autograph.experimental.do_not_convert
     def __get_compiled_model(self, model_info):
+        """
+        Parameters
+        ----------
+        model_info:    Yaml_preprocessing object
+            Object in charge of handling the information in the model_description.yaml file
+        """
+
         gnn_model = Gnn_model(model_info)
 
         # dynamically define the optimizer
@@ -121,7 +210,14 @@ class Ignnition_model:
                           run_eagerly=False)
         return gnn_model
 
-    def __get_model_callbacks(self, output_path, mini_epoch_size, num_epochs, metric_names):
+    def __get_model_callbacks(self, output_path):
+        """
+        Parameters
+        ----------
+        output_path:    str
+            Path where the checkpoint files and logs are saved
+        """
+
         os.mkdir(output_path + '/ckpt')
 
         # HERE WE CAN ADD AN OPTION FOR EARLY STOPPING
@@ -129,8 +225,7 @@ class Ignnition_model:
                                                histogram_freq=1),
                 tf.keras.callbacks.ModelCheckpoint(filepath=output_path + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
                                                    save_freq='epoch', monitor='loss'),
-                Custom_progressbar(output_path=output_path + '/logs', mini_epoch_size=mini_epoch_size,
-                                   num_epochs=num_epochs, metric_names=metric_names, k=self.CONFIG.get('k_best',None))]
+                K_best(output_path=output_path + '/logs', k=self.CONFIG.get('k_best',None))]
 
     # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
     def __batch_normalization(self, x, feature_list, output_name, y=None):
@@ -139,14 +234,13 @@ class Ignnition_model:
         ----------
         x:    tensor
            Tensor with the feature information
-        y:    tensor
-           Tensor with the label information
+
         feature_list:    tensor
            List of names with the names of the features in x
         output_names:    tensor
            List of names with the name of the output labels in y
-        output_normalizations: dict
-           Maps each feature or label with its normalization strategy if any
+        y:    tensor
+           Tensor with the label information
         """
 
         # input data
@@ -183,15 +277,14 @@ class Ignnition_model:
         ----------
         x:    tensor
             Tensor with the feature information
-        y:    tensor
-            Tensor with the label information
         feature_list:    tensor
             List of names with the names of the features in x
         output_names:    tensor
             List of names with the name of the output labels in y
-        output_normalizations: dict
-            Maps each feature or label with its normalization strategy if any
+        y:    tensor
+            Tensor with the label information
         """
+
         try:
             norm_func = getattr(self.module, 'normalization')
         except:
@@ -223,20 +316,21 @@ class Ignnition_model:
         """
         Parameters
         ----------
-        x:    tensor
-            Tensor with the feature information
-        y:    tensor
-            Tensor with the label information
-        feature_list:    tensor
-            List of names with the names of the features in x
-        output_names:    tensor
-            List of names with the name of the output labels in y
-        output_normalizations: dict
-            Maps each feature or label with its normalization strategy if any
+        filenames:    string
+            Tensor with the filenames of the input (if using dataset input only)
+        shuffle:    bool
+            Bool indicating if we need to shuffle the input data.
+        training:    bool
+            Bool indicating if we are performing a training operation (and thus a label is expected)
+        data_samples:    [array]
+            List of samples to be used as input (if any)
+        iterator: bool
+            Indicates if we need to transform the dataset to an iterator
         """
+
         with tf.name_scope('get_data') as _:
             feature_list = self.model_info.get_all_features()
-            adj_names = self.model_info.get_adjecency_info()
+            adj_names = self.model_info.get_adjacency_info()
             interleave_list = self.model_info.get_interleave_tensors()
             interleave_sources = self.model_info.get_interleave_sources()
             output_name = self.model_info.get_output_info()
@@ -349,25 +443,41 @@ class Ignnition_model:
     # -------------------------------------
     def __create_model(self):
         print_header("Processing the described model...\n---------------------------------------------------------------------------\n")
-        return Json_preprocessing(self.model_dir)  # read json
+        return Yaml_preprocessing(self.model_dir)  # read json
 
     def __create_gnn(self,samples=None, path=None, verbose=True):
+        """
+        Parameters
+        ----------
+        samples:    [array]
+            Array of samples to be used as input (if any)
+        path:    bool
+            Path to find the input data (applicable only if using dataset input)
+        verbose:    bool
+            Indicates if we want verbosity in the prints of the terminal
+        """
+
         if verbose:
             print_header("Creating the GNN model...\n---------------------------------------------------------------------------\n")
 
         dimensions, sample = self.find_dataset_dimensions(samples=samples, path=path)
         self.model_info.add_dimensions(dimensions)
 
-        gnn_model = self.__make_model(self.model_info)
+        gnn_model = self.__get_compiled_model(self.model_info)
         # restore a warm-start Checkpoint (if any)
         self.gnn_model = self.__restore_model(gnn_model, sample=sample)
 
-    def __make_model(self, model_info):
-        # Either restore the latest model, or create a fresh one
-         gnn_model = self.__get_compiled_model(model_info)
-         return gnn_model
 
     def __restore_model(self, gnn_model, sample):
+        """
+        Parameters
+        ----------
+        gnn_model:    GNN obj
+            GNN obj of the actual model
+        sample:    dict
+            Input dictionary necessary to initialize all the dimensions
+        """
+
         checkpoint_path = self.CONFIG.get('warm_start_path', '')
         if os.path.isfile(checkpoint_path):
             print("Restoring from", checkpoint_path)
@@ -393,7 +503,10 @@ class Ignnition_model:
         ----------
         path:    str
           Path to find the dataset
+        samples: [array]
+            Array of samples to be used as input (if any)
         """
+
         if samples is not None:
             sample = samples[0]    #take the first one to find the dimensions
 
@@ -454,9 +567,17 @@ class Ignnition_model:
 
     # FUNCTIONALITIES
     # --------------------------------------------------
-    def train_and_validate(self, training_samples=None, eval_samples=None):
-        # Create the GNN model
+    def train_and_validate(self, training_samples=None, val_samples=None):
+        """
+        Parameters
+        ----------
+        training_samples:    [array]
+            Array of input training samples, if no dataset is used.
+        val_samples:    [array]
+            Array of input validation samples, if no dataset is used.
+        """
 
+        # Create the GNN model
         if not hasattr(self, 'gnn_model'):
             if training_samples is None:    # look for the dataset path
                 training_path = os.path.normpath(self.CONFIG['train_dataset'])
@@ -469,7 +590,7 @@ class Ignnition_model:
             'Starting the training and validation process...\n---------------------------------------------------------------------------\n')
 
         filenames_train = os.path.normpath(self.CONFIG['train_dataset'])
-        filenames_eval = os.path.normpath(self.CONFIG['validation_dataset'])
+        filenames_val = os.path.normpath(self.CONFIG['validation_dataset'])
 
         output_path = os.path.normpath(self.CONFIG['output_path'])
         output_path = os.path.join(output_path, 'CheckPoint')
@@ -487,18 +608,17 @@ class Ignnition_model:
                                                   shuffle=str_to_bool(
                                                       self.CONFIG['shuffle_training_set']),
                                                   data_samples=training_samples)
-        validation_dataset = self.__input_fn_generator(filenames_eval,
+        validation_dataset = self.__input_fn_generator(filenames_val,
                                                        shuffle=str_to_bool(
                                                            self.CONFIG['shuffle_validation_set']),
-                                                       data_samples=eval_samples)
+                                                       data_samples=val_samples)
 
         mini_epoch_size = None if self.CONFIG['epoch_size'] == 'All' else int(
             self.CONFIG['epoch_size'])
         num_epochs = int(self.CONFIG['epochs'])
         metrics = self.CONFIG['metrics']
 
-        callbacks = self.__get_model_callbacks(output_path=output_path, mini_epoch_size=mini_epoch_size,
-                                               num_epochs=num_epochs, metric_names=metrics)
+        callbacks = self.__get_model_callbacks(output_path=output_path)
 
         self.gnn_model.fit(train_dataset,
                            epochs=num_epochs,
@@ -513,11 +633,14 @@ class Ignnition_model:
 
     def predict(self, prediction_samples=None, verbose=True):
         """
-            Parameters
-            ----------
-            model_info:    object
-            Object with the json information model
+        Parameters
+        ----------
+        prediction_samples:    [array]
+            Array of samples to be used for prediction, useful only if no prediction dataset is specified.
+        verbose: bool
+            Indicates if there should be verbosity in the prints of the terminal or not.
         """
+
         prediction_path = None
         if not hasattr(self, 'gnn_model'):
             if prediction_samples is None:  #look for the dataset path
@@ -599,8 +722,12 @@ class Ignnition_model:
         """
         Parameters
         ----------
-        evaluation_samples: Samples to be tested.
+        evaluation_samples:    [array]
+            Array of samples to be used for evaluation, useful only if no prediction dataset is specified.
+        verbose: bool
+            Indicates if there should be verbosity in the prints of the terminal or not.
         """
+
         # Generate the model if it doesn't exist
         if not hasattr(self, 'gnn_model'):
             if evaluation_samples is None:  #look for the dataset path
@@ -662,6 +789,13 @@ class Ignnition_model:
         return all_metrics
 
     def batch_training(self, input_samples):
+        """
+        Parameters
+        ----------
+        input_samples:    [array]
+           Array of samples to be used for training (following the same format as if they were in a dataset)
+        """
+
         if not hasattr(self, 'gnn_model'):
             self.__create_gnn(samples=input_samples)
 

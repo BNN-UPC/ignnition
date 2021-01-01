@@ -34,10 +34,40 @@ import networkx as nx
 from networkx.readwrite import json_graph
 
 class Generator:
+    """
+    This class implements the Generator in charge of feeding the data to the main GNN module. This class will take as input the original datasets of the user or the passed array and compute a series of transformation and precalculations. Finally it serves it to the GNN module.
+
+    Attributes
+    ----------
+    end_symbol:    str
+        End symbol to be used when reading the json file as a stream of data.
+
+    Methods:
+    ----------
+    stream_read_json(self, f)
+       Creates a generator of samples from the given dataset or sample array. All these are read as a stream of data to avoid full alocation on memory.
+
+    __process_sample(self, sample, file=None)
+        Given an input sample, it processes it and pre-computes several aspects to be later served to the GNN module.
+
+    generate_from_array
+        Creates and returns the generator from an input array of samples of the user.
+
+    generate_from_dataset
+        Creates and returns the generator from an input dataset of samples of the user.
+    """
+
     def __init__(self):
         self.end_symbol = bytes(']', 'utf-8')
 
     def stream_read_json(self, f):
+        """
+        Parameters
+        ----------
+        f:    dict
+            Input data
+        """
+
         start_pos = 1
         while True:
             try:
@@ -57,6 +87,15 @@ class Generator:
                 yield obj
 
     def __process_sample(self, sample, file=None):
+        """
+        Parameters
+        ----------
+        sample:    dict
+            Input sample which is a serialized version (in JSON) of a networkx graph.
+        file:    dict
+            Path to these file (which is useful for error-checking purposes)
+        """
+
         #load the model
         G = json_graph.node_link_graph(sample)
         entity_counter = {}
@@ -190,20 +229,24 @@ class Generator:
         """
         Parameters
         ----------
-        dir:    str
-           Name of the entity
-        feature_names:    str
+        data_samples:    [array]
+           Array of samples to be processed
+        entity_names: [array]
+            Name of the entities to be found in the dataset
+        feature_names:    [array]
            Name of the features to be found in the dataset
-        output_names:    str
+        output_name:    str
            Name of the output data to be found in the dataset
         interleave_names:    [array]
            First parameter is the name of the interleave, and the second the destination entity
-        predict:     bool
-            Indicates if we are making predictions, and thus no label is required.
+        additional_input:    [array]
+           Name of other vectors that need to be retrieved because they appear in other parts of the model definition
+        training:     bool
+            Indicates if we are training, and thus a label is required.
         shuffle:    bool
            Shuffle parameter of the dataset
-
         """
+
         data_samples = [json.loads(x) for x in data_samples]
         self.entity_names = [x for x in entity_names]
         self.feature_names = [x for x in feature_names]
@@ -246,19 +289,23 @@ class Generator:
         Parameters
         ----------
         dir:    str
-           Name of the entity
-        feature_names:    str
+           Path of the input dataset
+        entity_names: [array]
+            Name of the entities to be found in the dataset
+        feature_names:    [array]
            Name of the features to be found in the dataset
-        output_names:    str
+        output_name:    str
            Name of the output data to be found in the dataset
         interleave_names:    [array]
            First parameter is the name of the interleave, and the second the destination entity
-        predict:     bool
-            Indicates if we are making predictions, and thus no label is required.
+        additional_input:    [array]
+           Name of other vectors that need to be retrieved because they appear in other parts of the model definition
+        training:     bool
+            Indicates if we are training, and thus a label is required.
         shuffle:    bool
            Shuffle parameter of the dataset
-
         """
+
         self.entity_names = entity_names
         self.feature_names = feature_names
         self.output_name = output_name

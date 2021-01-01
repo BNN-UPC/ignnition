@@ -8,26 +8,54 @@ from ignnition.model_classes import *
 
 class Operation():
     """
-    Class that represents an operation to be used in the readout phase
+    Class that represents a general operation
 
     Attributes:
     ----------
     type:    str
-        Type of operation
+        Type of operation (identified by a keyword)
+    output_name:    str
+        Name to save the output of the operation with (if any)
+    output_label:    str
+        Name to save the output label which we aim to predict (only needed for the last one)
     input:    array
         Array of the input names
-    output_name:    int
-        Name to save the output of the operation with
 
+    Methods:
+    ----------
+    find_total_input_dim(self, dimensions, calculations)
+        Computes the total dimension of all the inputs of this operation
+    obtain_total_input_dim_message(self, dimensions, calculations, dst_name, src)
+        Computes the total dimension of all the inputs of this operation (includes source and destination keywords which are useful to define an operation for the message creation function)
+    compute_all_input(self, calculations, f_)
+        Given the array of names, it computes the final input of th operation by concatenating them together.
+    compute_all_input_msg(self, calculations, f_, src_msgs, dst_msgs)
+        Same as the previous but treating the source and destination keywords accordingly
     """
 
     def __init__(self, op):
+        """
+        Parameters
+        ----------
+        op:    dict
+            Dictionary with the data defining this general operation
+        """
+
         self.type = op.get('type')
         self.output_label = op.get('output_label', None)
         self.output_name = op.get('output_name', None)
         self.input = op.get('input', None)
 
     def find_total_input_dim(self, dimensions, calculations):
+        """
+        Parameters
+        ----------
+        dimensions:    dict
+           Dictionary with the dimensions of each tensor (indexed by name)
+        calculations:    dict
+           Dictionary with the current calculations throughout the execution of the GNN model
+        """
+
         if self.input is not None:
             input_nn = self.input
             input_dim = 0
@@ -42,6 +70,19 @@ class Operation():
             return input_dim
 
     def obtain_total_input_dim_message(self, dimensions, calculations, dst_name, src):
+        """
+        Parameters
+        ----------
+        dimensions:    dict
+           Dictionary with the dimensions of each tensor (indexed by name)
+        calculations:    dict
+           Dictionary with the current calculations throughout the execution of the GNN model
+        dst_name: str
+            Name of the destination entity
+        src: Source_mp object
+            Object that includes the information about the source entity of the mp
+        """
+
         # Find out the dimension of the model
         input_nn = self.input
         input_dim = 0
@@ -56,6 +97,15 @@ class Operation():
         return input_dim
 
     def compute_all_input(self, calculations, f_):
+        """
+        Parameters
+        ----------
+        dimensions:    dict
+           Dictionary with the dimensions of each tensor (indexed by name)
+        f_:    dict
+           Dictionary with the data of the current sample
+        """
+
         first = True
         for i in self.input:
             if '_initial_state' in i:
@@ -76,6 +126,19 @@ class Operation():
         return input_nn
 
     def compute_all_input_msg(self, calculations, f_, src_msgs, dst_msgs):
+        """
+        Parameters
+        ----------
+        calculations:    dict
+            Dictionary with the current calculations throughout the execution of the GNN model
+        f_:    dict
+            Dictionary with the data of the current sample
+        src_msgs:
+            Tensor with all the messages of the source nodes for each of the edges
+        src_msgs:
+            Tensor with all the messages of the destination nodes for each of the edges
+        """
+
         first = True
         for i in self.input:
             if i == 'source':
@@ -100,44 +163,81 @@ class Operation():
 
 class Build_state(Operation):
     """
-        Subclass of Readout_operation that represents the product operation
+    Subclass of Operation that represents the operation of building the hs of a given entity type
 
-        Attributes:
-        ----------
-        type_product:    str
-            Type of product to be used
-        output_name:    int
-            Name to save the output of the operation with
+    Attributes:
+    ----------
+    entity_name:    str
+        Name of the treated entity
+    entity_dim:    int
+        Maximum dimension of the entity's hs. If this dimension is not met, we pad it with 0s.
 
-        """
+    Methods:
+    ----------
+    calculate_hs(self, calculations, f_)
+        Computes the hidden states for a given entity
+    """
+
+    #TODO: Error message if we pass the maximum dimension.
 
     def __init__(self, op, entity_name, entity_dim):
+        """
+        Parameters
+        ----------
+        op:    dict
+            Dictionary with the data defining this general operation
+        entity_name: str
+            Name of the entity which we aim to build the state of
+        entity_dim: int
+            Maximum dimension of the entity's hs. If this dimension is not met, we pad it with 0s.
+        """
+
         super(Build_state, self).__init__(op)
         self.entity_name = entity_name
         self.entity_dim = entity_dim
 
     def calculate_hs(self, calculations, f_):
-        state = self.compute_all_input(calculations, f_)
+        """
+        Parameters
+        ----------
+        calculations:    dict
+            Dictionary with the current calculations throughout the execution of the GNN model
+        f_:    dict
+            Dictionary with the data of the current sample
+        """
 
+        state = self.compute_all_input(calculations, f_)
         remaining_zeros = tf.cast(self.entity_dim - tf.shape(state)[1], tf.int64)
 
         shape = tf.stack([tf.cast(f_.get('num_' + self.entity_name), tf.int64), remaining_zeros], axis=0)  # shape (2,)
         state = tf.concat([state, tf.zeros(shape)], axis=1)
         return state
 
+
 class Product_operation(Operation):
     """
-    Subclass of Readout_operation that represents the product operation
+    Subclass of Operation class that represents the product operation between two tensors (also considers several types of products)
 
     Attributes:
     ----------
     type_product:    str
         Type of product to be used
-    output_name:    int
-        Name to save the output of the operation with
+    output_name:    str
+        Name to save the output of the operation with (included in the super object)
 
+    Methods:
+    ----------
+    calculate(self, product_input1, product_input2)
+        Computes the product specified by the user of the two input tensors.
     """
     def __init__(self, op):
+        """
+        Parameters
+        ----------
+        op:    dict
+            Dictionary with the data defining this product operation
+        """
+
         super(Product_operation, self).__init__(op)
         self.type_product = op.get('type_product')
 
@@ -150,6 +250,7 @@ class Product_operation(Operation):
         product_input2:    tensor
            Input 2
         """
+
         try:
             if self.type_product == 'dot_product':
                 result = tf.tensordot(product_input1, product_input2, axes=[[1],[1]])
@@ -176,7 +277,7 @@ class Product_operation(Operation):
 
 class Pooling_operation(Operation):
     """
-    Subclass of Readout_operation that represents the product operation
+    Subclass of Operation class that represents the pooling operation (which given an array of tensors, it computes a global representation of them).
 
     Attributes:
     ----------
@@ -185,8 +286,8 @@ class Pooling_operation(Operation):
 
     Methods:
     --------
-    calculate(self, input)
-        Applies the pooling operation to an input
+    calculate(self, pooling_input)
+        Applies the pooling operation specified by the user to an input
     """
 
     def __init__(self, operation):
@@ -225,25 +326,50 @@ class Pooling_operation(Operation):
 
 class Feed_forward_operation(Operation):
     """
-    Subclass of Readout_operation that represents the readout_nn operation
+    Subclass of Operation that represents a NN operation which consists of passing a given input to the specified NN.
 
     Attributes:
     ----------
-    input:    array
-        Array of input names
-    architecture: object
-        Neural network object
-    output_name:    int
-        Name to save the output of the operation with
+    model:    Feed_forward_model obj
+        Object representing the NN.
+
+    Methods:
+    --------
+    apply_nn(self, model, calculations, f_, readout=False)
+        Applies the input of this operation to the specified NN. It computes itself the input of this op given the input sample.
+    apply_nn_msg(self, model, calculations, f_, src_msgs, dst_msgs)
+        Applies the input of this operation to the specified NN. It computes itself the input of this op given the input sample. It also takes into consideration the source and destination keywords used in the message creation function
     """
 
     def __init__(self, op, model_role):
+        """
+        Parameters
+        ----------
+        op:    dict
+            Dictionary with the data defining this feed_forward operation
+        model_role: str
+            Defines the role of this operation (e.g., message_creation). Only useful for variable naming and debugging
+        """
+
         super(Feed_forward_operation, self).__init__(op)
 
         # we need somehow to find the number of extra_parameters beforehand
         self.model = Feed_forward_model({'architecture': op.get('architecture')}, model_role=model_role)
 
     def apply_nn(self, model, calculations, f_, readout=False):
+        """
+        Parameters
+        ----------
+        model: Feed_forward_model obj
+            Object representing the NN.
+        calculations:    dict
+            Dictionary with the current calculations throughout the execution of the GNN model
+        f_:    dict
+            Dictionary with the data of the current sample
+        readout: bool
+            Is it a readout object??
+        """
+
         input_nn = self.compute_all_input(calculations, f_)
 
         if readout and len(tf.shape(input_nn)) == 1:
@@ -251,19 +377,52 @@ class Feed_forward_operation(Operation):
 
         with tf.name_scope('pass_to_nn') as _:
             input_size = model.input_shape[-1]
-            input_nn = tf.reshape(input_nn, [-1, input_size])
+            input_nn = tf.ensure_shape(input_nn, [None, input_size])
             return model(input_nn)
 
     def apply_nn_msg(self, model, calculations, f_, src_msgs, dst_msgs):
+        """
+        Parameters
+        ----------
+        model: Feed_forward_model obj
+            Object representing the NN.
+        calculations:    dict
+            Dictionary with the current calculations throughout the execution of the GNN model
+        f_:    dict
+            Dictionary with the data of the current sample
+        src_msgs: tensor
+            Tensor with the input messages for each of the edges (source)
+        dst_msgs: tensor
+            Tensor with the input messages for each of the edges (destination)
+        """
+
         input_nn = self.compute_all_input_msg(calculations, f_, src_msgs, dst_msgs)
 
         with tf.name_scope('pass_to_nn') as _:
             input_size = model.input_shape[-1]
-            input_nn = tf.reshape(input_nn, [-1, input_size])
+            input_nn = tf.ensure_shape(input_nn, [None, input_size])
             return model(input_nn)
 
 class RNN_operation(Operation):
+    """
+    Subclass of Operation that represents a RNN operation which consists of passing a given input to the specified RNN.
+
+    Attributes:
+    ----------
+    model:    RNN_operation obj
+        Object representing the NN.
+    input: str
+        Name of the input to be fed to this RNN.
+   """
+
     def __init__(self, op):
+        """
+        Parameters
+        ----------
+        op:    dict
+            Dictionary with the data defining this product operation
+        """
+
         super(RNN_operation, self).__init__(op)
 
         # we need somehow to find the number of extra_parameters beforehand
@@ -272,9 +431,10 @@ class RNN_operation(Operation):
         self.model = Recurrent_Update_Cell(type=type, parameters=cell_architecture)
         self.input = op.get('input', None)
 
+#TODO: check that it works
 class Extend_adjacencies(Operation):
     """
-    Subclass of Readout_operation that represents the extend_adjacencies operation
+    Subclass of oPERATION that represents the extend_adjacencies operation
 
     Attributes:
     ----------
@@ -290,6 +450,13 @@ class Extend_adjacencies(Operation):
     """
 
     def __init__(self, op):
+        """
+        Parameters
+        ----------
+        op:    dict
+            Dictionary with the data defining this product operation
+        """
+
         super(Extend_adjacencies, self).__init__({'type': op['type'], 'input': op['input']})
         self.adj_list = op['adj_list']
         self.output_name = [op.get('output_name_src'), op.get('output_name_dst')]

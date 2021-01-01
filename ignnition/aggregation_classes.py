@@ -7,14 +7,20 @@ from ignnition.operation_classes import *
 
 class Aggregation:
     """
-    A class that represents an aggregation operation
+    A class that represents a general aggregation operation
 
     Attributes
     ----------
-    type:    str
-        Type of aggreagation
+    dict:    dict
+        Dictionary with the information of the aggregation function
     """
     def __init__(self, dict):
+        """
+        Parameters
+        ----------
+        dict:    dict
+            Data corresponding to the general aggregation definition
+        """
         self.type = dict.get('type')
         self.output_name = dict.get('output_name', None)
 
@@ -22,70 +28,103 @@ class Aggregation:
 
 class Sum_aggr(Aggregation):
     """
-    A subclass that represents the Sum aggreagtion operation
+    A subclass that represents the Sum aggreagtion operation (which sums all the input messages together for each of the destination nodes).
 
     Methods:
     ----------
-    calculate_input(self, src_input)
-        Caclulates the result of applying the sum aggregation
+    calculate_input(self, comb_src_states, comb_dst_idx, num_dst)
+        Returns the sum of all the input messages for each of the destination nodes.
     """
 
     def __init__(self, dict):
+        """
+        Parameters
+        ----------
+        dict:    dict
+            Data corresponding to the sum aggregation definition
+        """
         super(Sum_aggr, self).__init__(dict)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
         """
         Parameters
         ----------
-        src_input:    tensor
-           Source entity hs
+        comb_src_states:    tensor
+           Indices of the source nodes for each of the adjacencies to consider.
+        comb_dst_idx:    tensor
+           Indices of the destination nodes for each of the adjacencies to consider.
+        num_dst:    int
+           Number of source entities
         """
+
         src_input = tf.math.unsorted_segment_sum(comb_src_states, comb_dst_idx, num_dst)
         return src_input
 
 class Mean_aggr(Aggregation):
     """
-    A subclass that represents the average aggreagtion operation
+    A subclass that represents the mean aggregation operation
 
     Methods:
     ----------
-    calculate_input(self, src_input)
-        Caclulates the result of applying the sum aggregation
+    calculate_input(self, comb_src_states, comb_dst_idx, num_dst)
+        Returns the mean of all the input messages for each of the destination nodes.
     """
 
     def __init__(self, dict):
+        """
+        Parameters
+        ----------
+        dict:    dict
+            Data corresponding to the mean aggregation definition
+        """
         super(Mean_aggr, self).__init__(dict)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
         """
         Parameters
         ----------
-        src_input:    tensor
-           Source entity hs
+        comb_src_states:    tensor
+           Indices of the source nodes for each of the adjacencies to consider.
+        comb_dst_idx:    tensor
+           Indices of the destination nodes for each of the adjacencies to consider.
+        num_dst:    int
+           Number of source entities
         """
+
         neighbours_mean = tf.math.unsorted_segment_mean(comb_src_states, comb_dst_idx, num_dst)
         return neighbours_mean
 
 class Max_aggr(Aggregation):
     """
-    A subclass that represents the Sum aggreagtion operation
+    A subclass that represents the Max aggregation operation
 
     Methods:
     ----------
-    calculate_input(self, src_input)
-        Caclulates the result of applying the sum aggregation
+    calculate_input(self, comb_src_states, comb_dst_idx, num_dst)
+        Returns the max of all the input messages for each of the destination nodes.
     """
 
     def __init__(self, dict):
+        """
+        Parameters
+        ----------
+        dict:    dict
+            Data corresponding to the max aggregation definition
+        """
         super(Max_aggr, self).__init__(dict)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
         """
         Parameters
         ----------
-        src_input:    tensor
-           Source entity hs
+        comb_src_states:    tensor
+           Indices of the source nodes for each of the adjacencies to consider.
+        comb_dst_idx:    tensor
+           Indices of the destination nodes for each of the adjacencies to consider.
+        num_dst:    int
+           Number of source entities
         """
+
         src_input = tf.math.unsorted_segment_max(comb_src_states, comb_dst_idx, num_dst)
         return src_input
 
@@ -95,56 +134,89 @@ class Min_aggr(Aggregation):
 
     Methods:
     ----------
-    calculate_input(self, src_input)
-        Caclulates the result of applying the sum aggregation
+     calculate_input(self, comb_src_states, comb_dst_idx, num_dst)
+        Returns the min of all the input messages for each of the destination nodes.
     """
 
     def __init__(self, dict):
+        """
+        Parameters
+        ----------
+        dict:    dict
+            Data corresponding to the min aggregation definition
+        """
         super(Min_aggr, self).__init__(dict)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
         """
         Parameters
         ----------
-        src_input:    tensor
-           Source entity hs
+        comb_src_states:    tensor
+           Indices of the source nodes for each of the adjacencies to consider.
+        comb_dst_idx:    tensor
+           Indices of the destination nodes for each of the adjacencies to consider.
+        num_dst:    int
+           Number of source entities
         """
+
         src_input = tf.math.unsorted_segment_min(comb_src_states, comb_dst_idx, num_dst)
         return src_input
 
-# FINISH THIS ONE
+#toDO: Finish this operation
 class Std_aggr(Aggregation):
     """
-    A subclass that represents the Sum aggreagtion operation
+    A subclass that represents the Std aggreagtion operation
 
     Methods:
     ----------
-    calculate_input(self, src_input)
-        Caclulates the result of applying the sum aggregation
+    calculate_input(self, comb_src_states, comb_dst_idx, num_dst)
+        Returns the std of all the input messages for each of the destination nodes.
     """
     def __init__(self, dict):
+        """
+        Parameters
+        ----------
+        dict:    dict
+            Data corresponding to the std aggregation definition
+        """
         super(Std_aggr, self).__init__(dict)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
         """
         Parameters
         ----------
-        src_input:    tensor
-           Source entity hs
+        comb_src_states:    tensor
+           Indices of the source nodes for each of the adjacencies to consider.
+        comb_dst_idx:    tensor
+           Indices of the destination nodes for each of the adjacencies to consider.
+        num_dst:    int
+           Number of source entities
         """
+
         src_input = tf.math.unsorted_segment_sum(comb_src_states, comb_dst_idx, num_dst)
         return src_input
 
 class Attention_aggr(Aggregation):
     """
-    A subclass that represents the Sum aggreagtion operation
+    A subclass that represents the attention aggregation operation
+
+    Attributes
+    ----------
+    weight_initialization:    str
+        Indicates how the weights are initialized (if any parameter is specified at all)
 
     Methods:
     ----------
-    calculate_input(self, comb_src_states, comb_dst_idx, dst_states, comb_seq, num_dst, kernel1, kernel2, attn_kernel)
-        Caclulates the result of applying the attention mechanism
+    calculate_input(self, comb_src_states, comb_dst_idx, dst_states, comb_seq, num_dst, node_kernel, attn_kernel)
+        Computes the attention mechanism of all the input messages for each destination node. This aggregation corresponds to the one proposed for Graph Attention Networks.
     """
     def __init__(self, dict):
+        """
+        Parameters
+        ----------
+        dict:    dict
+            Data corresponding to the attention aggregation definition
+        """
         super(Attention_aggr, self).__init__(dict)
         self.weight_initialization = dict.get('weight_initialization', None)
 
@@ -159,13 +231,11 @@ class Attention_aggr(Aggregation):
         dst_states: tensor
             Destination hs
         comb_seq:   tensor
-
+            Indices that indicate the sequences for each destination node.
         num_dst:    int
             Number of destination entity nodes
-        kernel1:    tf object
-            Kernel1 object to transform the source's hs shape
-        kernel2:    tf.object
-            Kernel2 object to transform the destination's hs shape
+        node_kernel:    tf object
+            node_kernel object to transform the source's and destination's hs shape
         attn_kernel:    tf.object
             Attn_kernel object
         """
@@ -205,11 +275,11 @@ class Attention_aggr(Aggregation):
         aux = tf.scatter_nd(ids, attention_input, shape)
 
         # apply softmax to it (by rows)
-        coeffients = tf.keras.activations.softmax(aux, axis=0)
+        coef = tf.keras.activations.softmax(aux, axis=0)
 
         # sum them all together using the coefficients (average)
-        final_coeffitients = tf.gather_nd(coeffients, ids)
-        weighted_inputs = comb_src_states * final_coeffitients
+        final_coef = tf.gather_nd(coef, ids)
+        weighted_inputs = comb_src_states * final_coef
 
         src_input = tf.math.unsorted_segment_sum(weighted_inputs, comb_dst_idx,
                                                  num_dst)
@@ -218,15 +288,30 @@ class Attention_aggr(Aggregation):
 
 class Edge_attention_aggr(Aggregation):
     """
-    A subclass that represents the Sum aggreagtion operation
+    A subclass that represents the Edge attention aggregation operation
+
+    Attributes
+    ----------
+    aggr_model:    str
+        Feed forward model used to compute the weights for each of the edges.
 
     Methods:
     ----------
-    calculate_input(self, comb_src_states, comb_dst_idx, dst_states, comb_seq, num_dst, kernel1, kernel2, attn_kernel)
-        Caclulates the result of applying the attention mechanism
+    get_model()
+        Return the aggregation model
+
+    calculate_input(self, comb_src_states, comb_dst_idx, num_dst, weights)
+        Computes the edge attention, based on computing a weight for each input message by passing its source and destination hs to a NN.
     """
 
     def __init__(self, op):
+        """
+        Parameters
+        ----------
+        op:    dict
+            Dictionary with the user's definition of this operation
+        """
+
         super(Edge_attention_aggr, self).__init__(op)
         del op['type']
         self.aggr_model = Feed_forward_operation(op, model_role='edge_attention')
@@ -236,6 +321,19 @@ class Edge_attention_aggr(Aggregation):
         return self.aggr_model.model
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst, weights):
+        """
+        Parameters
+        ----------
+        comb_src_states:    tensor
+            Source hs
+        comb_dst_idx:   tensor
+            Destination indexes to be combined with (src -> dst)
+        num_dst:    int
+            Number of destination entity nodes
+        weights:    tensor
+            This are the weights for each of the adjacencies to be applied to the input messages
+        """
+
         # apply the attention mechanism
         weighted_inputs =  weights * comb_src_states
         # sum by destination nodes
@@ -245,14 +343,27 @@ class Edge_attention_aggr(Aggregation):
 
 class Conv_aggr(Aggregation):
     """
-    A subclass that represents the Convolution aggreagtion operation
+    A subclass that represents the Convolution aggregation operation
+
+    Attributes
+    ----------
+    activation_function: str
+        Name of the activation function to be used (if any)
+    weight_initialization:    str
+        Indicates how the weights are initialized (if any parameter is specified at all)
 
     Methods:
     ----------
     calculate_input(self, comb_src_states, comb_dst_idx, dst_states, num_dst, kernel)
-        Caclulates the result of applying the convolution mechanism
+        Calculates the result of applying the convolution mechanism (proposed for the graph convolutional NN)
     """
     def __init__(self, attr):
+        """
+        Parameters
+        ----------
+        attr:    dict
+            Data corresponding to the convolutional aggregation definition
+        """
         super(Conv_aggr, self).__init__(attr)
         self.activation_function = attr.get('activation_function', 'relu')
         self.weight_initialization = attr.get('weight_initialization', None)
@@ -267,13 +378,13 @@ class Conv_aggr(Aggregation):
             Destination indexes to be combined with (src -> dst)
         dst_states: tensor
             Destination hs
-
         num_dst:    int
             Number of destination entity nodes
         kernel:    tf object
-            Kernel1 object to transform the source's hs shape
+            Kernel object to transform the source's hs shape
         """
 
+        # MATHEMATICAL FORMULATION:
         # CONVOLUTION: h_i^t = SIGMA(SUM_N(i) (1 / (sqrt(deg(i)) * sqrt(deg(j))) * w * x_j^(t-1))
         # = h_i^t = SIGMA( 1 / sqrt(deg(i)) * SUM_N(i) (1 / (sqrt(deg(j))) * w * x_j^(t-1))
         # implemented: h_i^t = SIGMA(1 / sqrt(deg(i)) * SUM_N(i) w * x_j^(t-1))
@@ -315,15 +426,28 @@ class Conv_aggr(Aggregation):
 
 class Interleave_aggr(Aggregation):
     """
-    A subclass that represents the Sum aggreagtion operation
+    A subclass that represents the Interleave aggregation operation
+
+    Attributes
+    ----------
+    combination_definition:    str
+        Defines the name from the dataset with this custom definition
 
     Methods:
     ----------
     calculate_input(self, src_input, indices)
-        Caclulates the result of applying the interleave mechanism
+        Computes the result of applying the interleave mechanism. This mechanism takes as input a tensor with all the input messages of several sources to a same destination entity type, and creates a custom array of the input messages.
+        With these, for instance, a destination node can receive the a tensor where the pair messages are from an entity type and the odds from the other.
     """
 
     def __init__(self, dict):
+        """
+        Parameters
+        ----------
+        dict:    dict
+            Data corresponding to the interleave aggregation definition
+        """
+
         super(Interleave_aggr, self).__init__(dict)
         self.combination_definition = dict.get('interleave_definition')
 
@@ -347,26 +471,25 @@ class Interleave_aggr(Aggregation):
 
         # (max_of_sources_to_dest_concat x destinations x dim_source) -> destinations x max_of_sources_to_dest_concat x dim_source
         src_input = tf.transpose(src_input, perm=[1, 0, 2])
-
-
-        # Problem of 0s in between. We need to compress everything leaving the 0s on the right. Then recalculate the real len of each one.
-        # Talk to Pere about this. Arnau had the same mistake.
-
-
         return src_input
 
 
 class Concat_aggr(Aggregation):
     """
-    A subclass that represents the Concat aggreagtion operation
+    A subclass that represents the Concat aggregation operation
 
     Attributes
     ----------
     concat_axis:    str
         Axis to concatenate the input
-
     """
 
     def __init__(self, attr):
+        """
+        Parameters
+        ----------
+        attr:    dict
+            Data corresponding to the concat aggregation definition
+        """
         super(Concat_aggr, self).__init__(attr)
         self.concat_axis = int(attr.get('concat_axis'))

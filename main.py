@@ -31,7 +31,7 @@ import ignnition
 def normalization(feature, feature_name):
    if feature_name == 'traffic':
         feature = (feature - 170) / 130
-   elif feature_name == 'link_capacity':
+   elif feature_name == 'capacity':
         feature = (feature - 25000) / 40000
    elif feature_name == 'delay':
         feature = tf.math.log(feature)

@@ -243,7 +243,6 @@ class Gnn_model(tf.keras.Model):
         input:    dict
             Dictionary with all the tensors with the input information of the model
         """
-
         with tf.name_scope('ignnition_model') as _:
             f_ = input.copy()
             for k, v in f_.items():
@@ -275,7 +274,6 @@ class Gnn_model(tf.keras.Model):
                                 save_global_variable(self.calculations,entity.name, state)
                                 save_global_variable(self.calculations,entity.name + '_initial_state', state)
                             counter += 1
-
 
             # -----------------------------------------------------------------------------------
             # MESSAGE PASSING PHASE
@@ -482,7 +480,7 @@ class Gnn_model(tf.keras.Model):
 
                                             # this is the final one that passes to the update
                                             # save the src_input used for the update
-                                            save_global_variable(self.calculations,'update_lens_' + dst_name, final_len)
+                                            save_global_variable(self.calculations, 'update_lens_' + dst_name, final_len)
                                             save_global_variable(self.calculations,'update_input_' + dst_name, src_input)
 
                                 # ---------------------------------------
@@ -492,8 +490,8 @@ class Gnn_model(tf.keras.Model):
                                         dst_name = mp.destination_entity
                                         with tf.name_scope('update_' + dst_name + 's') as _:
                                             update_model = mp.update
-                                            src_input = get_global_variable(self.calculations,'update_input_' + dst_name)
-                                            old_state = get_global_variable(self.calculations,dst_name)
+                                            src_input = get_global_variable(self.calculations, 'update_input_' + dst_name)
+                                            old_state = get_global_variable(self.calculations, dst_name)
 
                                             # by default use the aggregated messages as new state
                                             # This should only be compatible with sum/attention/convolution (obtain a single tensor)
@@ -502,10 +500,9 @@ class Gnn_model(tf.keras.Model):
 
                                             # recurrent update
                                             elif isinstance(update_model, RNN_operation):
-                                                model = get_global_variable(self.calculations,dst_name + '_update')
+                                                model = get_global_variable(self.calculations, dst_name + '_update')
                                                 if not mp.aggregations_global_type:
-                                                    dst_dim = int(self.dimensions[
-                                                                      dst_name])  # should this be the source dimensions??? CHECK
+                                                    dst_dim = int(self.dimensions[dst_name])  # should this be the source dimensions??? CHECK
                                                     new_state = update_model.model.perform_unsorted_update(model,
                                                                                                            src_input,
                                                                                                            old_state,
@@ -513,7 +510,7 @@ class Gnn_model(tf.keras.Model):
 
                                                 # if the aggregation was ordered or concat
                                                 else:
-                                                    final_len = get_global_variable(self.calculations,'update_lens_' + dst_name)
+                                                    final_len = get_global_variable(self.calculations, 'update_lens_' + dst_name)
                                                     new_state = update_model.model.perform_sorted_update(model,
                                                                                                          src_input,
                                                                                                          dst_name,
@@ -531,8 +528,7 @@ class Gnn_model(tf.keras.Model):
                                                 new_state = update(update_input)
 
                                             # update the old state
-                                            save_global_variable(self.calculations,dst_name, new_state)
-
+                                            save_global_variable(self.calculations, dst_name, new_state)
 
 
             # -----------------------------------------------------------------------------------
@@ -579,11 +575,12 @@ class Gnn_model(tf.keras.Model):
                             save_global_variable(self.calculations,operation.output_name[0], extended_src)
                             save_global_variable(self.calculations,operation.output_name[1], extended_dst)
 
+                        #output of the readout
                         if operation.type != 'extend_adjacencies':
-                            if j == n-1:
+                            if j == n-1:    #last one
                                 return result
                             else:
-                                save_global_variable(self.calculations,operation.output_name, result)
+                                save_global_variable(self.calculations, operation.output_name, result)
 
                     counter += 1
 

@@ -40,20 +40,16 @@ class Entity:
     operations:  array
         Array with all the operations to construct the hidden_states
 
-
     Methods:
     ----------
+    compute_hs_operations(self, operations)
+        Returns the corresponding hs of this entity (tensorflow object) by performing the set of operations passed by parameters
+
     get_entity_total_feature_size(self)
         Sum of the dimension of all the features contained in this entity
 
     get_features_names(self)
         Return all the names of the features of this entity
-
-    add_feature(self, f)
-        Adds a feature to this entity
-
-    calculate_hs(self, input)
-        Returns the corresponding hs of this entity (tensorflow object)
 
     """
 
@@ -69,6 +65,13 @@ class Entity:
         self.operations, self.features_name = self.compute_hs_operations(attr.get('initial_state'))
 
     def compute_hs_operations(self, operations):
+        """
+        Parameters
+        ----------
+        operations:    dict
+            Dictionary specifing an operation to be performed as part of the pipeline to compute the hidden states of a given entity type nodes.
+        """
+
         hs_operations = []
         all_inputs = set()
         all_outputs = set()
@@ -108,52 +111,25 @@ class Message_Passing:
 
     Attributes
     ----------
-    type:   str
-        Type of message passing (individual or combined)
     destination_entity:     str
         Name of the destination entity
-    Mp_source_entity:      str
-        Name of the source entity
-    aggregation:     str
-        Type of aggregation strategy
+    source_entities:      [array]
+        Array of Mp_source_entity object that define a single message passing (between one entity to a destination entity)
+    aggregations:     [array]
+        Array of aggregation operations that define the aggregation function
     update:     object
         Object with the update model to be used
-    update_type:     str
-        Indicates if it uses feed-forward or recurrent update
-    formation_type:     str
-        Indicates if it used feed-forward or recurrent update
-    message_formation:      object (optional)
-        Feed forward model for the message formation
-
 
     Methods:
     --------
     create_update(self,dict)
         Create a model to update the hidden state of the destination entity
 
-    create_aggregation(self, dict)
-        Creates the aggreagation instance
+    create_aggregations(self, attrs)
+        Creates the a set of operations that themselves define the pipeline of operations that constitute the aggregation strategy
 
-    find_type_of_message_creation(self, type)
-        Parses the name of the message creation operation
-
-    get_instance_info(self):
-        Returns an array with all the relevant information of this message passing
-
-    set_message_formation(self, message_neural_net, number_extra_parameters = 0)
-        Sets the message formation strategy by creating the appropriate model to do so.
-
-    add_message_formation_layer(self, **dict):
-        Adds a layer to the message formation model
-
-    set_aggregation(self, aggregation)
-        Sets the aggregation strategy for the mp
-
-    set_update_strategy(self, update_type, recurrent_type = 'GRU')
-        Sets the update strategy for the mp by creating the appropriate model
-
-    add_update_layer(self, **dict)
-        Adds a layer to the update model
+    get_instance_info(self)
+        Returns the information of this MP
     """
 
     def __init__(self, m):
@@ -163,6 +139,7 @@ class Message_Passing:
         m:    dict
             Dictionary with the required attributes
         """
+
         self.destination_entity = m.get('destination_entity')
         self.source_entities = [Mp_source_entity(s) for s in m.get('source_entities')]
 
@@ -193,8 +170,8 @@ class Message_Passing:
         """
         Parameters
         ----------
-        dict:    dict
-            Dictionary with the required attributes for the aggregation
+        attrs:    dict
+            Dictionary with the required attributes for the aggregation (defining the set of operations)
         """
         aggregations = []
         single_embedding = None
@@ -261,20 +238,24 @@ class Mp_source_entity:
         Name of the source entity
     message_formation:      str
         Array of Operation instances
-    extra_parameter:     int
-        Size of the extra parameters, if nany
-
 
     Methods:
     --------
     create_message_formation(self, operations)
-        Creates an array of Operation instances
+        Creates an array of Operation instances to define the message creation function (pipeline of operations)
 
     get_instance_info(self, dst_name)
-        Returns information of the class
-
+        Returns a string with the information of the source and destination entities of this mp
     """
+
     def __init__(self, attr):
+        """
+        Parameters
+        ----------
+        attr:    dict
+            Dictionary with the data defining this mp (extracted from the model description file)
+        """
+
         self.name = attr.get('name')
         self.message_formation = self.create_message_formation(attr.get('message')) if 'message' in attr else [None]
 
@@ -285,6 +266,7 @@ class Mp_source_entity:
         operations:    array
             Array of operation dictionaries
         """
+
         result = []
         counter = 0
         for op in operations:
@@ -308,5 +290,6 @@ class Mp_source_entity:
         dst_name:    dict
             Name of the destination entity
         """
+
         return self.name + '_to_' + dst_name
 

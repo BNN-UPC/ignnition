@@ -5,7 +5,32 @@ import sys
 from ignnition.utils import *
 
 class Custom_layer:
+    """
+    This class implements a custom layer, which represents  tf.keras.layers object with the parameters/attributes specified by the user.
+
+    Attributes
+    ----------
+    type:    str
+        Type of layer to be created (following the tensorflow documentation)
+    parameters: dict
+        Dictionary with the parameters to be applied to the new layer (following the tf docu).
+
+    Methods:
+    ----------
+    __prepocess_parameters(self)
+       Parses several parameters which are in string type to its corresponding type, this being integer, or other tensorflow objects accordingly.
+    """
+
     def __init__(self, type, parameters):
+        """
+        Parameters
+        ----------
+        type:    str
+            Type of layer to be created (following the tensorflow documentation)
+        parameters: dict
+            Dictionary with the parameters to be applied to the new layer (following the tf docu).
+        """
+
         self.type = type
         if 'type_layer' in parameters:
             del parameters['type_layer']
@@ -39,14 +64,8 @@ class Custom_layer:
 
 class Recurrent_Update_Cell(Custom_layer):
     """
-    Class that represents an RNN model
-
-    Attributes
-    ----------
-    type:    str
-        Type of recurrent model to be used
-    params:     dict
-        Additional parameters
+    Class that represents an RNN model used only for the update. The key difference with the other recurrent possibility is that in the update we need to explicitely pass the initial state, while in other stages of the model we don't need to do so.
+    Thus, we keep this a single layer instead of incorporating it to a Sequential model.
 
     Methods:
     --------
@@ -62,18 +81,27 @@ class Recurrent_Update_Cell(Custom_layer):
     """
 
     def __init__(self, type, parameters):
-        super(Recurrent_Update_Cell, self).__init__(type=type, parameters=parameters)
-
-
-    def get_tensorflow_object(self, destination_dimension):
         """
         Parameters
         ----------
-        destination_dimension:    int
-            Number of units that the recurrent cell will have
+        type:    str
+            Type of layer to be created (following the tensorflow documentation)
+        parameters: dict
+            Dictionary with the parameters to be applied to the new layer (following the tf docu).
         """
 
-        self.parameters['units'] = destination_dimension
+        super(Recurrent_Update_Cell, self).__init__(type=type, parameters=parameters)
+
+
+    def get_tensorflow_object(self, dst_dim):
+        """
+        Parameters
+        ----------
+        dst_dim:    int
+            Dimension of the destination nodes. Thus, number of units of the RNN model
+        """
+
+        self.parameters['units'] = dst_dim
         try:
             c_ = getattr(tf.keras.layers, self.type + 'Cell')
         except:
@@ -97,28 +125,29 @@ class Recurrent_Update_Cell(Custom_layer):
             Input for the update operation
         old_state:  tensor
             Old hs of the destination entity
+        dst_dim: int
+            Dimension of the destination nodes
         """
         src_input = tf.ensure_shape(src_input, [None, dst_dim])
         new_state, _ = model(src_input, [old_state])
         return new_state
 
-    def perform_sorted_update(self,model, src_input, dst_name, old_state, final_len):
+    def perform_sorted_update(self, model, src_input, dst_name, old_state, final_len):
         """
         Parameters
         ----------
         model:    object
-            Update model
+            Update model used for the update
         src_input:  tensor
             Input for the update operation
         dst_name:   str
             Destination entity name
         old_state:  tensor
-            Old hs of the destination entity
+            Old hs of the destination entity's nodes
         final_len:  tensor
             Number of source nodes for each destination
-        num_dst:    int
-            Number of destination nodes
         """
+
         rnn = tf.keras.layers.RNN(model, name=str(dst_name) + '_update')
         final_len.set_shape([None])
         new_state = rnn(inputs = src_input, initial_state = old_state, mask=tf.sequence_mask(final_len))
@@ -128,23 +157,25 @@ class Feed_forward_Layer(Custom_layer):
     """
     Class that represents a layer of a feed_forward neural network
 
-    Attributes
-    ----------
-    type:    str
-        Type of recurrent model to be used
-    params:     dict
-        Additional parameters
-
     Methods:
     --------
     get_tensorflow_object(self)
-        Returns a tensorflow object of the containing layer, and sets its previous layer.
+        Returns a tensorflow object of the containing layer
 
     get_tensorflow_object_last(self, destination_units)
         Returns a tensorflow object of the last layer of the model, and sets its previous layer and the number of output units for it to have.
     """
 
     def __init__(self, type, parameters):
+        """
+        Parameters
+        ----------
+        type:    str
+            Type of layer to be created (following the tensorflow documentation)
+        parameters: dict
+            Dictionary with the parameters to be applied to the new layer (following the tf docu).
+        """
+
         super(Feed_forward_Layer, self).__init__(type=type, parameters=parameters)
 
     def get_tensorflow_object(self):
@@ -165,13 +196,11 @@ class Feed_forward_Layer(Custom_layer):
         return layer
 
 
-    def get_tensorflow_object_last(self, destination_units):
+    def get_tensorflow_object_last(self, dst_units):
         """
         Parameters
         ----------
-        l_previous:    object
-            Previous layer of the architecture
-        destination_dimension:    int
+        dst_units:    int
             Number of units that the recurrent cell will have
         """
         try:
@@ -179,7 +208,7 @@ class Feed_forward_Layer(Custom_layer):
         except:
             print_failure("The layer of type '" + self.type + "' is not a valid tf.keras layer. Please check the documentation to write the correct way to define this layer. ")
 
-        self.parameters['units'] = destination_units    #can we assume that it will always be units??
+        self.parameters['units'] = dst_units    #can we assume that it will always be units??
 
         try:
             layer = c_(**self.parameters)
@@ -194,27 +223,19 @@ class Feed_forward_Layer(Custom_layer):
 
 class Feed_forward_model:
     """
-    Class that represents a feed_forward neural network
+    Class that represents a feed_forward neural network model
 
     Attributes:
     ----------
     layers:    array
         Layers contained in this feed-forward
-    counter:    int
-        Counts the current number of layers
-
 
     Methods:
     --------
+    __is_recurrent(self, type)
+        Given the definition of a layer, it returns True if this is a recurrent layer (using GRU or LSTM)
     construct_tf_model(self, var_name, input_dim, dst_dim = None, is_readout = False, dst_name = None)
         Returns the corresponding neural network object
-
-    add_layer(self, **l)
-        Add a layer using a dictionary as input
-
-    add_layer_aux(self, l)
-        Add a layer
-
     """
 
     def __init__(self, model, model_role):
@@ -223,6 +244,8 @@ class Feed_forward_model:
         ----------
         model:    dict
             Information regarding the architecture of the feed-forward
+        model_role: str
+            Defines the role of the feed_forward. Only useful to save the variables and for debugging purposes
         """
 
         self.layers = []
@@ -249,6 +272,12 @@ class Feed_forward_model:
 
 
     def __is_recurrent(self, type):
+        """
+        Parameters
+        ----------
+        type:    str
+            Type of the layer that we are considering
+        """
         return True if (type== 'LSTM' or type=='GRU') else False
 
 
@@ -263,7 +292,7 @@ class Feed_forward_model:
         dst_dim:  int
             Dimension of the destination hs if any
         is_readout: bool
-            Is readout?
+            Is a model used for the readout?
         dst_name:   str
             Name of the destination entity
         """
