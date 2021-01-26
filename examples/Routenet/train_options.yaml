@@ -1,10 +1,10 @@
 # PATHS
-train_dataset: <PATH>
-validation_dataset: <PATH>
+train_dataset: ./Dataset_routenet_networkx/TRAIN
+validation_dataset: ./Dataset_routenet_networkx/EVAL
 #predict_dataset:
 #warm_start_path:
 additional_functions_file: ./main.py
-output_path: .
+output_path: ./
 
 # OPTIMIZATION OPTIONS
 loss: MeanSquaredError
@@ -25,3 +25,4 @@ shuffle_training_set: True
 shuffle_validation_set: False
 val_samples: 100
 val_frequency: 1
+batch_norm: mean

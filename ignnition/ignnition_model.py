@@ -60,6 +60,9 @@ class Ignnition_model:
 
     Methods:
     ----------
+    __process_path(self, path)
+        This method takes as input a path and, considering the location of the model directory, converts all the relative path to absolute paths starting from such model_directory
+
     __loss_function(self, labels, predictions)
        Function that calls executes the loss function object from the keras libarary if specified. O/w it looks for a custom loss function specified in the module file.
 
@@ -72,7 +75,7 @@ class Ignnition_model:
     __get_model_callbacks(self, output_path, mini_epoch_size, num_epochs, metric_names)
         Creates all the callbacks (these being the k-best (if specified), model checkpoints, and tensorboard)
 
-    __batch_normalization(self, x, feature_list, output_name, y=None)
+    __batch_normalization(self, x, feature_list, y=None)
         Performs batch normalization on the data (e.g., normalizes all the batch by its max, min..)
 
     __global_normalization(self, x, feature_list, output_name, y=None)
@@ -116,8 +119,9 @@ class Ignnition_model:
         model_dir:    str
            Path to the model directory
         """
+        path = os.path.normpath(model_dir)
+        self.model_dir = os.path.abspath(path)
 
-        self.model_dir = os.path.normpath(model_dir)
         train_options_path = os.path.join(self.model_dir, 'train_options.yaml')
 
         # read the train_options file
@@ -132,12 +136,22 @@ class Ignnition_model:
 
         # add the file with any additional function, if any
         if 'additional_functions_file' in self.CONFIG:
-            additional_path = os.path.normpath(self.CONFIG['additional_functions_file'])
+            additional_path = self.__process_path(self.CONFIG['additional_functions_file'])
             sys.path.insert(1, additional_path)
             self.module = __import__(additional_path.split('/')[-1][0:-3])
 
         self.model_info = self.__create_model()
         self.generator = Generator()
+
+
+    def __process_path(self, path):
+        """
+        Parameters
+        ----------
+        path:    string
+           Normalized or absolute path to be converted
+        """
+        return os.path.normpath(os.path.join(self.model_dir, path))
 
     def __loss_function(self, labels, predictions):
         """
@@ -228,7 +242,7 @@ class Ignnition_model:
                 K_best(output_path=output_path + '/logs', k=self.CONFIG.get('k_best',None))]
 
     # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
-    def __batch_normalization(self, x, feature_list, output_name, y=None):
+    def __batch_normalization(self, x, feature_list, norm_type, y=None):
         """
         Parameters
         ----------
@@ -237,8 +251,8 @@ class Ignnition_model:
 
         feature_list:    tensor
            List of names with the names of the features in x
-        output_names:    tensor
-           List of names with the name of the output labels in y
+        norm_type: string
+            Defines the type of batch normalization to be used
         y:    tensor
            Tensor with the label information
         """
@@ -247,7 +261,6 @@ class Ignnition_model:
         for f in feature_list:
             f_name = f.name
             # norm_type = f.batch_normalization
-            norm_type = 'mean'
             if norm_type == 'mean':
                 mean = tf.math.reduce_mean(x.get(f_name))
                 variance = tf.math.reduce_std(x.get(f_name))
@@ -379,7 +392,7 @@ class Ignnition_model:
                                                                      shuffle),
                         output_types=(types, tf.float32),
                         output_shapes=(shapes, tf.TensorShape(None)))
-                    ds = ds.repeat()
+                    #ds = ds.repeat()
                 else:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
@@ -411,8 +424,8 @@ class Ignnition_model:
                         output_shapes=(shapes))
 
             with tf.name_scope('normalization') as _:
-                global_norm = True
-                if global_norm:
+                batch_norm = self.CONFIG.get('batch_normalization', None)
+                if batch_norm is None:
                     if training:
                         ds = ds.map(
                             lambda x, y: self.__global_normalization(x, feature_list, output_name,y),
@@ -427,12 +440,12 @@ class Ignnition_model:
 
                 else:
                     if training:
-                        ds = ds.map(lambda x, y: self.__batch_normalization(x, feature_list, output_name, y),
+                        ds = ds.map(lambda x, y: self.__batch_normalization(x, feature_list, batch_norm, y),
                                     num_parallel_calls=tf.data.experimental.AUTOTUNE)
                         ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
                     else:
-                        ds = ds.map(lambda x: self.__batch_normalization(x, feature_list, output_name),
+                        ds = ds.map(lambda x: self.__batch_normalization(x, feature_list, batch_norm),
                                     num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
             if iterator:
@@ -515,17 +528,17 @@ class Ignnition_model:
             try:
                 tar = tarfile.open(sample_path, 'r:gz')  # read the tar files
             except:
-                print_failure('The file data.json was not found in ' + sample_path)
+                print_failure('The tar file ' + sample_path + ' could not be opened')
 
             try:
-                file_samples = tar.extractfile('data.json')
+                member = tar.getmembers()[0]
+                file_samples = tar.extractfile(member)
                 file_samples.read(1)
                 aux = stream_read_json(file_samples)
 
                 sample = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
             except:
                 print_failure('Failed to read the data file ' + sample)
-
 
             # Now that we have the sample, we can process the dimensions
             dimensions = {}  # for each key, we have a tuple of (length, num_elements)
@@ -580,7 +593,10 @@ class Ignnition_model:
         # Create the GNN model
         if not hasattr(self, 'gnn_model'):
             if training_samples is None:    # look for the dataset path
-                training_path = os.path.normpath(self.CONFIG['train_dataset'])
+                training_path = self.__process_path(self.CONFIG['train_dataset'])
+                print("THIS IS THE TRAINING PATH")
+                print(training_path)
+                print(self.CONFIG['train_dataset'])
                 self.__create_gnn(path = training_path)
             else:
                 self.__create_gnn(samples=training_samples)
@@ -589,10 +605,10 @@ class Ignnition_model:
         print_header(
             'Starting the training and validation process...\n---------------------------------------------------------------------------\n')
 
-        filenames_train = os.path.normpath(self.CONFIG['train_dataset'])
-        filenames_val = os.path.normpath(self.CONFIG['validation_dataset'])
+        filenames_train = self.__process_path(self.CONFIG['train_dataset'])
+        filenames_val = self.__process_path(self.CONFIG['validation_dataset'])
 
-        output_path = os.path.normpath(self.CONFIG['output_path'])
+        output_path = self.__process_path(self.CONFIG['output_path'])
         output_path = os.path.join(output_path, 'CheckPoint')
 
         if not os.path.isdir(output_path):
@@ -613,15 +629,17 @@ class Ignnition_model:
                                                            self.CONFIG['shuffle_validation_set']),
                                                        data_samples=val_samples)
 
-        mini_epoch_size = None if self.CONFIG['epoch_size'] == 'All' else int(
-            self.CONFIG['epoch_size'])
+        mini_epoch_size = self.CONFIG.get('epoch_size', None)
+        if mini_epoch_size is not None:
+            mini_epoch_size = int(mini_epoch_size)
+
         num_epochs = int(self.CONFIG['epochs'])
-        metrics = self.CONFIG['metrics']
 
         callbacks = self.__get_model_callbacks(output_path=output_path)
 
         self.gnn_model.fit(train_dataset,
                            epochs=num_epochs,
+                           initial_epoch=self.CONFIG.get('initial_epoch', 0),
                            steps_per_epoch=mini_epoch_size,
                            batch_size=self.CONFIG.get('batch_size', 1),
                            validation_data=validation_dataset,
@@ -645,7 +663,7 @@ class Ignnition_model:
         if not hasattr(self, 'gnn_model'):
             if prediction_samples is None:  #look for the dataset path
                 try:
-                    prediction_path = os.path.normpath(self.CONFIG['predict_dataset'])
+                    prediction_path = self.__process_path(self.CONFIG['predict_dataset'])
                     self.__create_gnn(path=prediction_path, verbose = verbose)
                 except:
                     print_failure(
@@ -688,7 +706,7 @@ class Ignnition_model:
 
     def computational_graph(self):
         # Check if we can generate the computational graph without a dataset
-        train_path = os.path.normpath(self.CONFIG['train_dataset'])
+        train_path = self.__process_path(self.CONFIG['train_dataset'])
         if not hasattr(self, 'gnn_model'):
             self.__create_gnn(path=train_path)
 
@@ -696,7 +714,7 @@ class Ignnition_model:
         print_header(
             'Generating the computational graph... \n---------------------------------------------------------\n')
 
-        path = os.path.normpath(self.CONFIG['output_path'])
+        path = self.__process_path(self.CONFIG['output_path'])
 
         path = os.path.join(path, 'computational_graphs',
                             'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
@@ -731,7 +749,7 @@ class Ignnition_model:
         # Generate the model if it doesn't exist
         if not hasattr(self, 'gnn_model'):
             if evaluation_samples is None:  #look for the dataset path
-                val_path = os.path.normpath(self.CONFIG['validation_dataset'])
+                val_path = self.__process_path(self.CONFIG['validation_dataset'])
                 self.__create_gnn(path=val_path)
             else:
                 self.__create_gnn(samples=evaluation_samples)
