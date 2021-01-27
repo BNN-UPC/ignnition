@@ -98,6 +98,8 @@ class Generator:
 
         #load the model
         G = json_graph.node_link_graph(sample)
+
+
         entity_counter = {}
         mapping = {}
         data = {}
@@ -254,10 +256,6 @@ class Generator:
         self.interleave_names = [[i[0], i[1]] for i in interleave_names]
         self.additional_input = [x for x in additional_input]
         self.training = training
-        samples = glob.glob(str(dir) + '/*.tar.gz')
-
-        if shuffle == True:
-            random.shuffle(samples)
 
         for sample in data_samples:
             try:
@@ -313,8 +311,7 @@ class Generator:
         self.additional_input = additional_input
         self.training = training
 
-        files = glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz')
-
+        files = glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz') + glob.glob(str(dir) + '/*.gml')
         # no elements found
         if files == []:
             raise Exception('The dataset located in  ' + dir + ' seems to contain no valid elements (json or .tar.gz)')
@@ -327,15 +324,16 @@ class Generator:
                 if 'tar.gz' in sample_file:
                     tar = tarfile.open(sample_file, 'r:gz')  # read the tar files
                     try:
-                        file_samples = tar.extractfile('data.json')
+                        file_name = tar.getmembers()[0]
+                        file_samples = tar.extractfile(file_name)
                     except:
-                        raise Exception('The file data.json was not found in ', sample_file)
-
+                        raise Exception('There was an error when trying to read the file ', file_name)
                 else:
                     file_samples = open(sample_file, 'r')
 
                 file_samples.read(1)
                 data = self.stream_read_json(file_samples)
+
                 while True:
                     processed_sample = self.__process_sample(next(data), sample_file)
                     yield processed_sample
