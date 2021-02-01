@@ -12,6 +12,7 @@ entities:
     - type: build_state
       input: [traffic]
 
+
 # Definition of the message passing phase
 message_passing:
   num_iterations: N

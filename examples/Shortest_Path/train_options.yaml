@@ -1,10 +1,10 @@
 # PATHS
 train_dataset: ./data/train
 validation_dataset: ./data/test
-predict_dataset: ./data/test
+#predict_dataset: ./data/test
 #warm_start_path:
 additional_functions_file: ./main.py
-output_path: .
+output_path: ./
 
 # OPTIMIZATION OPTIONS
 loss: BinaryCrossentropy

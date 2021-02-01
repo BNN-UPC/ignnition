@@ -392,7 +392,7 @@ class Ignnition_model:
                                                                      shuffle),
                         output_types=(types, tf.float32),
                         output_shapes=(shapes, tf.TensorShape(None)))
-                    #ds = ds.repeat()
+                    ds = ds.repeat()
                 else:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
@@ -524,19 +524,24 @@ class Ignnition_model:
             sample = samples[0]    #take the first one to find the dimensions
 
         else:
-            sample_path = glob.glob(path + '/*.tar.gz')[0]  # choose one single file to extract the dimensions
-            try:
-                tar = tarfile.open(sample_path, 'r:gz')  # read the tar files
-            except:
-                print_failure('The tar file ' + sample_path + ' could not be opened')
+            sample_path = (glob.glob(path + '/*.tar.gz') + glob.glob(path + '/*.json')) [0]  # choose one single file to extract the dimensions
+            if '.tar.gz' in sample_path:
+                try:
+                    tar = tarfile.open(sample_path, 'r:gz')  # read the tar files
+                    member = tar.getmembers()[0]
+                    file_samples = tar.extractfile(member)
+                except:
+                    print_failure('The tar file ' + sample_path + ' could not be opened')
+
+            # if it is already a json file
+            else:
+                file_samples = open(sample_path, 'r')
 
             try:
-                member = tar.getmembers()[0]
-                file_samples = tar.extractfile(member)
                 file_samples.read(1)
                 aux = stream_read_json(file_samples)
-
                 sample = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
+
             except:
                 print_failure('Failed to read the data file ' + sample)
 
@@ -568,7 +573,10 @@ class Ignnition_model:
             edge_attrs = list(set(chain.from_iterable(d.keys() for *_, d in G.edges(data=True))))
             for e in edge_attrs:
                 features = list(nx.get_edge_attributes(G, e).values())
-                dimensions[e] = len(features[0])
+                if isinstance(features[0], list):
+                    dimensions[e] = len(features[0])
+                else:
+                    dimensions[e] = 1
 
             # 3) Graph attributes
             graph_attrs = list(G.graph.keys())
@@ -594,9 +602,6 @@ class Ignnition_model:
         if not hasattr(self, 'gnn_model'):
             if training_samples is None:    # look for the dataset path
                 training_path = self.__process_path(self.CONFIG['train_dataset'])
-                print("THIS IS THE TRAINING PATH")
-                print(training_path)
-                print(self.CONFIG['train_dataset'])
                 self.__create_gnn(path = training_path)
             else:
                 self.__create_gnn(samples=training_samples)

@@ -92,13 +92,12 @@ class Generator:
         ----------
         sample:    dict
             Input sample which is a serialized version (in JSON) of a networkx graph.
-        file:    dict
+        file:    str
             Path to these file (which is useful for error-checking purposes)
         """
 
         #load the model
         G = json_graph.node_link_graph(sample)
-
 
         entity_counter = {}
         mapping = {}
@@ -132,11 +131,22 @@ class Generator:
         #load the features
         for f in self.feature_names:
             try:
-                data[f] = list(nx.get_node_attributes(D_G, f).values())
+                feature = list(nx.get_node_attributes(D_G, f).values())
+                if feature == []:
+                    message = "The feature " + f + " was used in the model_description.yaml file " \
+                                                   "but was not defined in the dataset."
+                    if file is not None:
+                        message = "Error in the dataset file located in '" + file + ".\n" + message
+                    print_failure(message)
+                else:
+                    data[f] = list(nx.get_node_attributes(D_G, f).values())
+
             except:
-                print_failure("Error in the dataset file located in '" + file + ".")
-                print_failure('The feature "' + f + '" was used in the model_description.yaml file '
-                            'but was not defined in the dataset.')
+                message = "The feature " + f + " was used in the model_description.yaml file " \
+                              "but was not defined in the dataset."
+                if file is not None:
+                    message = "Error in the dataset file located in '" + file + ".\n" + message
+                print_failure(message)
 
         # take other inputs if needed (check that they might be global features)
         for a in self.additional_input:
@@ -145,11 +155,13 @@ class Generator:
             if node_attr != []:
                 data[a] = node_attr
             elif edge_attr != []:
-                data[a] = node_attr
+                data[a] = edge_attr
             else:
-                print_failure("Error in the dataset file located in '" + file + ".")
-                print_failure('The data named "' + a + '" was used in the model_description.yaml file '
-                                                    'but was not defined in the dataset.')
+                message = 'The data named "' + a + '" was used in the model_description.yaml file '\
+                        'but was not defined in the dataset.'
+                if file is not None:
+                    message = "Error in the dataset file located in '" + file + ".\n" + message
+                print_failure(message)
 
         if self.training:
             #collect the output

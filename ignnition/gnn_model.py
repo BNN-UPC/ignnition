@@ -235,7 +235,7 @@ class Gnn_model(tf.keras.Model):
 
                 counter += 1
 
-    @tf.function
+    #@tf.function
     def call(self, input, training):
         """
         Parameters

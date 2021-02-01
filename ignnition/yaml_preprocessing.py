@@ -106,21 +106,24 @@ class Yaml_preprocessing:
         # read and validate the json file
         try:
             model_description_path = os.path.join(model_dir, 'model_description.yaml')
-            data = self.__read_yaml(model_description_path)
+            self.data = self.__read_yaml(model_description_path)
         except:
             print_failure("The model_description.yaml file was not found in the path " + model_dir)
 
         # validate with the schema
         with importlib.resources.path('ignnition', "schema.json") as schema_file:
-            validate(instance=data,schema=self.__read_json(schema_file))  # validate that the json is well defined
+            validate(instance=self.data,schema=self.__read_json(schema_file))  # validate that the json is well defined
 
-        # add the global variables
-        try:
-            global_variables_path = os.path.join(model_dir, 'global_variables.yaml')
-            global_variables = self.__read_yaml(global_variables_path)
-            self.data = self.__add_global_variables(data, global_variables)
-        except:
-            print_info("Global variables file not found")
+        # add the global variables (if any)
+        global_variables_path = os.path.join(model_dir, 'global_variables.yaml')
+        if os.path.exists(global_variables_path):
+            #try:
+                global_variables = self.__read_yaml(global_variables_path)
+                self.data = self.__add_global_variables(self.data, global_variables)
+            #except:
+            #    print_failure("There was an error with the global_variables.yaml file")
+        else:
+            print_info("No global_variables.yaml file detected in path: ", global_variables_path)
 
         self.__validate_model_description(self.data)
 
@@ -150,7 +153,6 @@ class Yaml_preprocessing:
         path:    str
             Path of the json file with the model description
         """
-
         with open(path, 'r') as stream:
             try:
                 return yaml.safe_load(stream)
@@ -166,19 +168,16 @@ class Yaml_preprocessing:
         global_variables: dict
             Dictionary mapping global variables to its corresponding names
         """
-
         if isinstance(data, dict):
             for k,v in data.items():
-                if isinstance(v, str) and v in global_variables:
-                    data[k] = global_variables[v]
-
+                if isinstance(v, str) and global_variables is not None and v in global_variables:
+                        data[k] = global_variables[v]
                 # make a recursive call
                 elif isinstance(v, dict):
                     self.__add_global_variables(v, global_variables)
                 elif isinstance(v, list):
                     for i in range(len(v)):
                         self.__add_global_variables(v[i], global_variables)
-
         return data
 
     # validate that all the nn_name are correct. Validate that all source and destination entities are correct. Validate that all the inputs in the message function are correct
@@ -256,11 +255,11 @@ class Yaml_preprocessing:
                     raise Exception(
                         'The name "' + name + '" is used as a reference to a neural network (nn_name), even though the neural network was not defined. \n Please make sure the name is correctly spelled or define a neural network named ' + name)
 
-            # check the output and input names
-            for i in input_names:
-                if i not in output_names:
-                    raise Exception(
-                        'The name "' + i + '" was used as input of a message creation operation even though it was not the output of one.')
+            # check the output and input names (ToDO: Change this since it may be referencing another feature from the dataset)
+            #for i in input_names:
+            #    if i not in output_names:
+            #        raise Exception(
+            #            'The name "' + i + '" was used as input of a message creation operation even though it was not the output of one.')
 
         except Exception as inf:
             print_failure(str(inf) + '\n')

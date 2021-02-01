@@ -91,9 +91,12 @@ class Operation():
                 input_dim += int(dimensions.get(src.name))
             elif i == 'destination':
                 input_dim += int(dimensions.get(dst_name))
+            elif i in dimensions:
+                input_dim += int(dimensions[i])
             else:
                 dimension = calculations[i + '_dim']
                 input_dim += dimension
+
         return input_dim
 
     def compute_all_input(self, calculations, f_):
@@ -112,7 +115,6 @@ class Operation():
                 i = i.split('_initial_state')[0]
 
             new_input = get_global_var_or_input(calculations, i, f_)
-
             if len(tf.shape(new_input)) == 1:
                 new_input = tf.expand_dims(new_input, axis=-1)
 
@@ -122,7 +124,6 @@ class Operation():
                 input_nn = new_input
             else:
                 input_nn = tf.concat([input_nn, new_input], axis=1)
-
         return input_nn
 
     def compute_all_input_msg(self, calculations, f_, src_msgs, dst_msgs):
@@ -156,6 +157,7 @@ class Operation():
                 first = False
                 input_nn = new_input
             else:
+                new_input = tf.cast(new_input, dtype=tf.float32)
                 input_nn = tf.concat([input_nn, new_input], axis=1)
 
         return input_nn
@@ -179,7 +181,6 @@ class Build_state(Operation):
     """
 
     #TODO: Error message if we pass the maximum dimension.
-
     def __init__(self, op, entity_name, entity_dim):
         """
         Parameters

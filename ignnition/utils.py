@@ -49,7 +49,7 @@ def print_failure(msg):
     """
 
     tf.print(bcolors.FAIL + msg + bcolors.ENDC, output_stream=sys.stderr)
-    sys.exit(1)
+    exit("failure")
 
 def print_info(msg):
     """
@@ -142,7 +142,7 @@ def get_global_variable(calculations, var_name):
     """
     return calculations[var_name]
 
-def get_global_var_or_input(calculations, var_name, f_):
+def get_global_var_or_input (calculations, var_name, f_):
     """
     Parameters
     ----------
@@ -153,7 +153,6 @@ def get_global_var_or_input(calculations, var_name, f_):
     f_:    dict
         Input tensors of the sample
     """
-
     try:
         return get_global_variable(calculations, var_name)
     except:
