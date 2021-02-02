@@ -379,10 +379,9 @@ class Feed_forward_operation(Operation):
         if readout and len(tf.shape(input_nn)) == 1:
             input_nn = tf.expand_dims(input_nn, axis=0)
 
-        with tf.name_scope('pass_to_nn') as _:
-            input_size = model.input_shape[-1]
-            input_nn = tf.ensure_shape(input_nn, [None, input_size])
-            return model(input_nn)
+        input_size = model.input_shape[-1]
+        input_nn = tf.ensure_shape(input_nn, [None, input_size])
+        return model(input_nn)
 
     def apply_nn_msg(self, model, calculations, f_, src_msgs, dst_msgs):
         """

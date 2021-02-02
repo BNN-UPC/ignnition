@@ -264,9 +264,9 @@ class Gnn_model(tf.keras.Model):
             entities = self.model_info.entities
 
             # Initialize all the hidden states for all the nodes.
-            with tf.name_scope('hidden_states') as _:
+            with tf.name_scope('states_creation') as _:
                 for entity in entities:
-                    with tf.name_scope('hidden_state_' + str(entity.name)) as _:
+                    with tf.name_scope(str(entity.name) ) as _:
                         counter = 0
                         operations = entity.operations
                         for op in operations:
@@ -280,9 +280,10 @@ class Gnn_model(tf.keras.Model):
                                     save_global_variable(self.calculations, op.output_name, output)
 
                             elif op.type == 'build_state':
-                                state = op.calculate_hs(self.calculations, f_)
-                                save_global_variable(self.calculations, entity.name, state)
-                                save_global_variable(self.calculations, entity.name + '_initial_state', state)
+                                with tf.name_scope('build_state' + str(counter)) as _:
+                                    state = op.calculate_hs(self.calculations, f_)
+                                    save_global_variable(self.calculations, entity.name, state)
+                                    save_global_variable(self.calculations, entity.name + '_initial_state', state)
                             counter += 1
 
             # -----------------------------------------------------------------------------------
@@ -445,35 +446,35 @@ class Gnn_model(tf.keras.Model):
 
                                         # if ordered, we dont need to do anything. Already in the right shape
                                         # It only makes sense to do a pipeline with sum/attention/edge... operations??
-                                        with tf.name_scope('aggregation_function') as _:
+                                        with tf.name_scope('aggregation') as _:
                                             for aggr in aggrs:
-                                                with tf.name_scope('single_aggregation') as _:
+                                                with tf.name_scope(aggr.type) as _:
                                                     if aggr.type == 'sum':
                                                         src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
                                                                                          num_dst)
 
                                                     elif aggr.type == 'mean':
                                                         src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                         num_dst)
+                                                                                     num_dst)
 
                                                     elif aggr.type == 'min':
                                                         src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                         num_dst)
+                                                                                     num_dst)
 
                                                     elif aggr.type == 'max':
                                                         src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                         num_dst)
+                                                                                     num_dst)
 
                                                     elif aggr.type == 'std':
                                                         src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                         num_dst)
+                                                                                     num_dst)
 
                                                     elif aggr.type == 'attention':
                                                         src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                         dst_states,
-                                                                                         comb_seq, num_dst,
-                                                                                         self.node_kernel,
-                                                                                         self.attn_kernel)
+                                                                                     dst_states,
+                                                                                     comb_seq, num_dst,
+                                                                                     self.node_kernel,
+                                                                                     self.attn_kernel)
 
                                                     elif aggr.type == 'edge_attention':
                                                         var_name = 'edge_attention_' + src_name + '_to_' + dst_name
@@ -503,10 +504,10 @@ class Gnn_model(tf.keras.Model):
                                                         aggregator_nn = get_global_variable(self.calculations, var_name)
                                                         src_input = aggr.apply_nn(aggregator_nn, self.calculations, f_)
 
-                                                    # save the result of this operation with its output_name
-                                                    if aggr.output_name is not None:
-                                                        save_global_variable(self.calculations, aggr.output_name,
-                                                                             src_input)
+                                                # save the result of this operation with its output_name
+                                                if aggr.output_name is not None:
+                                                    save_global_variable(self.calculations, aggr.output_name,
+                                                                         src_input)
 
                                             # this is the final one that passes to the update
                                             # save the src_input used for the update
