@@ -1,5 +1,6 @@
 from ignnition.ignnition_model import Ignnition_model
 
+
 def create_model(model_dir):
     """
     This method creates and returs an IGNNITION model which serves as interface to the whole ignnition framework

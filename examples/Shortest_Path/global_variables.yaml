@@ -1,0 +1,3 @@
+state_dim: 16
+layer_type: Dense
+hidden_units: 16

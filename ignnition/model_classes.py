@@ -4,6 +4,7 @@ from keras import backend as K
 import sys
 from ignnition.utils import *
 
+
 class Custom_layer:
     """
     This class implements a custom layer, which represents  tf.keras.layers object with the parameters/attributes specified by the user.
@@ -52,14 +53,16 @@ class Custom_layer:
                 try:
                     self.parameters[k] = tf.keras.regularizers.l2(float(self.parameters.get(k)))
                 except:
-                    print_failure("The " + k + " parameter '" + str(self.parameters.get(k)) + "' in layer of type " + self.type + " is invalid. Please make sure it is a numerical value.")
+                    print_failure("The " + k + " parameter '" + str(self.parameters.get(
+                        k)) + "' in layer of type " + self.type + " is invalid. Please make sure it is a numerical value.")
 
 
-            elif 'activation' in k: #already ensures that it was not None
+            elif 'activation' in k:  # already ensures that it was not None
                 try:
                     self.parameters['activation'] = getattr(tf.nn, v)
                 except:
-                    print_failure("The activation '" + v + "' is not a valid function from the tf.nn library. Please check the documentation and the spelling of the function.")
+                    print_failure(
+                        "The activation '" + v + "' is not a valid function from the tf.nn library. Please check the documentation and the spelling of the function.")
 
 
 class Recurrent_Update_Cell(Custom_layer):
@@ -92,7 +95,6 @@ class Recurrent_Update_Cell(Custom_layer):
 
         super(Recurrent_Update_Cell, self).__init__(type=type, parameters=parameters)
 
-
     def get_tensorflow_object(self, dst_dim):
         """
         Parameters
@@ -105,7 +107,8 @@ class Recurrent_Update_Cell(Custom_layer):
         try:
             c_ = getattr(tf.keras.layers, self.type + 'Cell')
         except:
-            print_failure("Error when trying to define a RNN of type '" + self.type + "' since this type does not exist. Check the valid RNN cells that Keras allow to define.")
+            print_failure(
+                "Error when trying to define a RNN of type '" + self.type + "' since this type does not exist. Check the valid RNN cells that Keras allow to define.")
 
         try:
             layer = c_(**self.parameters)
@@ -150,8 +153,9 @@ class Recurrent_Update_Cell(Custom_layer):
 
         rnn = tf.keras.layers.RNN(model, name=str(dst_name) + '_update')
         final_len.set_shape([None])
-        new_state = rnn(inputs = src_input, initial_state = old_state, mask=tf.sequence_mask(final_len))
+        new_state = rnn(inputs=src_input, initial_state=old_state, mask=tf.sequence_mask(final_len))
         return new_state
+
 
 class Feed_forward_Layer(Custom_layer):
     """
@@ -182,19 +186,19 @@ class Feed_forward_Layer(Custom_layer):
         try:
             c_ = getattr(tf.keras.layers, self.type)
         except:
-            print_failure("The layer of type '" + self.type + "' is not a valid tf.keras layer. Please check the documentation to write the correct way to define this layer. ")
+            print_failure(
+                "The layer of type '" + self.type + "' is not a valid tf.keras layer. Please check the documentation to write the correct way to define this layer. ")
 
         try:
             layer = c_(**self.parameters)
         except:
             parameters_string = ''
-            for k,v in self.parameters.items():
+            for k, v in self.parameters.items():
                 parameters_string += k + ': ' + v + '\n'
-            print_failure("One of the parameters passed to the layer of type '" + self.type +  "' is incorrect. \n " +
-                        "You have defined the following parameters: \n" + parameters_string)
+            print_failure("One of the parameters passed to the layer of type '" + self.type + "' is incorrect. \n " +
+                          "You have defined the following parameters: \n" + parameters_string)
 
         return layer
-
 
     def get_tensorflow_object_last(self, dst_units):
         """
@@ -206,20 +210,22 @@ class Feed_forward_Layer(Custom_layer):
         try:
             c_ = getattr(tf.keras.layers, self.type)
         except:
-            print_failure("The layer of type '" + self.type + "' is not a valid tf.keras layer. Please check the documentation to write the correct way to define this layer. ")
+            print_failure(
+                "The layer of type '" + self.type + "' is not a valid tf.keras layer. Please check the documentation to write the correct way to define this layer. ")
 
-        self.parameters['units'] = dst_units    #can we assume that it will always be units??
+        self.parameters['units'] = dst_units  # can we assume that it will always be units??
 
         try:
             layer = c_(**self.parameters)
         except:
             parameters_string = ''
-            for k,v in self.parameters.items():
+            for k, v in self.parameters.items():
                 parameters_string += k + ': ' + v + '\n'
-            print_failure("One of the parameters passed to the layer of type '" + self.type +  "' is incorrect. \n " +
-                        "You have defined the following parameters: \n" + parameters_string)
+            print_failure("One of the parameters passed to the layer of type '" + self.type + "' is incorrect. \n " +
+                          "You have defined the following parameters: \n" + parameters_string)
 
         return layer
+
 
 class Feed_forward_model:
     """
@@ -259,17 +265,17 @@ class Feed_forward_model:
 
                 # if this is a RNN, we need to do reshaping of the model
                 if self.__is_recurrent(type_layer):
-                    reshape_layer = Feed_forward_Layer('Reshape', {"target_shape":(1, -1)})    #this should take as size the previous shape
+                    reshape_layer = Feed_forward_Layer('Reshape', {
+                        "target_shape": (1, -1)})  # this should take as size the previous shape
                     self.layers.append(reshape_layer)
 
                 if 'name' not in l:
                     l['name'] = 'layer_' + str(counter) + '_' + type_layer + '_' + str(model_role)
-                #del l['type_layer']  # leave only the parameters of the layer
+                # del l['type_layer']  # leave only the parameters of the layer
 
                 layer = Feed_forward_Layer(type_layer, l)
                 self.layers.append(layer)
                 counter += 1
-
 
     def __is_recurrent(self, type):
         """
@@ -278,10 +284,9 @@ class Feed_forward_model:
         type:    str
             Type of the layer that we are considering
         """
-        return True if (type== 'LSTM' or type=='GRU') else False
+        return True if (type == 'LSTM' or type == 'GRU') else False
 
-
-    def construct_tf_model(self, var_name, input_dim, dst_dim = None, is_readout = False, dst_name = None):
+    def construct_tf_model(self, var_name, input_dim, dst_dim=None, is_readout=False, dst_name=None):
         """
         Parameters
         ----------
@@ -307,7 +312,7 @@ class Feed_forward_model:
             current_layer = self.layers[j]
             try:
                 # if it's the last layer and we have defined an output dimension
-                if j==(n-1) and dst_dim is not None:
+                if j == (n - 1) and dst_dim is not None:
                     layer_model = current_layer.get_tensorflow_object_last(dst_dim)
                 else:
                     layer_model = current_layer.get_tensorflow_object()
@@ -318,18 +323,17 @@ class Feed_forward_model:
                 if dst_dim is None:
                     if is_readout:
                         print_failure('The layer ' + str(
-                                layer_counter) + ' of the readout is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
+                            layer_counter) + ' of the readout is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
                     else:
                         print_failure('The layer ' + str(
                             layer_counter) + ' of the message creation neural network in the message passing to ' + str(
-                            dst_name) +' is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
+                            dst_name) + ' is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
 
                 else:
                     print_failure('The layer ' + str(
-                            layer_counter) + ' of the update neural network in message passing to ' + str(dst_name) +
-                        ' is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
+                        layer_counter) + ' of the update neural network in message passing to ' + str(dst_name) +
+                                  ' is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
 
             layer_counter += 1
         output_shape = model.output_shape[-1]
         return [model, output_shape]
-

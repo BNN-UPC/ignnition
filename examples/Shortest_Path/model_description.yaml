@@ -1,12 +1,14 @@
 # Definition of the entities
 entities:
 - name: node
-  hidden_state_dimension: 16
-  features: [src_tgt]
+  state_dimension: 16
+  initial_state:
+    - type: build_state
+      input: [src-tgt]
 
 # Definition of the message passing phase
 message_passing:
-  num_iterations: 8
+  num_iterations: 4
   stages:
     # STAGE 1:
     - stage_message_passings:
@@ -14,21 +16,19 @@ message_passing:
       - destination_entity: node
         source_entities:
           - name: node
-            adj_vector: edge
             message:
-              - type: feed_forward
+              - type: neural_network
                 nn_name: message_function
-                input: [source, edge_params]
-              #- type: direct_assignation
+                input: [source, weight]
         aggregation:
-          type: sum
+          - type: min
         update:
-          type: recurrent_neural_network
-          nn_name: gru_update
+          type: neural_network
+          nn_name: update_function
 
 # Definition of the readout
 readout:
-- type: feed_forward
+- type: neural_network
   input: [node]
   nn_name: readout_model
   output_label: sp
@@ -37,7 +37,6 @@ readout:
 neural_networks:
 # Feed forward model
 - nn_name: readout_model
-  nn_type: feed_forward
   nn_architecture:
   - type_layer: Dense
     units: 16
@@ -50,7 +49,6 @@ neural_networks:
     activation: sigmoid
 
 - nn_name: message_function
-  nn_type: feed_forward
   nn_architecture:
   - type_layer: Dense
     units: 32
@@ -60,6 +58,6 @@ neural_networks:
     activation: relu
 
 # RNN model
-- nn_name: gru_update
-  nn_type: recurrent_neural_network
-  recurrent_type: GRU
+- nn_name: update_function
+  nn_architecture:
+    - type_layer: GRU

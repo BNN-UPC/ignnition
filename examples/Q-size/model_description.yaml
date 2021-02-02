@@ -34,8 +34,8 @@ message_passing:
         message:
         - type: direct_assignment
       aggregation:
-        type: interleave
-        interleave_definition: path_interleave
+        - type: interleave
+          interleave_definition: path_interleave
       update:
         type: neural_network
         nn_name: recurrent1

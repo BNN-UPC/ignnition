@@ -1,17 +1,17 @@
 # PATHS
 train_dataset: ./data/train
 validation_dataset: ./data/test
-predict_dataset: ./data/test
+#predict_dataset: ./data/test
 #warm_start_path:
 additional_functions_file: ./main.py
-output_path: .
+output_path: ./
 
 # OPTIMIZATION OPTIONS
 loss: BinaryCrossentropy
 optimizer:
   type: Adam
   learning_rate: 0.01
-metrics: [BinaryAccuracy]
+metrics: [BinaryAccuracy, Precision, Recall, AUC]
 
 # TRAINING OPTIONS
 batch_size: 1

@@ -23,6 +23,7 @@ import tensorflow as tf
 import sys
 import os
 
+
 class bcolors:
     """
     Class which includes the hexadecimal code for a set of colors that are later used for printing messages
@@ -38,6 +39,7 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+
 def print_failure(msg):
     """
     Prints a failure message
@@ -49,7 +51,8 @@ def print_failure(msg):
     """
 
     tf.print(bcolors.FAIL + msg + bcolors.ENDC, output_stream=sys.stderr)
-    sys.exit(1)
+    exit("failure")
+
 
 def print_info(msg):
     """
@@ -63,6 +66,7 @@ def print_info(msg):
 
     tf.print(bcolors.OKGREEN + msg + bcolors.ENDC, output_stream=sys.stderr)
 
+
 def print_header(msg):
     """
     Prints a header message
@@ -74,6 +78,7 @@ def print_header(msg):
     """
 
     tf.print(bcolors.OKGREEN + msg + bcolors.ENDC, output_stream=sys.stderr)
+
 
 def stream_read_json(f):
     """
@@ -103,6 +108,7 @@ def stream_read_json(f):
                 return
             yield obj
 
+
 def str_to_bool(a):
     """
     It parses a string to boolean
@@ -131,6 +137,7 @@ def save_global_variable(calculations, var_name, var_value):
     """
     calculations[var_name] = var_value
 
+
 def get_global_variable(calculations, var_name):
     """
     Parameters
@@ -141,6 +148,7 @@ def get_global_variable(calculations, var_name):
         Name of the global variable to save
     """
     return calculations[var_name]
+
 
 def get_global_var_or_input(calculations, var_name, f_):
     """
@@ -153,7 +161,6 @@ def get_global_var_or_input(calculations, var_name, f_):
     f_:    dict
         Input tensors of the sample
     """
-
     try:
         return get_global_variable(calculations, var_name)
     except:

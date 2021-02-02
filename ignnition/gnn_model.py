@@ -25,6 +25,7 @@ from ignnition.mp_classes import *
 from functools import reduce
 from ignnition.utils import *
 
+
 class Gnn_model(tf.keras.Model):
     """
     Class that represents the final GNN
@@ -57,12 +58,12 @@ class Gnn_model(tf.keras.Model):
                         input_dim = op.find_total_input_dim(self.dimensions, self.calculations)
 
                         model, output_shape = op.model.construct_tf_model(var_name, input_dim)
-                        save_global_variable(self.calculations,var_name, model)
+                        save_global_variable(self.calculations, var_name, model)
 
                         # Need to keep track of the output dimension of this one, in case we need it for a new model
                         if op.output_name is not None:
-                            save_global_variable(self.calculations,op.output_name + '_dim', output_shape)
-                    counter +=1
+                            save_global_variable(self.calculations, op.output_name + '_dim', output_shape)
+                    counter += 1
 
             stages = self.instances_per_stage
             n_stages = len(stages)
@@ -79,25 +80,31 @@ class Gnn_model(tf.keras.Model):
                             operations = src.message_formation
                             src_name = src.name
                             counter = 0
-                            output_shape = int(self.dimensions.get(src_name))  # default if operation is direct_assignation
+                            output_shape = int(
+                                self.dimensions.get(src_name))  # default if operation is direct_assignation
                             for operation in operations:
                                 if operation is not None:
                                     if operation.type == 'neural_network':
                                         var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(counter)
-                                        input_dim = operation.obtain_total_input_dim_message(self.dimensions, self.calculations, dst_name, src)
+                                        input_dim = operation.obtain_total_input_dim_message(self.dimensions,
+                                                                                             self.calculations,
+                                                                                             dst_name, src)
                                         model, output_shape = operation.model.construct_tf_model(var_name, input_dim)
 
-                                        save_global_variable(self.calculations,var_name, model)
+                                        save_global_variable(self.calculations, var_name, model)
 
                                         # Need to keep track of the output dimension of this one, in case we need it for a new model
                                         if operation.output_name is not None:
-                                            save_global_variable(self.calculations,operation.output_name + '_dim', output_shape)
+                                            save_global_variable(self.calculations, operation.output_name + '_dim',
+                                                                 output_shape)
 
                                     elif operation.type == 'product':
                                         if operation.type_product == 'dot_product':
                                             output_shape = 1
 
-                            save_global_variable(self.calculations, "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg), output_shape)
+                            save_global_variable(self.calculations,
+                                                 "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg),
+                                                 output_shape)
 
                             counter += 1
 
@@ -108,11 +115,11 @@ class Gnn_model(tf.keras.Model):
 
                         for aggregation in aggregations:
                             # what is the shape if we are using ordered / interleave??
-                            output_shape = F_dst    #by default we don't change the shape of the final output
+                            output_shape = F_dst  # by default we don't change the shape of the final output
 
                             if aggregation.type == 'attention':
                                 self.node_kernel = self.add_weight(shape=(F_src, F_src),
-                                                               initializer=aggregation.weight_initialization)
+                                                                   initializer=aggregation.weight_initialization)
                                 self.attn_kernel = self.add_weight(shape=(2 * F_dst, 1),
                                                                    initializer=aggregation.weight_initialization)
 
@@ -122,7 +129,7 @@ class Gnn_model(tf.keras.Model):
                                 var_name = 'edge_attention_' + src_name + '_to_' + dst_name  # choose the src_name of the last?
                                 model, _ = aggregation.get_model().construct_tf_model(var_name=var_name,
                                                                                       input_dim=message_dimensionality)
-                                save_global_variable(self.calculations,var_name, model)
+                                save_global_variable(self.calculations, var_name, model)
 
 
                             elif aggregation.type == 'convolution':
@@ -141,14 +148,14 @@ class Gnn_model(tf.keras.Model):
 
                                 model, output_shape = aggregation.model.construct_tf_model(var_name, input_dim)
 
-                                save_global_variable(self.calculations,var_name, model)
-
+                                save_global_variable(self.calculations, var_name, model)
 
                             # Need to keep track of the output dimension of this one, in case we need it for a new model
                             if aggregation.output_name is not None:
-                                save_global_variable(self.calculations,aggregation.output_name + '_dim', output_shape)
+                                save_global_variable(self.calculations, aggregation.output_name + '_dim', output_shape)
 
-                        save_global_variable(self.calculations,"final_message_dim_" + str(idx_stage) + '_' + str(idx_msg), output_shape)
+                        save_global_variable(self.calculations,
+                                             "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg), output_shape)
 
                     # -----------------------------
                     # Creation of the update models
@@ -161,7 +168,7 @@ class Gnn_model(tf.keras.Model):
                             recurrent_cell = update_model.model
                             try:
                                 recurrent_instance = recurrent_cell.get_tensorflow_object(self.dimensions.get(dst_name))
-                                save_global_variable(self.calculations,dst_name + '_update', recurrent_instance)
+                                save_global_variable(self.calculations, dst_name + '_update', recurrent_instance)
                             except:
                                 print_failure(
                                     'The definition of the recurrent cell in message passsing to ' + message.destination_entity +
@@ -183,19 +190,22 @@ class Gnn_model(tf.keras.Model):
                                 # calculate the message dimensionality (considering that they all have the same dim)
                                 # o/w, they are not combinable
                                 message_dimensionality = get_global_variable(self.calculations,
-                                    "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg))
+                                                                             "final_message_dim_" + str(
+                                                                                 idx_stage) + '_' + str(idx_msg))
 
                                 # if we are concatenating by message (CHECK!!)
                                 aggr = message.aggregations
                                 if aggr.type == 'concat' and aggr.concat_axis == 2:
                                     message_dimensionality = reduce(lambda accum, s: accum + int(
-                                        get_global_variable(self.calculations,"final_message_dim_" + str(idx_stage) + '_' + str(idx_msg))),
+                                        get_global_variable(self.calculations,
+                                                            "final_message_dim_" + str(idx_stage) + '_' + str(
+                                                                idx_msg))),
                                                                     source_entities, 0)
 
                                 input_dim = message_dimensionality + dst_dim  # we will concatenate the sources and destinations
 
                                 model, _ = model.construct_tf_model(var_name, input_dim, dst_dim, dst_name=dst_name)
-                                save_global_variable(self.calculations,var_name, model)
+                                save_global_variable(self.calculations, var_name, model)
 
             # --------------------------------
             # Create the readout model
@@ -207,7 +217,7 @@ class Gnn_model(tf.keras.Model):
                         input_dim = operation.find_total_input_dim(self.dimensions, self.calculations)
                         model, _ = operation.model.construct_tf_model('readout_model' + str(counter), input_dim,
                                                                       is_readout=True)
-                        save_global_variable(self.calculations,'readout_model_' + str(counter), model)
+                        save_global_variable(self.calculations, 'readout_model_' + str(counter), model)
 
                     # save the dimensions of the output
                     dimensionality = model.layers[-1].output.shape[1]
@@ -254,9 +264,9 @@ class Gnn_model(tf.keras.Model):
             entities = self.model_info.entities
 
             # Initialize all the hidden states for all the nodes.
-            with tf.name_scope('hidden_states') as _:
+            with tf.name_scope('states_creation') as _:
                 for entity in entities:
-                    with tf.name_scope('hidden_state_' + str(entity.name)) as _:
+                    with tf.name_scope(str(entity.name) ) as _:
                         counter = 0
                         operations = entity.operations
                         for op in operations:
@@ -264,15 +274,16 @@ class Gnn_model(tf.keras.Model):
                                 with tf.name_scope('apply_nn_' + str(counter)) as _:
                                     # careful. This name could overlap with another model
                                     var_name = entity.name + "_hs_creation_" + str(counter)
-                                    hs_creator = get_global_variable(self.calculations,var_name)
-                                    output = op.apply_nn(hs_creator, self.calculations, f_ )
+                                    hs_creator = get_global_variable(self.calculations, var_name)
+                                    output = op.apply_nn(hs_creator, self.calculations, f_)
 
-                                    save_global_variable(self.calculations,op.output_name, output)
+                                    save_global_variable(self.calculations, op.output_name, output)
 
                             elif op.type == 'build_state':
-                                state = op.calculate_hs(self.calculations, f_)
-                                save_global_variable(self.calculations,entity.name, state)
-                                save_global_variable(self.calculations,entity.name + '_initial_state', state)
+                                with tf.name_scope('build_state' + str(counter)) as _:
+                                    state = op.calculate_hs(self.calculations, f_)
+                                    save_global_variable(self.calculations, entity.name, state)
+                                    save_global_variable(self.calculations, entity.name + '_initial_state', state)
                             counter += 1
 
             # -----------------------------------------------------------------------------------
@@ -293,7 +304,7 @@ class Gnn_model(tf.keras.Model):
                                 for idx_msg in range(num_msgs_stage):
                                     mp = msgs_stage[idx_msg]
                                     dst_name = mp.destination_entity
-                                    dst_states = get_global_variable(self.calculations,dst_name)
+                                    dst_states = get_global_variable(self.calculations, dst_name)
                                     num_dst = f_['num_' + dst_name]
 
                                     # with tf.name_scope('mp_to_' + dst_name + 's') as _:
@@ -304,9 +315,11 @@ class Gnn_model(tf.keras.Model):
                                                 src_name = src.name
 
                                                 # prepare the information
-                                                src_idx, dst_idx, seq = f_.get('src_' + src_name + '_to_' + dst_name), f_.get(
-                                                    'dst_' + src_name + '_to_' + dst_name), f_.get('seq_' + src_name + '_to_' + dst_name)
-                                                src_states = get_global_variable(self.calculations,str(src_name))
+                                                src_idx, dst_idx, seq = f_.get(
+                                                    'src_' + src_name + '_to_' + dst_name), f_.get(
+                                                    'dst_' + src_name + '_to_' + dst_name), f_.get(
+                                                    'seq_' + src_name + '_to_' + dst_name)
+                                                src_states = get_global_variable(self.calculations, str(src_name))
 
                                                 with tf.name_scope(
                                                         'create_message_' + src_name + '_to_' + dst_name) as _:
@@ -329,25 +342,31 @@ class Gnn_model(tf.keras.Model):
                                                                         counter)
                                                                     message_creator = get_global_variable(
                                                                         self.calculations, var_name)
-                                                                    result = op.apply_nn_msg(message_creator, self.calculations, f_, self.src_messages, self.dst_messages)
+                                                                    result = op.apply_nn_msg(message_creator,
+                                                                                             self.calculations, f_,
+                                                                                             self.src_messages,
+                                                                                             self.dst_messages)
 
                                                             elif type_operation == 'product':
-                                                                with tf.name_scope('apply_product_' + str(counter)) as _:
+                                                                with tf.name_scope(
+                                                                        'apply_product_' + str(counter)) as _:
                                                                     product_input1 = self.treat_message_function_input(
                                                                         op.input[0], f_)
 
                                                                     product_input2 = self.treat_message_function_input(
                                                                         op.input[1], f_)
-                                                                    result = op.calculate(product_input1, product_input2)
+                                                                    result = op.calculate(product_input1,
+                                                                                          product_input2)
 
                                                             if op.output_name is not None:
                                                                 save_global_variable(self.calculations,
-                                                                    op.output_name, result)
+                                                                                     op.output_name, result)
                                                         final_messages = result
                                                         counter += 1
 
                                                     # PREPARE FOR THE AGGREGATION
-                                                    with tf.name_scope('combine_messages_' + src_name + '_to_' + dst_name) as _:
+                                                    with tf.name_scope(
+                                                            'combine_messages_' + src_name + '_to_' + dst_name) as _:
                                                         ids = tf.stack([dst_idx, seq], axis=1)
 
                                                         lens = tf.math.unsorted_segment_sum(tf.ones_like(dst_idx),
@@ -357,7 +376,9 @@ class Gnn_model(tf.keras.Model):
                                                         max_len = tf.reduce_max(seq) + 1
 
                                                         message_dim = int(get_global_variable(self.calculations,
-                                                            "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg)))
+                                                                                              "final_message_dim_" + str(
+                                                                                                  idx_stage) + '_' + str(
+                                                                                                  idx_msg)))
 
                                                         shape = tf.stack([num_dst, max_len, message_dim])
                                                         s = tf.scatter_nd(ids, final_messages,
@@ -425,38 +446,47 @@ class Gnn_model(tf.keras.Model):
 
                                         # if ordered, we dont need to do anything. Already in the right shape
                                         # It only makes sense to do a pipeline with sum/attention/edge... operations??
-                                        with tf.name_scope('aggregation_function') as _:
+                                        with tf.name_scope('aggregation') as _:
                                             for aggr in aggrs:
-                                                with tf.name_scope('single_aggregation') as _:
+                                                with tf.name_scope(aggr.type) as _:
                                                     if aggr.type == 'sum':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst)
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
+                                                                                         num_dst)
 
                                                     elif aggr.type == 'mean':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst)
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
+                                                                                     num_dst)
 
                                                     elif aggr.type == 'min':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst)
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
+                                                                                     num_dst)
 
                                                     elif aggr.type == 'max':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst)
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
+                                                                                     num_dst)
 
                                                     elif aggr.type == 'std':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst)
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
+                                                                                     num_dst)
 
                                                     elif aggr.type == 'attention':
                                                         src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                         dst_states,
-                                                                                         comb_seq, num_dst, self.node_kernel,
-                                                                                         self.attn_kernel)
+                                                                                     dst_states,
+                                                                                     comb_seq, num_dst,
+                                                                                     self.node_kernel,
+                                                                                     self.attn_kernel)
 
                                                     elif aggr.type == 'edge_attention':
                                                         var_name = 'edge_attention_' + src_name + '_to_' + dst_name
-                                                        edge_att_model = get_global_variable(self.calculations,var_name)
+                                                        edge_att_model = get_global_variable(self.calculations,
+                                                                                             var_name)
                                                         comb_dst_states = tf.gather(dst_states,
                                                                                     comb_dst_idx)  # the destination state of each adjacency
-                                                        model_input = tf.concat([comb_src_states, comb_dst_states], axis=1)
+                                                        model_input = tf.concat([comb_src_states, comb_dst_states],
+                                                                                axis=1)
                                                         weights = edge_att_model(model_input)
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx, num_dst,
+                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
+                                                                                         num_dst,
                                                                                          weights)
 
                                                     # convolutional aggregation (the messages sent by the destination must have the same shape as the destinations)
@@ -474,14 +504,17 @@ class Gnn_model(tf.keras.Model):
                                                         aggregator_nn = get_global_variable(self.calculations, var_name)
                                                         src_input = aggr.apply_nn(aggregator_nn, self.calculations, f_)
 
-                                                    # save the result of this operation with its output_name
-                                                    if aggr.output_name is not None:
-                                                        save_global_variable(self.calculations,aggr.output_name, src_input)
+                                                # save the result of this operation with its output_name
+                                                if aggr.output_name is not None:
+                                                    save_global_variable(self.calculations, aggr.output_name,
+                                                                         src_input)
 
                                             # this is the final one that passes to the update
                                             # save the src_input used for the update
-                                            save_global_variable(self.calculations, 'update_lens_' + dst_name, final_len)
-                                            save_global_variable(self.calculations,'update_input_' + dst_name, src_input)
+                                            save_global_variable(self.calculations, 'update_lens_' + dst_name,
+                                                                 final_len)
+                                            save_global_variable(self.calculations, 'update_input_' + dst_name,
+                                                                 src_input)
 
                                 # ---------------------------------------
                                 # updates
@@ -490,7 +523,8 @@ class Gnn_model(tf.keras.Model):
                                         dst_name = mp.destination_entity
                                         with tf.name_scope('update_' + dst_name + 's') as _:
                                             update_model = mp.update
-                                            src_input = get_global_variable(self.calculations, 'update_input_' + dst_name)
+                                            src_input = get_global_variable(self.calculations,
+                                                                            'update_input_' + dst_name)
                                             old_state = get_global_variable(self.calculations, dst_name)
 
                                             # by default use the aggregated messages as new state
@@ -502,7 +536,8 @@ class Gnn_model(tf.keras.Model):
                                             elif isinstance(update_model, RNN_operation):
                                                 model = get_global_variable(self.calculations, dst_name + '_update')
                                                 if not mp.aggregations_global_type:
-                                                    dst_dim = int(self.dimensions[dst_name])  # should this be the source dimensions??? CHECK
+                                                    dst_dim = int(self.dimensions[
+                                                                      dst_name])  # should this be the source dimensions??? CHECK
                                                     new_state = update_model.model.perform_unsorted_update(model,
                                                                                                            src_input,
                                                                                                            old_state,
@@ -510,7 +545,8 @@ class Gnn_model(tf.keras.Model):
 
                                                 # if the aggregation was ordered or concat
                                                 else:
-                                                    final_len = get_global_variable(self.calculations, 'update_lens_' + dst_name)
+                                                    final_len = get_global_variable(self.calculations,
+                                                                                    'update_lens_' + dst_name)
                                                     new_state = update_model.model.perform_sorted_update(model,
                                                                                                          src_input,
                                                                                                          dst_name,
@@ -521,7 +557,7 @@ class Gnn_model(tf.keras.Model):
                                             # restriction: It can only be used if the aggreagation was not ordered.
                                             else:
                                                 var_name = dst_name + "_ff_update"
-                                                update = get_global_variable(self.calculations,var_name)
+                                                update = get_global_variable(self.calculations, var_name)
 
                                                 # now we need to obtain for each adjacency the concatenation of the source and the destination
                                                 update_input = tf.concat([src_input, old_state], axis=1)
@@ -529,7 +565,6 @@ class Gnn_model(tf.keras.Model):
 
                                             # update the old state
                                             save_global_variable(self.calculations, dst_name, new_state)
-
 
             # -----------------------------------------------------------------------------------
             # READOUT PHASE
@@ -549,7 +584,7 @@ class Gnn_model(tf.keras.Model):
                             # obtain the input of the pooling operation
                             first = True
                             for input_name in operation.input:
-                                aux = get_global_var_or_input(self.calculations,input_name, f_)
+                                aux = get_global_var_or_input(self.calculations, input_name, f_)
                                 if first:
                                     pooling_input = aux
                                     first = False
@@ -559,25 +594,25 @@ class Gnn_model(tf.keras.Model):
                             result = operation.calculate(pooling_input)
 
                         elif operation.type == 'product':
-                            product_input1 = get_global_var_or_input(self.calculations,operation.input[0], f_)
-                            product_input2 = get_global_var_or_input(self.calculations,operation.input[1], f_)
+                            product_input1 = get_global_var_or_input(self.calculations, operation.input[0], f_)
+                            product_input2 = get_global_var_or_input(self.calculations, operation.input[1], f_)
                             result = operation.calculate(product_input1, product_input2)
 
                         # extends the two inputs following the adjacency list that connects them both. CHECK!!
-                        elif operation.type == 'extend_adjacencies':    # CHECK!!!!!
+                        elif operation.type == 'extend_adjacencies':  # CHECK!!!!!
                             adj_src = f_.get('src_' + operation.adj_list)
                             adj_dst = f_.get('dst_' + operation.adj_list)
 
-                            src_states = get_global_var_or_input(self.calculations,operation.input[0], f_)
-                            dst_states = get_global_var_or_input(self.calculations,operation.input[1], f_)
+                            src_states = get_global_var_or_input(self.calculations, operation.input[0], f_)
+                            dst_states = get_global_var_or_input(self.calculations, operation.input[1], f_)
 
                             extended_src, extended_dst = operation.calculate(src_states, adj_src, dst_states, adj_dst)
-                            save_global_variable(self.calculations,operation.output_name[0], extended_src)
-                            save_global_variable(self.calculations,operation.output_name[1], extended_dst)
+                            save_global_variable(self.calculations, operation.output_name[0], extended_src)
+                            save_global_variable(self.calculations, operation.output_name[1], extended_dst)
 
-                        #output of the readout
+                        # output of the readout
                         if operation.type != 'extend_adjacencies':
-                            if j == n-1:    #last one
+                            if j == n - 1:  # last one
                                 return result
                             else:
                                 save_global_variable(self.calculations, operation.output_name, result)
@@ -590,5 +625,5 @@ class Gnn_model(tf.keras.Model):
         elif var_name == 'destination':
             new_input = self.dst_messages
         else:
-            new_input = get_global_var_or_input(self.calculations,var_name,f_)
+            new_input = get_global_var_or_input(self.calculations, var_name, f_)
         return new_input
