@@ -1,5 +1,5 @@
 # IGNNITION: A framework for fast prototyping of GNNs
-#### D. Pujol Perich, J. Suárez-Varela, Miquel Ferriol, A. Cabellos-Aparicio, P. Barlet-Ros.
+#### D. Pujol-Perich, J. Suárez-Varela, Miquel Ferriol, A. Cabellos-Aparicio, P. Barlet-Ros.
  
 ## Overview
 <p align="center"> 
@@ -35,6 +35,7 @@ This [tutorial](https://wwww.ignnition.net) will guide you through the documenta
 
 ## License
 See [LICENSE](LICENSE) for full of the license text.
+
 ```
 Copyright Copyright 2020 Universitat Politècnica de Catalunya
 

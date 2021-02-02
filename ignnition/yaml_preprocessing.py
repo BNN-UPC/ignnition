@@ -117,11 +117,11 @@ class Yaml_preprocessing:
         # add the global variables (if any)
         global_variables_path = os.path.join(model_dir, 'global_variables.yaml')
         if os.path.exists(global_variables_path):
-            #try:
+            try:
                 global_variables = self.__read_yaml(global_variables_path)
                 self.data = self.__add_global_variables(self.data, global_variables)
-            #except:
-            #    print_failure("There was an error with the global_variables.yaml file")
+            except:
+                print_failure("There was an error with the global_variables.yaml file")
         else:
             print_info("No global_variables.yaml file detected in path: ", global_variables_path)
 

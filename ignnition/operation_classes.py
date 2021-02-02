@@ -65,7 +65,7 @@ class Operation():
                 if i in dimensions:
                     dimension = dimensions[i]
                 else:
-                    dimension = calculations[i + '_dim']# take the dimension from here or from self.dimensions
+                    dimension = calculations[i + '_dim']  # take the dimension from here or from self.dimensions
                 input_dim += dimension
             return input_dim
 
@@ -180,7 +180,7 @@ class Build_state(Operation):
         Computes the hidden states for a given entity
     """
 
-    #TODO: Error message if we pass the maximum dimension.
+    # TODO: Error message if we pass the maximum dimension.
     def __init__(self, op, entity_name, entity_dim):
         """
         Parameters
@@ -231,6 +231,7 @@ class Product_operation(Operation):
     calculate(self, product_input1, product_input2)
         Computes the product specified by the user of the two input tensors.
     """
+
     def __init__(self, op):
         """
         Parameters
@@ -254,7 +255,7 @@ class Product_operation(Operation):
 
         try:
             if self.type_product == 'dot_product':
-                result = tf.tensordot(product_input1, product_input2, axes=[[1],[1]])
+                result = tf.tensordot(product_input1, product_input2, axes=[[1], [1]])
 
                 # the correct values are in the diagonal (IMPROVE THIS)
                 # This does the dot product row by row (so independently for each adjacency)
@@ -265,7 +266,7 @@ class Product_operation(Operation):
                 result = tf.math.multiply(product_input1, product_input2)
 
             elif self.type_product == 'mat_mult':
-                result = tf.tensordot(product_input1, product_input2, axes=[[2],[1]])
+                result = tf.tensordot(product_input1, product_input2, axes=[[2], [1]])
                 result = tf.squeeze(result, axis=2)
 
             result = tf.cast(result, tf.float32)
@@ -273,8 +274,10 @@ class Product_operation(Operation):
             return result
 
         except:
-            print_failure('The product operation between ' + product_input1 + ' and ' + product_input2 + ' failed. Check that the dimensions are compatible.')
+            print_failure(
+                'The product operation between ' + product_input1 + ' and ' + product_input2 + ' failed. Check that the dimensions are compatible.')
             sys.exit(1)
+
 
 class Pooling_operation(Operation):
     """
@@ -374,7 +377,7 @@ class Feed_forward_operation(Operation):
         input_nn = self.compute_all_input(calculations, f_)
 
         if readout and len(tf.shape(input_nn)) == 1:
-                input_nn = tf.expand_dims(input_nn, axis=0)
+            input_nn = tf.expand_dims(input_nn, axis=0)
 
         with tf.name_scope('pass_to_nn') as _:
             input_size = model.input_shape[-1]
@@ -404,6 +407,7 @@ class Feed_forward_operation(Operation):
             input_nn = tf.ensure_shape(input_nn, [None, input_size])
             return model(input_nn)
 
+
 class RNN_operation(Operation):
     """
     Subclass of Operation that represents a RNN operation which consists of passing a given input to the specified RNN.
@@ -427,12 +431,13 @@ class RNN_operation(Operation):
         super(RNN_operation, self).__init__(op)
 
         # we need somehow to find the number of extra_parameters beforehand
-        cell_architecture = op['architecture'][0]   #in this case only one layer will be specified.
+        cell_architecture = op['architecture'][0]  # in this case only one layer will be specified.
         type = cell_architecture['type_layer']
         self.model = Recurrent_Update_Cell(type=type, parameters=cell_architecture)
         self.input = op.get('input', None)
 
-#TODO: check that it works
+
+# TODO: check that it works
 class Extend_adjacencies(Operation):
     """
     Subclass of oPERATION that represents the extend_adjacencies operation
@@ -461,7 +466,6 @@ class Extend_adjacencies(Operation):
         super(Extend_adjacencies, self).__init__({'type': op['type'], 'input': op['input']})
         self.adj_list = op['adj_list']
         self.output_name = [op.get('output_name_src'), op.get('output_name_dst')]
-
 
     def calculate(self, src_states, adj_src, dst_states, adj_dst):
         """

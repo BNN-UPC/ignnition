@@ -4,6 +4,7 @@ import sys
 import os
 from collections import OrderedDict
 
+
 class K_best(tf.keras.callbacks.Callback):
     """
     A subclass of the callback preset class which implements the functionality to keep only the best k checkpoints of the execution (instead of the best one implemented in Tf).

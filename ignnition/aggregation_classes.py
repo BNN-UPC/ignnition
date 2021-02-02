@@ -5,6 +5,7 @@ import sys
 from ignnition.utils import *
 from ignnition.operation_classes import *
 
+
 class Aggregation:
     """
     A class that represents a general aggregation operation
@@ -14,6 +15,7 @@ class Aggregation:
     dict:    dict
         Dictionary with the information of the aggregation function
     """
+
     def __init__(self, dict):
         """
         Parameters
@@ -23,7 +25,6 @@ class Aggregation:
         """
         self.type = dict.get('type')
         self.output_name = dict.get('output_name', None)
-
 
 
 class Sum_aggr(Aggregation):
@@ -60,6 +61,7 @@ class Sum_aggr(Aggregation):
         src_input = tf.math.unsorted_segment_sum(comb_src_states, comb_dst_idx, num_dst)
         return src_input
 
+
 class Mean_aggr(Aggregation):
     """
     A subclass that represents the mean aggregation operation
@@ -93,6 +95,7 @@ class Mean_aggr(Aggregation):
 
         neighbours_mean = tf.math.unsorted_segment_mean(comb_src_states, comb_dst_idx, num_dst)
         return neighbours_mean
+
 
 class Max_aggr(Aggregation):
     """
@@ -128,6 +131,7 @@ class Max_aggr(Aggregation):
         src_input = tf.math.unsorted_segment_max(comb_src_states, comb_dst_idx, num_dst)
         return src_input
 
+
 class Min_aggr(Aggregation):
     """
     A subclass that represents the Sum aggreagtion operation
@@ -162,7 +166,8 @@ class Min_aggr(Aggregation):
         src_input = tf.math.unsorted_segment_min(comb_src_states, comb_dst_idx, num_dst)
         return src_input
 
-#toDO: Finish this operation
+
+# toDO: Finish this operation
 class Std_aggr(Aggregation):
     """
     A subclass that represents the Std aggreagtion operation
@@ -172,6 +177,7 @@ class Std_aggr(Aggregation):
     calculate_input(self, comb_src_states, comb_dst_idx, num_dst)
         Returns the std of all the input messages for each of the destination nodes.
     """
+
     def __init__(self, dict):
         """
         Parameters
@@ -196,6 +202,7 @@ class Std_aggr(Aggregation):
         src_input = tf.math.unsorted_segment_sum(comb_src_states, comb_dst_idx, num_dst)
         return src_input
 
+
 class Attention_aggr(Aggregation):
     """
     A subclass that represents the attention aggregation operation
@@ -210,6 +217,7 @@ class Attention_aggr(Aggregation):
     calculate_input(self, comb_src_states, comb_dst_idx, dst_states, comb_seq, num_dst, node_kernel, attn_kernel)
         Computes the attention mechanism of all the input messages for each destination node. This aggregation corresponds to the one proposed for Graph Attention Networks.
     """
+
     def __init__(self, dict):
         """
         Parameters
@@ -244,14 +252,14 @@ class Attention_aggr(Aggregation):
         h_src = tf.identity(comb_src_states)
 
         # dst_states <- (N x F2)
-        #F2 = int(self.dimensions[mp.destination_entity])
+        # F2 = int(self.dimensions[mp.destination_entity])
 
         # new number of features (right now set to F1, but could be different)
-        #F_ = F1
+        # F_ = F1
 
         # node_kernel = F1 x F1 (we could change the output dimension)
         # transformed_states_sources = NxF1 X F1xF1 = NxF1
-        transformed_states_sources = K.dot(h_src, node_kernel) # (W h_i for every source)
+        transformed_states_sources = K.dot(h_src, node_kernel)  # (W h_i for every source)
 
         # node_kernel = F2 x F1 (we change the shape of the output hidden state to the same of the source)
         # transformed_states_dest = NxF2 X F2xF1 = NxF1
@@ -316,7 +324,6 @@ class Edge_attention_aggr(Aggregation):
         del op['type']
         self.aggr_model = Feed_forward_operation(op, model_role='edge_attention')
 
-
     def get_model(self):
         return self.aggr_model.model
 
@@ -335,7 +342,7 @@ class Edge_attention_aggr(Aggregation):
         """
 
         # apply the attention mechanism
-        weighted_inputs =  weights * comb_src_states
+        weighted_inputs = weights * comb_src_states
         # sum by destination nodes
         src_input = tf.math.unsorted_segment_sum(weighted_inputs, comb_dst_idx, int(num_dst))
         return src_input
@@ -357,6 +364,7 @@ class Conv_aggr(Aggregation):
     calculate_input(self, comb_src_states, comb_dst_idx, dst_states, num_dst, kernel)
         Calculates the result of applying the convolution mechanism (proposed for the graph convolutional NN)
     """
+
     def __init__(self, attr):
         """
         Parameters
@@ -410,13 +418,13 @@ class Conv_aggr(Aggregation):
         # sum the destination state itself
         total_sum = tf.math.add(neighbours_sum, dst_states_aux)
 
-        #normalize all the values dividing by sqrt(dst_deg)
+        # normalize all the values dividing by sqrt(dst_deg)
         normalized_val = tf.math.divide_no_nan(total_sum, dst_deg)
 
-        #normalize by mean and variance  (CHECK) This is the node normalization
+        # normalize by mean and variance  (CHECK) This is the node normalization
         mean = tf.math.reduce_mean(normalized_val)
         var = tf.math.reduce_std(normalized_val)
-        normalized_val = (normalized_val - mean) /var
+        normalized_val = (normalized_val - mean) / var
 
         # apply the non-linearity
         activation_func = getattr(tf.nn, self.activation_function)
@@ -450,7 +458,6 @@ class Interleave_aggr(Aggregation):
 
         super(Interleave_aggr, self).__init__(dict)
         self.combination_definition = dict.get('interleave_definition')
-
 
     def calculate_input(self, src_input, indices):
         """

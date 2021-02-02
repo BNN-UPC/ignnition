@@ -27,6 +27,7 @@ from ignnition.utils import *
 from ignnition.operation_classes import *
 from ignnition.aggregation_classes import *
 
+
 class Entity:
     """
     A class that represents an entity of the MSMP graph
@@ -76,7 +77,7 @@ class Entity:
         all_inputs = set()
         all_outputs = set()
         for op in operations:
-            all_inputs.update(op.get('input'))  #keep track of all the necessary features
+            all_inputs.update(op.get('input'))  # keep track of all the necessary features
 
             # keep track of the outputs
             if 'output_name' in op:
@@ -90,7 +91,7 @@ class Entity:
             elif type_update == 'build_state':
                 hs_operations.append(Build_state(op, self.name, self.state_dimension))
 
-        #remove all the references in the inputs that refer to a previous output
+        # remove all the references in the inputs that refer to a previous output
         final_inputs = all_inputs.difference(all_outputs)
         return hs_operations, list(final_inputs)
 
@@ -211,12 +212,12 @@ class Message_Passing:
             elif type == 'convolution':
                 aggregations.append(Conv_aggr(attr))
                 single_embedding = True
-            else:   # this is for the ordered aggregation
+            else:  # this is for the ordered aggregation
                 multiple_embedding = True
 
-
         if single_embedding and multiple_embedding:
-            print_failure("You cannot combine aggregations which return a sequence of tensors, and aggregations that return a single embedding")
+            print_failure(
+                "You cannot combine aggregations which return a sequence of tensors, and aggregations that return a single embedding")
 
         elif single_embedding:
             return aggregations, 0
@@ -282,7 +283,6 @@ class Mp_source_entity:
             counter += 1
         return result
 
-
     def get_instance_info(self, dst_name):
         """
         Parameters
@@ -292,4 +292,3 @@ class Mp_source_entity:
         """
 
         return self.name + '_to_' + dst_name
-

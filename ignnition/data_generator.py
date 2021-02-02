@@ -33,6 +33,7 @@ from ignnition.utils import *
 import networkx as nx
 from networkx.readwrite import json_graph
 
+
 class Generator:
     """
     This class implements the Generator in charge of feeding the data to the main GNN module. This class will take as input the original datasets of the user or the passed array and compute a series of transformation and precalculations. Finally it serves it to the GNN module.
@@ -96,7 +97,7 @@ class Generator:
             Path to these file (which is useful for error-checking purposes)
         """
 
-        #load the model
+        # load the model
         G = json_graph.node_link_graph(sample)
 
         entity_counter = {}
@@ -112,7 +113,7 @@ class Generator:
 
             if 'entity' not in attributes:
                 print_failure("Error in the dataset file located in '" + file + ".")
-                print_failure('The node named' + node_name +'" was not assigned an entity.')
+                print_failure('The node named' + node_name + '" was not assigned an entity.')
 
             entity_name = attributes['entity']
             new_node_name = entity_name + '_{}'
@@ -128,7 +129,7 @@ class Generator:
         # do we need this??
         D_G = nx.relabel_nodes(G, mapping)
 
-        #load the features
+        # load the features
         for f in self.feature_names:
             try:
                 feature = list(nx.get_node_attributes(D_G, f).values())
@@ -143,7 +144,7 @@ class Generator:
 
             except:
                 message = "The feature " + f + " was used in the model_description.yaml file " \
-                              "but was not defined in the dataset."
+                                               "but was not defined in the dataset."
                 if file is not None:
                     message = "Error in the dataset file located in '" + file + ".\n" + message
                 print_failure(message)
@@ -157,14 +158,14 @@ class Generator:
             elif edge_attr != []:
                 data[a] = edge_attr
             else:
-                message = 'The data named "' + a + '" was used in the model_description.yaml file '\
-                        'but was not defined in the dataset.'
+                message = 'The data named "' + a + '" was used in the model_description.yaml file ' \
+                                                   'but was not defined in the dataset.'
                 if file is not None:
                     message = "Error in the dataset file located in '" + file + ".\n" + message
                 print_failure(message)
 
         if self.training:
-            #collect the output
+            # collect the output
             try:
                 node_output = list(nx.get_node_attributes(D_G, self.output_name).values())
                 final_output = node_output
@@ -199,32 +200,32 @@ class Generator:
 
         # this collects the sequence for the interleave aggregation (if any)
         for i in self.interleave_names:
-             name, dst_entity = i
-             interleave_definition = list(D_G.graph[name].values())  # this must be a graph variable
+            name, dst_entity = i
+            interleave_definition = list(D_G.graph[name].values())  # this must be a graph variable
 
-             involved_entities = {}
-             total_sequence = []
-             total_size, n_total, counter = 0, 0, 0
+            involved_entities = {}
+            total_sequence = []
+            total_size, n_total, counter = 0, 0, 0
 
-             for src_entity in interleave_definition:
-                 total_size += 1
-                 if src_entity not in involved_entities:
-                     involved_entities[src_entity] = counter  # each entity a different value (identifier)
+            for src_entity in interleave_definition:
+                total_size += 1
+                if src_entity not in involved_entities:
+                    involved_entities[src_entity] = counter  # each entity a different value (identifier)
 
-                     seq = data['seq_' + src_entity + '_to_' + dst_entity]
-                     n_total += max(seq) + 1  # superior limit of the size of any destination
-                     counter += 1
+                    seq = data['seq_' + src_entity + '_to_' + dst_entity]
+                    n_total += max(seq) + 1  # superior limit of the size of any destination
+                    counter += 1
 
-                 # obtain all the original definition in a numeric format
-                 total_sequence.append(involved_entities[src_entity])
+                # obtain all the original definition in a numeric format
+                total_sequence.append(involved_entities[src_entity])
 
-             # we exceed the maximum length for sake to make it multiple. Then we will cut it
-             repetitions = math.ceil(float(n_total) / total_size)
-             result = np.array((total_sequence * repetitions)[:n_total])
+            # we exceed the maximum length for sake to make it multiple. Then we will cut it
+            repetitions = math.ceil(float(n_total) / total_size)
+            result = np.array((total_sequence * repetitions)[:n_total])
 
-             for entity in involved_entities:
-                 id = involved_entities[entity]
-                 data['indices_' + entity + '_to_' + dst_entity] = np.where(result == id)[0].tolist()
+            for entity in involved_entities:
+                id = involved_entities[entity]
+                data['indices_' + entity + '_to_' + dst_entity] = np.where(result == id)[0].tolist()
 
         if self.training:
             return data, final_output

@@ -143,7 +143,6 @@ class Ignnition_model:
         self.model_info = self.__create_model()
         self.generator = Generator()
 
-
     def __process_path(self, path):
         """
         Parameters
@@ -239,7 +238,7 @@ class Ignnition_model:
                                                histogram_freq=1),
                 tf.keras.callbacks.ModelCheckpoint(filepath=output_path + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
                                                    save_freq='epoch', monitor='loss'),
-                K_best(output_path=output_path + '/logs', k=self.CONFIG.get('k_best',None))]
+                K_best(output_path=output_path + '/logs', k=self.CONFIG.get('k_best', None))]
 
     # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
     def __batch_normalization(self, x, feature_list, norm_type, y=None):
@@ -321,11 +320,11 @@ class Ignnition_model:
             return x
 
         if y is not None:
-            return x,y
+            return x, y
         return x
 
     @tf.autograph.experimental.do_not_convert
-    def __input_fn_generator(self, filenames=None, shuffle=False, training=True,data_samples=None, iterator=False):
+    def __input_fn_generator(self, filenames=None, shuffle=False, training=True, data_samples=None, iterator=False):
         """
         Parameters
         ----------
@@ -371,9 +370,9 @@ class Ignnition_model:
                 shapes['seq_' + a] = tf.TensorShape([None])
 
                 # we now include this values in the additional_params
-               # if a[3] == 'True':
-               #     types['params_' + a[0]] = tf.int64
-               #     shapes['params_' + a[0]] = tf.TensorShape(None)
+            # if a[3] == 'True':
+            #     types['params_' + a[0]] = tf.int64
+            #     shapes['params_' + a[0]] = tf.TensorShape(None)
 
             for e in entity_names:
                 types['num_' + e] = tf.int64
@@ -387,7 +386,7 @@ class Ignnition_model:
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
-                                                                     output_name, #adjacency_info,
+                                                                     output_name,  # adjacency_info,
                                                                      interleave_list, unique_additional_input, training,
                                                                      shuffle),
                         output_types=(types, tf.float32),
@@ -397,7 +396,7 @@ class Ignnition_model:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
-                                                                   output_name, #adjacency_info,
+                                                                   output_name,  # adjacency_info,
                                                                    interleave_list,
                                                                    unique_additional_input, training, shuffle),
                         output_types=(types, tf.float32),
@@ -407,7 +406,7 @@ class Ignnition_model:
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
-                                                                     output_name, #adjacency_info,
+                                                                     output_name,  # adjacency_info,
                                                                      interleave_list, unique_additional_input, training,
                                                                      shuffle),
                         output_types=(types),
@@ -417,7 +416,7 @@ class Ignnition_model:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
-                                                                   output_name, #adjacency_info,
+                                                                   output_name,  # adjacency_info,
                                                                    interleave_list,
                                                                    unique_additional_input, training, shuffle),
                         output_types=(types),
@@ -428,7 +427,7 @@ class Ignnition_model:
                 if batch_norm is None:
                     if training:
                         ds = ds.map(
-                            lambda x, y: self.__global_normalization(x, feature_list, output_name,y),
+                            lambda x, y: self.__global_normalization(x, feature_list, output_name, y),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
                         ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
@@ -455,10 +454,11 @@ class Ignnition_model:
 
     # -------------------------------------
     def __create_model(self):
-        print_header("Processing the described model...\n---------------------------------------------------------------------------\n")
+        print_header(
+            "Processing the described model...\n---------------------------------------------------------------------------\n")
         return Yaml_preprocessing(self.model_dir)  # read json
 
-    def __create_gnn(self,samples=None, path=None, verbose=True):
+    def __create_gnn(self, samples=None, path=None, verbose=True):
         """
         Parameters
         ----------
@@ -471,7 +471,8 @@ class Ignnition_model:
         """
 
         if verbose:
-            print_header("Creating the GNN model...\n---------------------------------------------------------------------------\n")
+            print_header(
+                "Creating the GNN model...\n---------------------------------------------------------------------------\n")
 
         dimensions, sample = self.find_dataset_dimensions(samples=samples, path=path)
         self.model_info.add_dimensions(dimensions)
@@ -479,7 +480,6 @@ class Ignnition_model:
         gnn_model = self.__get_compiled_model(self.model_info)
         # restore a warm-start Checkpoint (if any)
         self.gnn_model = self.__restore_model(gnn_model, sample=sample)
-
 
     def __restore_model(self, gnn_model, sample):
         """
@@ -521,10 +521,11 @@ class Ignnition_model:
         """
 
         if samples is not None:
-            sample = samples[0]    #take the first one to find the dimensions
+            sample = samples[0]  # take the first one to find the dimensions
 
         else:
-            sample_path = (glob.glob(path + '/*.tar.gz') + glob.glob(path + '/*.json')) [0]  # choose one single file to extract the dimensions
+            sample_path = (glob.glob(path + '/*.tar.gz') + glob.glob(path + '/*.json'))[
+                0]  # choose one single file to extract the dimensions
             if '.tar.gz' in sample_path:
                 try:
                     tar = tarfile.open(sample_path, 'r:gz')  # read the tar files
@@ -600,9 +601,9 @@ class Ignnition_model:
 
         # Create the GNN model
         if not hasattr(self, 'gnn_model'):
-            if training_samples is None:    # look for the dataset path
+            if training_samples is None:  # look for the dataset path
                 training_path = self.__process_path(self.CONFIG['train_dataset'])
-                self.__create_gnn(path = training_path)
+                self.__create_gnn(path=training_path)
             else:
                 self.__create_gnn(samples=training_samples)
 
@@ -620,7 +621,7 @@ class Ignnition_model:
             os.mkdir(output_path)
 
         output_path = os.path.join(output_path,
-                                 'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
+                                   'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
         os.mkdir(output_path)
 
         strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
@@ -666,10 +667,10 @@ class Ignnition_model:
 
         prediction_path = None
         if not hasattr(self, 'gnn_model'):
-            if prediction_samples is None:  #look for the dataset path
+            if prediction_samples is None:  # look for the dataset path
                 try:
                     prediction_path = self.__process_path(self.CONFIG['predict_dataset'])
-                    self.__create_gnn(path=prediction_path, verbose = verbose)
+                    self.__create_gnn(path=prediction_path, verbose=verbose)
                 except:
                     print_failure(
                         'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the prediction dataset')
@@ -679,9 +680,11 @@ class Ignnition_model:
 
         if verbose:
             print()
-            print_header('Starting to make the predictions...\n---------------------------------------------------------\n')
+            print_header(
+                'Starting to make the predictions...\n---------------------------------------------------------\n')
 
-        sample_it = self.__input_fn_generator(prediction_path, training=False, data_samples=prediction_samples, iterator=True)
+        sample_it = self.__input_fn_generator(prediction_path, training=False, data_samples=prediction_samples,
+                                              iterator=True)
         all_predictions = []
         try:
             # find the denormalization function
@@ -740,8 +743,7 @@ class Ignnition_model:
                 step=0,
                 profiler_outdir=path)
 
-
-    def evaluate(self, evaluation_samples = None, verbose=True):
+    def evaluate(self, evaluation_samples=None, verbose=True):
         """
         Parameters
         ----------
@@ -753,7 +755,7 @@ class Ignnition_model:
 
         # Generate the model if it doesn't exist
         if not hasattr(self, 'gnn_model'):
-            if evaluation_samples is None:  #look for the dataset path
+            if evaluation_samples is None:  # look for the dataset path
                 val_path = self.__process_path(self.CONFIG['validation_dataset'])
                 self.__create_gnn(path=val_path)
             else:
