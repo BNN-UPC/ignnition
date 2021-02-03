@@ -126,6 +126,7 @@ class Gnn_model(tf.keras.Model):
                             elif aggregation.type == 'edge_attention':
                                 # create a neural network that takes the concatenation of the source and dst message and results in the weight
                                 message_dimensionality = F_src + F_dst
+
                                 var_name = 'edge_attention_' + src_name + '_to_' + dst_name  # choose the src_name of the last?
                                 model, _ = aggregation.get_model().construct_tf_model(var_name=var_name,
                                                                                       input_dim=message_dimensionality)
@@ -255,9 +256,6 @@ class Gnn_model(tf.keras.Model):
         """
         with tf.name_scope('ignnition_model') as _:
             f_ = input.copy()
-            for k, v in f_.items():
-                if len(tf.shape(v)) == 2 and tf.shape(v)[1] == 1:
-                    f_[k] = tf.squeeze(v, axis=-1)
 
             # -----------------------------------------------------------------------------------
             # HIDDEN STATE CREATION
@@ -319,10 +317,16 @@ class Gnn_model(tf.keras.Model):
                                                     'src_' + src_name + '_to_' + dst_name), f_.get(
                                                     'dst_' + src_name + '_to_' + dst_name), f_.get(
                                                     'seq_' + src_name + '_to_' + dst_name)
+
+                                                src_idx = tf.squeeze(src_idx)
+                                                dst_idx = tf.squeeze(dst_idx)
+                                                seq = tf.squeeze(seq)
+
                                                 src_states = get_global_variable(self.calculations, str(src_name))
 
                                                 with tf.name_scope(
                                                         'create_message_' + src_name + '_to_' + dst_name) as _:
+
                                                     self.src_messages = tf.gather(src_states, src_idx)
                                                     self.dst_messages = tf.gather(dst_states, dst_idx)
                                                     message_creation_models = src.message_formation
@@ -484,6 +488,11 @@ class Gnn_model(tf.keras.Model):
                                                                                     comb_dst_idx)  # the destination state of each adjacency
                                                         model_input = tf.concat([comb_src_states, comb_dst_states],
                                                                                 axis=1)
+
+                                                        # define the shape of the input
+                                                        dimension = self.dimensions[src_name] + self.dimensions[dst_name]
+                                                        model_input = tf.ensure_shape(model_input, [None, dimension] )
+
                                                         weights = edge_att_model(model_input)
                                                         src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
                                                                                          num_dst,

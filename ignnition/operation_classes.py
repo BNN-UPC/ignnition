@@ -115,8 +115,6 @@ class Operation():
                 i = i.split('_initial_state')[0]
 
             new_input = get_global_var_or_input(calculations, i, f_)
-            if len(tf.shape(new_input)) == 1:
-                new_input = tf.expand_dims(new_input, axis=-1)
 
             # accumulate the results
             if first:
@@ -148,9 +146,6 @@ class Operation():
                 new_input = dst_msgs
             else:
                 new_input = get_global_var_or_input(calculations, i, f_)
-
-            if len(tf.shape(new_input)) == 1:
-                new_input = tf.expand_dims(new_input, axis=-1)
 
             # accumulate the results
             if first:
@@ -376,9 +371,6 @@ class Feed_forward_operation(Operation):
 
         input_nn = self.compute_all_input(calculations, f_)
 
-        if readout and len(tf.shape(input_nn)) == 1:
-            input_nn = tf.expand_dims(input_nn, axis=0)
-
         input_size = model.input_shape[-1]
         input_nn = tf.ensure_shape(input_nn, [None, input_size])
         return model(input_nn)
@@ -401,10 +393,9 @@ class Feed_forward_operation(Operation):
 
         input_nn = self.compute_all_input_msg(calculations, f_, src_msgs, dst_msgs)
 
-        with tf.name_scope('pass_to_nn') as _:
-            input_size = model.input_shape[-1]
-            input_nn = tf.ensure_shape(input_nn, [None, input_size])
-            return model(input_nn)
+        input_size = model.input_shape[-1]
+        input_nn = tf.ensure_shape(input_nn, [None, input_size])
+        return model(input_nn)
 
 
 class RNN_operation(Operation):

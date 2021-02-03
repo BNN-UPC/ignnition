@@ -129,18 +129,23 @@ class Generator:
         # do we need this??
         D_G = nx.relabel_nodes(G, mapping)
 
-        # load the features
+        # load the features (all the features are set to be lists. So we always return a list of lists)
         for f in self.feature_names:
             try:
-                feature = list(nx.get_node_attributes(D_G, f).values())
-                if feature == []:
+                feature = np.array(list(nx.get_node_attributes(D_G, f).values()))
+
+                # it should always be a 2d array
+                if len(np.shape(feature)) == 1:
+                    feature = np.expand_dims(feature, axis=-1)
+
+                if feature.size == 0:
                     message = "The feature " + f + " was used in the model_description.yaml file " \
                                                    "but was not defined in the dataset."
                     if file is not None:
                         message = "Error in the dataset file located in '" + file + ".\n" + message
                     print_failure(message)
                 else:
-                    data[f] = list(nx.get_node_attributes(D_G, f).values())
+                    data[f] = feature
 
             except:
                 message = "The feature " + f + " was used in the model_description.yaml file " \
@@ -151,12 +156,22 @@ class Generator:
 
         # take other inputs if needed (check that they might be global features)
         for a in self.additional_input:
-            node_attr = list(nx.get_node_attributes(D_G, a).values())
-            edge_attr = list(nx.get_edge_attributes(D_G, a).values())
-            if node_attr != []:
+            node_attr = np.array(list(nx.get_node_attributes(D_G, a).values()))
+            # it should always be a 2d array
+            if len(np.shape(node_attr)) == 1:
+                node_attr = np.expand_dims(node_attr, axis=-1)
+
+            edge_attr = np.array(list(nx.get_edge_attributes(D_G, a).values()))
+            # it should always be a 2d array
+            if len(np.shape(edge_attr)) == 1:
+                edge_attr = np.expand_dims(edge_attr, axis=-1)
+
+            if node_attr.size != 0:
                 data[a] = node_attr
-            elif edge_attr != []:
+            elif edge_attr.size != 0:
                 data[a] = edge_attr
+            elif a in D_G.graph:
+                data[a] = [D_G.graph[a]]
             else:
                 message = 'The data named "' + a + '" was used in the model_description.yaml file ' \
                                                    'but was not defined in the dataset.'
@@ -355,11 +370,11 @@ class Generator:
                 pass
 
             except KeyboardInterrupt:
-                sys.exit
+                sys.exit()
 
             except Exception as inf:
                 print_info("\n There was an unexpected error: \n" + str(inf))
                 print_info('Please make sure that all the names used in the file ' + sample_file +
-                           'are defined in your dataset')
+                           ' are defined in your dataset')
 
-                sys.exit
+                sys.exit()

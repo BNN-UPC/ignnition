@@ -1,10 +1,10 @@
 # PATHS
-train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/train
-validation_dataset: ../Datasets/Datasets_framework/Dataset_routenet/eval
+train_dataset: ./data/TRAIN
+validation_dataset: ./data/EVAL
 #predict_dataset:
 #warm_start_path:
 additional_functions_file: ./main.py
-output_path: ./examples/Graph_query_networks/
+output_path: ./
 
 # OPTIMIZATION OPTIONS
 loss: BinaryCrossentropy
@@ -19,7 +19,7 @@ metrics: [BinaryAccuracy]
 
 # TRAINING OPTIONS
 batch_size: 1
-epochs: 3
+epochs: 1000
 epoch_size: 1000
 shuffle_training_set: True
 shuffle_validation_set: False
