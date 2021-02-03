@@ -455,7 +455,7 @@ class Ignnition_model:
     # -------------------------------------
     def __create_model(self):
         print_header(
-            "Processing the described model...\n---------------------------------------------------------------------------\n")
+            "\nProcessing the described model...\n---------------------------------------------------------------------------\n")
         return Yaml_preprocessing(self.model_dir)  # read json
 
     def __create_gnn(self, samples=None, path=None, verbose=True):
@@ -524,8 +524,13 @@ class Ignnition_model:
             sample = samples[0]  # take the first one to find the dimensions
 
         else:
-            sample_path = (glob.glob(path + '/*.tar.gz') + glob.glob(path + '/*.json'))[
-                0]  # choose one single file to extract the dimensions
+            sample_paths = (glob.glob(path + '/*.tar.gz') + glob.glob(path + '/*.json'))
+
+            if sample_paths == []:
+                print_failure("No dataset found. Please make sure the paths of the datasets are correct.")
+            else:
+                sample_path = sample_paths[0] # choose one single file to extract the dimensions
+
             if '.tar.gz' in sample_path:
                 try:
                     tar = tarfile.open(sample_path, 'r:gz')  # read the tar files
@@ -720,7 +725,7 @@ class Ignnition_model:
 
         print()
         print_header(
-            'Generating the computational graph... \n---------------------------------------------------------\n')
+            'Generating the computational graph... \n---------------------------------------------------------------------------\n')
 
         path = self.__process_path(self.CONFIG['output_path'])
 

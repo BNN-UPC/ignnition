@@ -31,7 +31,7 @@ class bcolors:
 
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
+    BLACK = '\033[00m'
     OKGREEN = '\033[92m'
     WARNING = '\033[93m'
     FAIL = '\033[91m'
@@ -51,7 +51,7 @@ def print_failure(msg):
     """
 
     tf.print(bcolors.FAIL + msg + bcolors.ENDC, output_stream=sys.stderr)
-    exit("failure")
+    sys.exit()
 
 
 def print_info(msg):
@@ -64,7 +64,7 @@ def print_info(msg):
        Message to be printed
     """
 
-    tf.print(bcolors.OKGREEN + msg + bcolors.ENDC, output_stream=sys.stderr)
+    tf.print(bcolors.FAIL + msg + bcolors.ENDC, output_stream=sys.stderr)
 
 
 def print_header(msg):
@@ -77,7 +77,7 @@ def print_header(msg):
        Message to be printed
     """
 
-    tf.print(bcolors.OKGREEN + msg + bcolors.ENDC, output_stream=sys.stderr)
+    tf.print(bcolors.BOLD + msg + bcolors.ENDC, output_stream=sys.stderr)
 
 
 def stream_read_json(f):

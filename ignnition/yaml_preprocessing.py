@@ -49,7 +49,7 @@ class Yaml_preprocessing:
     ----------
     __read_json(self, path)
         Reads the json file from the path and returns the data as a dictionary
-    __read_yaml(self, path)
+    __read_yaml(self, path, name)
         Reads the yaml file from the path and returns the data as a dictionary
     __add_global_variables(self, data, global_variables)
         This method adds the values of the global variables to the data read from the model description file
@@ -104,11 +104,8 @@ class Yaml_preprocessing:
         """
 
         # read and validate the json file
-        try:
-            model_description_path = os.path.join(model_dir, 'model_description.yaml')
-            self.data = self.__read_yaml(model_description_path)
-        except:
-            print_failure("The model_description.yaml file was not found in the path " + model_dir)
+        model_description_path = os.path.join(model_dir, 'model_description.yaml')
+        self.data = self.__read_yaml(model_description_path, 'model description')
 
         # validate with the schema
         with importlib.resources.path('ignnition', "schema.json") as schema_file:
@@ -117,13 +114,11 @@ class Yaml_preprocessing:
         # add the global variables (if any)
         global_variables_path = os.path.join(model_dir, 'global_variables.yaml')
         if os.path.exists(global_variables_path):
-            try:
-                global_variables = self.__read_yaml(global_variables_path)
-                self.data = self.__add_global_variables(self.data, global_variables)
-            except:
-                print_failure("There was an error with the global_variables.yaml file")
+            global_variables = self.__read_yaml(global_variables_path, 'global variables')
+            self.data = self.__add_global_variables(self.data, global_variables)
+
         else:
-            print_info("No global_variables.yaml file detected in path: ", global_variables_path)
+            print_info("No global_variables.yaml file detected in path: " + global_variables_path + ".\nIf you didn't use it in your model definition, ignore this message.")
 
         self.__validate_model_description(self.data)
 
@@ -146,18 +141,23 @@ class Yaml_preprocessing:
         with open(path) as json_file:
             return json.load(json_file)
 
-    def __read_yaml(self, path):
+    def __read_yaml(self, path, file_name=''):
         """
         Parameters
         ----------
         path:    str
             Path of the json file with the model description
+        file_name: str
+            Name of the file we aim to read
         """
-        with open(path, 'r') as stream:
-            try:
-                return yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print_failure("The model description file was not found in: " + path)
+        if os.path.isfile(path):
+            with open(path, 'r') as stream:
+                try:
+                    return yaml.safe_load(stream)
+                except yaml.YAMLError as exc:
+                    print_failure("There was the following error in the " + file_name + " file.\n" + str(exc))
+        else:
+            print_failure("The " + file_name + " file was not found in: " + path)
 
     def __add_global_variables(self, data, global_variables):
         """

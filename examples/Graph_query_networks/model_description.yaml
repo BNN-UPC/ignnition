@@ -80,9 +80,12 @@ neural_networks:
 
 - nn_name: F
   nn_architecture:
-  - type_layer: Dense
-    units: 1
-    activation: sigmoid
+    - type_layer: Dense
+      units: 160
+      activation: leaky_relu
+    - type_layer: Dense
+      units: 1
+      activation: sigmoid
 
 ## RNN model
 - nn_name: recurrent1
