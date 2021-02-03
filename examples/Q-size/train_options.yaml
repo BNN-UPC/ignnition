@@ -1,5 +1,5 @@
 # PATHS
-train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/TRAIN
+train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/train
 validation_dataset: ../Datasets/Datasets_framework/Dataset_routenet/eval
 #predict_dataset:
 #warm_start_path:
