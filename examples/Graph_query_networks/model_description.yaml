@@ -10,7 +10,7 @@ entities:
   state_dimension: 160
   initial_state:
     - type: build_state
-      input: [ link_speed ]
+      input: [ speed ]
 
 # Definition of the message passing phase
 message_passing:
@@ -66,9 +66,6 @@ neural_networks:
   ## Feed forward models
 - nn_name: edge_att_nn
   nn_architecture:
-  - type_layer: Dense
-    units: 256
-    activation: leaky_relu
   - type_layer: Dense
     units: 1
     activation: leaky_relu
