@@ -83,11 +83,11 @@ def migrate_dataset(input_path, output_path, max_per_file):
             data.append(parser_graph)
             if counter == max_per_file:
                 a = np.random.rand()
-                path = output_path + 'Dataset_routenet_networkx/'
+                path = output_path + 'data/'
                 if a < 0.2:
-                    path += 'EVAL/'
+                    path += 'eval/'
                 else:
-                    path += 'TRAIN/'
+                    path += 'train/'
 
                 with open('data.json', 'w') as json_file:
                         json.dump(data, json_file)
@@ -111,11 +111,11 @@ def migrate_dataset(input_path, output_path, max_per_file):
         #when finished, save all the remaining ones
         except:
             a = np.random.rand()
-            path = output_path + 'Dataset_routenet_networkx/'
+            path = output_path + 'data/'
             if a < 0.2:
-                path += 'EVAL/'
+                path += 'eval/'
             else:
-                path += 'TRAIN/'
+                path += 'train/'
 
             with open(path + 'data.json', 'w') as json_file:
                 json.dump(data, json_file)

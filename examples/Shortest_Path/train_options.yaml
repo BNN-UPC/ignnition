@@ -1,5 +1,5 @@
 # PATHS
-train_dataset: ./data/TRAIN
+train_dataset: ./data/train
 validation_dataset: ./data/test
 #predict_dataset: ./data/test
 #warm_start_path:
