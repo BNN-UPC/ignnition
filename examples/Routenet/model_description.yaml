@@ -1,0 +1,72 @@
+# Definition of the entities
+entities:
+- name: link
+  state_dimension: hidden_state_dim
+  initial_state:
+    - type: build_state
+      input: [capacity]
+
+- name: path
+  state_dimension: hidden_state_dim
+  initial_state:
+    - type: build_state
+      input: [traffic]
+
+
+# Definition of the message passing phase
+message_passing:
+  num_iterations: N
+  stages:
+    # STAGE 1:
+    - stage_message_passings:
+      # links to paths
+      - destination_entity: path
+        source_entities:
+          - name: link
+            message:
+              - type: direct_assignment
+        aggregation:
+          - type: ordered
+        update:
+          type: neural_network
+          nn_name: recurrent1
+
+    # STAGE 2:
+    - stage_message_passings:
+      # paths to links
+      - destination_entity: link
+        source_entities:
+        - name: path
+          message:
+          - type: direct_assignment
+        aggregation:
+          - type: sum
+        update:
+          type: neural_network
+          nn_name: recurrent1
+
+# Definition of the readout
+readout:
+- type: neural_network
+  input: [path]
+  nn_name: readout_model
+  output_label: delay
+
+# Definition of the Neural Networks
+neural_networks:
+- nn_name: readout_model
+  nn_architecture:
+  - type_layer: Dense
+    units: readout_units
+    kernel_regularizer: r_l2
+    activation: selu
+  - type_layer: Dense
+    units: readout_units
+  - type_layer: Dense
+    units: output_units
+    kernel_regularizer: r_l2_2
+    activation: None
+
+- nn_name: recurrent1
+  nn_architecture:
+    - type_layer: GRU

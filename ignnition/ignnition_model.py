@@ -18,9 +18,6 @@
 
 # -*- coding: utf-8 -*-
 
-
-import sys
-import configparser
 import tensorflow as tf
 import datetime
 import warnings
@@ -31,96 +28,327 @@ from tensorflow.keras.losses import *
 from tensorflow.keras.optimizers import *
 from tensorflow.keras.optimizers.schedules import *
 import os
-import inspect
-import numpy as np
 from ignnition.gnn_model import Gnn_model
-from ignnition.json_preprocessing import Json_preprocessing
+from ignnition.yaml_preprocessing import Yaml_preprocessing
 from ignnition.data_generator import Generator
-import main
+from ignnition.utils import *
+from ignnition.custom_callbacks import *
+import sys
+import yaml
+import collections
+import networkx as nx
+from networkx.readwrite import json_graph
+from itertools import chain
+
 
 class Ignnition_model:
-    def __init__(self, path):
-        self.end_symbol = bytes(']', 'utf-8')
-        tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
-        self.CONFIG = configparser.ConfigParser()
-        self.CONFIG._interpolation = configparser.ExtendedInterpolation()
-        self.CONFIG.read(path)
+    """
+    This class implements the main interface to execute the framework. It includes the main functionalities of the training, which can be called by the user. Additionally, it incorporates all the necessary functionalities to create/restore a model.
 
-        tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.INFO)
+    Attributes
+    ----------
+    model_dir:    str
+        Path to the model directory where the train_options is found as well as all the other files.
+    CONFIG: dict
+        Dictionary containing all the information from the train_options.yaml file.
+    module: obj
+        Import of the module to be used to call custom functions such as normalization ones.
+    model_info: yaml_preprocessing
+        Object which is in charge of handling all the information of the model_description file.
+    generator: Generator obj
+        Object in charge of feeding the data to the model.
+
+    Methods:
+    ----------
+    __process_path(self, path)
+        This method takes as input a path and, considering the location of the model directory, converts all the relative path to absolute paths starting from such model_directory
+
+    __loss_function(self, labels, predictions)
+       Function that calls executes the loss function object from the keras libarary if specified. O/w it looks for a custom loss function specified in the module file.
+
+    __get_keras_metrics(self)
+        Creates all the keras metrics corresponding to tf.keras objects, or it creates objects based on custom function specified in the module path.
+
+    __get_compiled_model(self, model_info)
+        Compiles the tf model with all the corresponding options
+
+    __get_model_callbacks(self, output_path, mini_epoch_size, num_epochs, metric_names)
+        Creates all the callbacks (these being the k-best (if specified), model checkpoints, and tensorboard)
+
+    __batch_normalization(self, x, feature_list, y=None)
+        Performs batch normalization on the data (e.g., normalizes all the batch by its max, min..)
+
+    __global_normalization(self, x, feature_list, output_name, y=None)
+        Performs a global normalization operation which must be specified in the module path (all the samples are normalized according to the same criteria).
+
+    __input_fn_generator(self, filenames=None, shuffle=False, training=True,data_samples=None, iterator=False)
+        Method that creates the dataset which is served by the generator that we created before.
+
+    __create_model(self)
+        Method that creates the yaml_preprocessing object that processed the model_description file and creates the subsequent classes to organize the info.
+
+    __create_gnn(self,samples=None, path=None, verbose=True)
+        Creates the GNN object itself.
+
+    __restore_model(self, gnn_model, sample)
+        Restores the weights from a GNN that is saved in the given path to the current GNN model.
+
+    find_dataset_dimensions(self, path=None, samples=None)
+        Looks for the first training samples and processes it to extract the dimensions of all the input tensors (necessary to create the GNN model)s
+
+    train_and_validate(self, training_samples=None, eval_samples=None)
+        Public operation that is called by the user to initiate a training and validation operation of the current GNN model.
+
+    predict(self, prediction_samples=None, verbose=True)
+        Public operation that is callable by the user to initiate a predict operatio of a given array of data/dataset using the current GNN model.
+
+    computational_graph(self)
+        Public method callable by the user to create a computation graph of the desired model which can be then used for debugging purposes.
+
+    evaluate(self, evaluation_samples = None, verbose=True)
+        Public method callable by the user that executes an evaluation functionality given some metrics.
+
+    batch_training(self, input_samples)
+        Public method callable by the user, useful in RL context, to execute a training of a single batch of data. No verbosite is set.
+    """
+
+    def __init__(self, model_dir):
+        """
+        Parameters
+        ----------
+        model_dir:    str
+           Path to the model directory
+        """
+        path = os.path.normpath(model_dir)
+        self.model_dir = os.path.abspath(path)
+
+        train_options_path = os.path.join(self.model_dir, 'train_options.yaml')
+
+        # read the train_options file
+        with open(train_options_path, 'r') as stream:
+            try:
+                self.CONFIG = yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                print("The training options file was not found in " + train_options_path)
+
+        tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
         warnings.filterwarnings("ignore")
 
-        self.model = self.create_model()
+        # add the file with any additional function, if any
+        if 'additional_functions_file' in self.CONFIG:
+            additional_path = self.__process_path(self.CONFIG['additional_functions_file'])
+            sys.path.insert(1, additional_path)
+            self.module = __import__(additional_path.split('/')[-1][0:-3])
+
+        self.model_info = self.__create_model()
         self.generator = Generator()
 
+    def __process_path(self, path):
+        """
+        Parameters
+        ----------
+        path:    string
+           Normalized or absolute path to be converted
+        """
+        return os.path.normpath(os.path.join(self.model_dir, path))
 
-    def normalization(self, x, feature_list, output_name, output_normalization, y=None):
+    def __loss_function(self, labels, predictions):
+        """
+        Parameters
+        ----------
+        labels:    tensor
+           Input label
+        predictions:    tensor
+           Predictions of the GNN model
+        """
 
+        loss_func_name = self.CONFIG['loss']
+        try:
+            loss_function = getattr(tf.keras.losses, loss_func_name)()
+            regularization_loss = sum(self.gnn_model.losses)
+            loss = loss_function(labels, predictions)
+            total_loss = loss + regularization_loss
+
+        except:  # go to the main file and find the function by this name
+            loss_function = getattr(self.module, loss_func_name)
+            total_loss = tf.py_function(func=loss_function, inp=[predictions, labels, self.gnn_model], Tout=tf.float32)
+
+        return total_loss
+
+    def __get_keras_metrics(self):
+        metric_names = self.CONFIG['metrics']
+        metrics = []
+        for name in metric_names:
+            if hasattr(tf.keras.metrics, name):
+                metrics.append(getattr(tf.keras.metrics, name)())
+            elif hasattr(self.module, name):
+                metrics.append(getattr(self.module, name))
+
+        return metrics
+
+    @tf.autograph.experimental.do_not_convert
+    def __get_compiled_model(self, model_info):
+        """
+        Parameters
+        ----------
+        model_info:    Yaml_preprocessing object
+            Object in charge of handling the information in the model_description.yaml file
+        """
+
+        gnn_model = Gnn_model(model_info)
+
+        # dynamically define the optimizer
+        optimizer_params = self.CONFIG['optimizer']
+        op_type = optimizer_params['type']
+        del optimizer_params['type']
+
+        # dynamically define the adaptative learning rate if needed (schedule)
+        if 'learning_rate' in optimizer_params and isinstance(optimizer_params['learning_rate'], dict):
+            schedule = optimizer_params['learning_rate']
+            type = schedule['type']
+            del schedule['type']  # so that only the parameters remain
+            s = getattr(tf.keras.optimizers.schedules, type)
+
+            # create an instance of the schedule class indicated by the user. Accepts any schedule from keras documentation
+            optimizer_params['learning_rate'] = s(**schedule)
+
+        # create the optimizer
+        o = getattr(tf.keras.optimizers, op_type)
+
+        # create an instance of the optimizer class indicated by the user. Accepts any loss function from keras documentation
+        optimizer = o(**optimizer_params)
+        gnn_model.compile(loss=self.__loss_function,
+                          optimizer=optimizer,
+                          metrics=self.__get_keras_metrics(),
+                          run_eagerly=False)
+        return gnn_model
+
+    def __get_model_callbacks(self, output_path):
+        """
+        Parameters
+        ----------
+        output_path:    str
+            Path where the checkpoint files and logs are saved
+        """
+
+        os.mkdir(output_path + '/ckpt')
+
+        # HERE WE CAN ADD AN OPTION FOR EARLY STOPPING
+        return [tf.keras.callbacks.TensorBoard(log_dir=output_path + '/logs', update_freq='epoch', write_images=False,
+                                               histogram_freq=1),
+                tf.keras.callbacks.ModelCheckpoint(filepath=output_path + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
+                                                   save_freq='epoch', monitor='loss'),
+                K_best(output_path=output_path + '/logs', k=self.CONFIG.get('k_best', None))]
+
+    # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
+    def __batch_normalization(self, x, feature_list, norm_type, y=None):
         """
         Parameters
         ----------
         x:    tensor
-            Tensor with the feature information
-        y:    tensor
-            Tensor with the label information
+           Tensor with the feature information
+
         feature_list:    tensor
-            List of names with the names of the features in x
-        output_names:    tensor
-            List of names with the name of the output labels in y
-        output_normalizations: dict
-            Maps each feature or label with its normalization strategy if any
+           List of names with the names of the features in x
+        norm_type: string
+            Defines the type of batch normalization to be used
+        y:    tensor
+           Tensor with the label information
         """
 
         # input data
         for f in feature_list:
             f_name = f.name
-            norm_type = f.normalization
-            if str(norm_type) != 'None':
-                try:
-                    x[f_name] = getattr(main, norm_type)(x[f_name], f_name)
-                except:
-                    tf.compat.v1.logging.error(
-                        'IGNNITION: The normalization function ' + str(norm_type) + ' is not defined in the main file.')
-                    sys.exit(1)
+            # norm_type = f.batch_normalization
+            if norm_type == 'mean':
+                mean = tf.math.reduce_mean(x.get(f_name))
+                variance = tf.math.reduce_std(x.get(f_name))
+                x[f_name] = (x.get(f_name) - mean) / variance
 
+            elif norm_type == 'max':
+                max = tf.math.reduce_max(x.get(f_name))
+                x[f_name] = x.get(f_name) / max
         # output
-        if y != None:
-            if str(output_normalization) != 'None':
-                try:
-                    y = getattr(main, output_normalization)(y, output_name)
-                except:
-                    tf.compat.v1.logging.error(
-                        'IGNNITION: The normalization function ' + str(
-                            output_normalization) + ' is not defined in the main file.')
-                    sys.exit(1)
+        if y is not None:
+            output_normalization = 'mean'
+            if output_normalization == 'mean':
+                mean = tf.math.reduce_mean(y)
+                variance = tf.math.reduce_std(y)
+                y = (y - mean) / variance
+
+            elif output_normalization == 'max':
+                max = tf.math.reduce_max(y)
+                y = y / max
 
             return x, y
-
         return x
 
-    def input_fn_generator(self, filenames, shuffle=False, training=True, batch_size=1, data_samples=None):
+    def __global_normalization(self, x, feature_list, output_name, y=None):
         """
         Parameters
         ----------
         x:    tensor
             Tensor with the feature information
-        y:    tensor
-            Tensor with the label information
         feature_list:    tensor
             List of names with the names of the features in x
         output_names:    tensor
             List of names with the name of the output labels in y
-        output_normalizations: dict
-            Maps each feature or label with its normalization strategy if any
+        y:    tensor
+            Tensor with the label information
         """
+
+        try:
+            norm_func = getattr(self.module, 'normalization')
+        except:
+            norm_func = None
+
+        if norm_func is not None:
+            # input data
+            for f_name in feature_list:
+                try:
+                    x[f_name] = tf.py_function(func=norm_func, inp=[x.get(f_name), f_name], Tout=tf.float32)
+                except:
+                    print_failure('The normalization function failed with feature ' + f_name + '.')
+
+            # output
+            if y is not None:
+                try:
+                    y = tf.py_function(func=norm_func, inp=[y, output_name], Tout=tf.float32)
+                except:
+                    print_failure('The normalization function computing the output label' + output_name + ' failed.')
+                return x, y
+            return x
+
+        if y is not None:
+            return x, y
+        return x
+
+    @tf.autograph.experimental.do_not_convert
+    def __input_fn_generator(self, filenames=None, shuffle=False, training=True, data_samples=None, iterator=False):
+        """
+        Parameters
+        ----------
+        filenames:    string
+            Tensor with the filenames of the input (if using dataset input only)
+        shuffle:    bool
+            Bool indicating if we need to shuffle the input data.
+        training:    bool
+            Bool indicating if we are performing a training operation (and thus a label is expected)
+        data_samples:    [array]
+            List of samples to be used as input (if any)
+        iterator: bool
+            Indicates if we need to transform the dataset to an iterator
+        """
+
         with tf.name_scope('get_data') as _:
-            feature_list = self.model.get_all_features()
-            adjacency_info = self.model.get_adjecency_info()
-            interleave_list = self.model.get_interleave_tensors()
-            interleave_sources = self.model.get_interleave_sources()
-            output_name, output_normalization, _ = self.model.get_output_info()
-            additional_input = self.model.get_additional_input_names()
+            feature_list = self.model_info.get_all_features()
+            adj_names = self.model_info.get_adjacency_info()
+            interleave_list = self.model_info.get_interleave_tensors()
+            interleave_sources = self.model_info.get_interleave_sources()
+            output_name = self.model_info.get_output_info()
+            additional_input = self.model_info.get_additional_input_names()
             unique_additional_input = [a for a in additional_input if a not in feature_list]
-            entity_names = self.model.get_entity_names()
+            entity_names = self.model_info.get_entity_names()
             types, shapes = {}, {}
             feature_names = []
 
@@ -128,23 +356,23 @@ class Ignnition_model:
                 types[a] = tf.int64
                 shapes[a] = tf.TensorShape(None)
 
-            for f in feature_list:
-                f_name = f.name
+            for f_name in feature_list:
                 feature_names.append(f_name)
                 types[f_name] = tf.float32
                 shapes[f_name] = tf.TensorShape(None)
 
-            for a in adjacency_info:
-                types['src_' + a[0]] = tf.int64
-                shapes['src_' + a[0]] = tf.TensorShape([None])
-                types['dst_' + a[0]] = tf.int64
-                shapes['dst_' + a[0]] = tf.TensorShape([None])
-                types['seq_' + a[1] + '_' + a[2]] = tf.int64
-                shapes['seq_' + a[1] + '_' + a[2]] = tf.TensorShape([None])
+            for a in adj_names:
+                types['src_' + a] = tf.int64
+                shapes['src_' + a] = tf.TensorShape([None])
+                types['dst_' + a] = tf.int64
+                shapes['dst_' + a] = tf.TensorShape([None])
+                types['seq_' + a] = tf.int64
+                shapes['seq_' + a] = tf.TensorShape([None])
 
-                if a[3] == 'True':
-                    types['params_' + a[0]] = tf.int64
-                    shapes['params_' + a[0]] = tf.TensorShape(None)
+                # we now include this values in the additional_params
+            # if a[3] == 'True':
+            #     types['params_' + a[0]] = tf.int64
+            #     shapes['params_' + a[0]] = tf.TensorShape(None)
 
             for e in entity_names:
                 types['num_' + e] = tf.int64
@@ -154,641 +382,452 @@ class Ignnition_model:
                 types['indices_' + i[0] + '_to_' + i[1]] = tf.int64
                 shapes['indices_' + i[0] + '_to_' + i[1]] = tf.TensorShape([None])
 
-
             if training:  # if we do training, we also expect the labels
                 if data_samples is None:
-                    ds = tf.data.Dataset.from_generator(self.generator.generate_from_dataset,
-                                                        (types, tf.float32),
-                                                        (shapes, tf.TensorShape(None)),
-                                                        args=(
-                                                            filenames, entity_names, feature_names, output_name, adjacency_info,
-                                                            interleave_list,
-                                                            unique_additional_input, training, shuffle))
+                    ds = tf.data.Dataset.from_generator(
+                        lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
+                                                                     output_name,  # adjacency_info,
+                                                                     interleave_list, unique_additional_input, training,
+                                                                     shuffle),
+                        output_types=(types, tf.float32),
+                        output_shapes=(shapes, tf.TensorShape(None)))
+                    ds = ds.repeat()
                 else:
                     data_samples = [json.dumps(t) for t in data_samples]
-                    ds = tf.data.Dataset.from_generator(self.generator.generate_from_array,
-                                                        (types, tf.float32),
-                                                        (shapes, tf.TensorShape(None)),
-                                                        args=(
-                                                            data_samples, entity_names, feature_names, output_name,
-                                                            adjacency_info,
-                                                            interleave_list,
-                                                            unique_additional_input, training, shuffle))
+                    ds = tf.data.Dataset.from_generator(
+                        lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
+                                                                   output_name,  # adjacency_info,
+                                                                   interleave_list,
+                                                                   unique_additional_input, training, shuffle),
+                        output_types=(types, tf.float32),
+                        output_shapes=(shapes, tf.TensorShape(None)))
 
             else:
                 if data_samples is None:
-                    ds = tf.data.Dataset.from_generator(self.generator.generate_from_dataset,
-                                                        (types),
-                                                        (shapes),
-                                                        args=(
-                                                            filenames, entity_names, feature_names, output_name, adjacency_info,
-                                                            interleave_list,
-                                                            unique_additional_input, training, shuffle))
+                    ds = tf.data.Dataset.from_generator(
+                        lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
+                                                                     output_name,  # adjacency_info,
+                                                                     interleave_list, unique_additional_input, training,
+                                                                     shuffle),
+                        output_types=(types),
+                        output_shapes=(shapes))
+
                 else:
                     data_samples = [json.dumps(t) for t in data_samples]
-                    ds = tf.data.Dataset.from_generator(self.generator.generate_from_array,
-                                                        (types),
-                                                        (shapes),
-                                                        args=(
-                                                            data_samples, entity_names, feature_names, output_name,
-                                                            adjacency_info,
-                                                            interleave_list,
-                                                            unique_additional_input, training, shuffle))
-
+                    ds = tf.data.Dataset.from_generator(
+                        lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
+                                                                   output_name,  # adjacency_info,
+                                                                   interleave_list,
+                                                                   unique_additional_input, training, shuffle),
+                        output_types=(types),
+                        output_shapes=(shapes))
 
             with tf.name_scope('normalization') as _:
-                if training:
-                    ds = ds.repeat()
-                    ds = ds.map(lambda x, y: self.normalization(x, feature_list, output_name, output_normalization, y),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                batch_norm = self.CONFIG.get('batch_normalization', None)
+                if batch_norm is None:
+                    if training:
+                        ds = ds.map(
+                            lambda x, y: self.__global_normalization(x, feature_list, output_name, y),
+                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
-                    ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+                    else:
+                        ds = ds.map(
+                            lambda x: self.__global_normalization(x, feature_list, output_name),
+                            num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = iter(ds)
 
                 else:
-                    ds = ds.map(lambda x: self.normalization(x, feature_list, output_name, output_normalization),
-                                num_parallel_calls=tf.data.experimental.AUTOTUNE)
-                    ds = tf.compat.v1.data.make_initializable_iterator(ds)
+                    if training:
+                        ds = ds.map(lambda x, y: self.__batch_normalization(x, feature_list, batch_norm, y),
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                        ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+                    else:
+                        ds = ds.map(lambda x: self.__batch_normalization(x, feature_list, batch_norm),
+                                    num_parallel_calls=tf.data.experimental.AUTOTUNE)
+
+            if iterator:
+                ds = iter(ds)
 
         return ds
 
+    # -------------------------------------
+    def __create_model(self):
+        print_header(
+            "\nProcessing the described model...\n---------------------------------------------------------------------------\n")
+        return Yaml_preprocessing(self.model_dir)  # read json
 
-    def r_squared(self, labels, predictions):
+    def __create_gnn(self, samples=None, path=None, verbose=True):
         """
         Parameters
         ----------
-        labels:    tensor
-            Label information
-        predictions:    tensor
-            Predictions of the model
+        samples:    [array]
+            Array of samples to be used as input (if any)
+        path:    bool
+            Path to find the input data (applicable only if using dataset input)
+        verbose:    bool
+            Indicates if we want verbosity in the prints of the terminal
         """
-        total_error = tf.reduce_sum(tf.square(labels - tf.reduce_mean(labels)))
-        unexplained_error = tf.reduce_sum(tf.square(labels - predictions))
-        r_sq = 1.0 - tf.truediv(unexplained_error, total_error)
 
-        m_r_sq, update_rsq_op = tf.compat.v1.metrics.mean(r_sq)
+        if verbose:
+            print_header(
+                "Creating the GNN model...\n---------------------------------------------------------------------------\n")
 
-        return m_r_sq, update_rsq_op
+        dimensions, sample = self.find_dataset_dimensions(samples=samples, path=path)
+        self.model_info.add_dimensions(dimensions)
 
+        gnn_model = self.__get_compiled_model(self.model_info)
+        # restore a warm-start Checkpoint (if any)
+        self.gnn_model = self.__restore_model(gnn_model, sample=sample)
 
-    def model_fn(self, features, labels, mode):
+    def __restore_model(self, gnn_model, sample):
         """
         Parameters
         ----------
-        features:    dict
-            All the features to be used as input
-        labels:    tensor
-            Tensor with the label information
-        mode:    tensor
-            Either train, eval or predict
+        gnn_model:    GNN obj
+            GNN obj of the actual model
+        sample:    dict
+            Input dictionary necessary to initialize all the dimensions
         """
 
-        # create the model
-        gnn_model = Gnn_model(self.model)
+        checkpoint_path = self.CONFIG.get('warm_start_path', '')
+        if os.path.isfile(checkpoint_path):
+            print("Restoring from", checkpoint_path)
+            # in this case we need to initialize the weights to be able to use a warm-start checkpoint
 
-        predictions = gnn_model(features, training=(mode == tf.estimator.ModeKeys.TRAIN))
-        predictions = tf.squeeze(predictions)
+            sample_it = self.__input_fn_generator(training=False,
+                                                  data_samples=[sample])
+            sample = sample_it.get_next()
+            # Call only one tf.function when tracing.
+            _ = gnn_model(sample, training=False)
+            gnn_model.load_weights(checkpoint_path)
 
-        # prediction mode. Denormalization is done if so specified
-        if mode == tf.estimator.ModeKeys.PREDICT:
-            output_name, _, output_denorm = self.model.get_output_info()  # for now suppose we only have one output type
-            try:
-                predictions = getattr(main, output_denorm)(predictions, output_name)
-            except:
-                tf.compat.v1.logging.warn(
-                    'IGNNITION: A denormalization function for output ' + output_name + ' was not defined. The output will be normalized.')
+        elif checkpoint_path != '':
+            print_info(
+                "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
 
-            return tf.estimator.EstimatorSpec(
-                mode, predictions={
-                    'predictions': predictions
-                })
+        return gnn_model
 
-        loss_func_name = self.model.get_loss()
-        # try to dynamically define the loss function from the keras documentation
-        try:
-            loss = globals()[loss_func_name]
-            loss_function = loss()
-            regularization_loss = sum(gnn_model.losses)
-            loss = loss_function(labels, predictions)
-            total_loss = loss + regularization_loss
-
-            tf.summary.scalar('loss', loss)
-            tf.summary.scalar('regularization_loss', regularization_loss)
-            tf.summary.scalar('total_loss', total_loss)
-
-        except:   # go to the main file and find the function by this name
-            total_loss = getattr(main, loss_func_name)(predictions, labels, gnn_model)
-            tf.summary.scalar('total_loss', total_loss)
-
-        # evaluation mode
-        if mode == tf.estimator.ModeKeys.EVAL:
-            eval_metrics = {}
-
-            # perform denormalization if defined
-            output_name, _, output_denorm = self.model.get_output_info()
-
-            if output_denorm != None:
-                try:
-                    labels_denormalized = getattr(main, output_denorm)(labels, output_name)
-                    predictions_denormalized = getattr(main,output_denorm)(predictions, output_name)
-
-                    label_mean_denorm = tf.keras.metrics.Mean()
-                    _ = label_mean_denorm.update_state(labels_denormalized)
-                    prediction_mean_denorm = tf.keras.metrics.Mean()
-                    _ = prediction_mean_denorm.update_state(predictions_denormalized)
-                    mae_denorm = tf.keras.metrics.MeanAbsoluteError()
-                    _ = mae_denorm.update_state(labels_denormalized, predictions_denormalized)
-                    mre_denorm = tf.keras.metrics.MeanRelativeError(normalizer= tf.abs(labels_denormalized))
-                    _ = mre_denorm.update_state(labels_denormalized, predictions_denormalized)
-
-                    eval_metrics['label_denorm/mean'] = label_mean_denorm
-                    eval_metrics['prediction_denorm/mean'] = prediction_mean_denorm
-                    eval_metrics['mae_denorm'] = mae_denorm
-                    eval_metrics['mre_denorm'] = mre_denorm
-                    eval_metrics['r-squared-denorm'] = self.r_squared(labels_denormalized, predictions_denormalized)
-
-                except:
-                    tf.compat.v1.logging.warn(
-                        'IGNNITION: A denormalization function for output ' + output_name + ' was not defined. The output (and statistics) will use the normalized values.')
-
-            # metrics calculations
-            label_mean = tf.keras.metrics.Mean()
-            _ = label_mean.update_state(labels)
-            prediction_mean = tf.keras.metrics.Mean()
-            _ = prediction_mean.update_state(predictions)
-            mae = tf.keras.metrics.MeanAbsoluteError()
-            _ = mae.update_state(labels, predictions)
-            mre = tf.keras.metrics.MeanRelativeError(normalizer= tf.abs(labels))
-            _ = mre.update_state(labels, predictions)
-
-            eval_metrics['label/mean'] = label_mean
-            eval_metrics['prediction/mean'] = prediction_mean
-            eval_metrics['mae'] = mae
-            eval_metrics['mre'] = mre
-            eval_metrics['r-squared'] = self.r_squared(labels, predictions)
-
-
-            return tf.estimator.EstimatorSpec(
-                mode, loss=total_loss,
-                eval_metric_ops= eval_metrics
-            )
-
-        assert mode == tf.estimator.ModeKeys.TRAIN
-
-        grads = tf.gradients(total_loss, gnn_model.trainable_variables)
-
-        summaries = [tf.summary.histogram(var.op.name, var) for var in gnn_model.trainable_variables]
-        summaries += [tf.summary.histogram(g.op.name, g) for g in grads if g is not None]
-
-        # dynamically define the optimizer
-        optimizer_params = self.model.get_optimizer()
-        op_type = optimizer_params['type']
-        del optimizer_params['type']
-
-        # dynamically define the adaptative learning rate if needed
-
-        if 'schedule' in optimizer_params:
-            schedule = optimizer_params['schedule']
-            type = schedule['type']
-            del schedule['type']  # so that only the parameters remain
-            s = globals()[type]
-            # create an instance of the schedule class indicated by the user. Accepts any schedule from keras documentation
-            optimizer_params['learning_rate'] = s(**schedule)
-            del optimizer_params['schedule']
-
-        # create the optimizer
-        o = globals()[op_type]
-        optimizer = o(
-            **optimizer_params)  # create an instance of the optimizer class indicated by the user. Accepts any loss function from keras documentation
-
-        optimizer.iterations = tf.compat.v1.train.get_or_create_global_step()
-
-        train_op = optimizer.apply_gradients(zip(grads, gnn_model.trainable_variables))
-
-        logging_hook = tf.estimator.LoggingTensorHook(
-            {"Loss": total_loss}
-            , every_n_iter=10)
-
-        return tf.estimator.EstimatorSpec(mode,
-                                          loss=total_loss,
-                                          train_op=train_op,
-                                          training_hooks=[logging_hook]
-                                          )
-
-    def create_model(self):
-        json_path = self.CONFIG['PATHS']['json_path']
-        dimensions = self.find_dataset_dimensions(self.CONFIG['PATHS']['train_dataset'])
-        model_info = Json_preprocessing(json_path, dimensions)  # read json
-        return model_info
-
-
-    def stream_read_json(self, f):
-        start_pos = 1
-        while True:
-            try:
-                obj = json.load(f)
-                yield obj
-                return
-            except json.JSONDecodeError as e:
-                f.seek(start_pos)
-                json_str = f.read(e.pos)
-                obj = json.loads(json_str)
-                start_pos += e.pos +1
-                a = f.read(1)
-                if a == self.end_symbol:
-                    yield obj
-                    return
-                yield obj
-
-
-    def find_dataset_dimensions(self, path):
+    # --------------------------------
+    def find_dataset_dimensions(self, path=None, samples=None):
         """
         Parameters
         ----------
         path:    str
           Path to find the dataset
-        """
-        sample = glob.glob(str(path) + '/*.tar.gz')[0]  # choose one single file to extract the dimensions
-        try:
-            tar = tarfile.open(sample, 'r:gz')  # read the tar files
-        except:
-            tf.compat.v1.logging.error('IGNNITION: The file data.json was not found in ' + sample)
-            sys.exit(1)
-
-        try:
-            file_samples = tar.extractfile('data.json')
-            file_samples.read(1)
-            aux = self.stream_read_json(file_samples)
-
-            sample_data = next(aux) # read one single example #json.load(file_samples)[0]  # one single sample
-            dimensions = {}
-            for k, v in sample_data.items():
-                # if it's a feature
-                if not isinstance(v, dict) and isinstance(v, list):
-                    if isinstance(v[0], str):
-                        pass
-
-                    # if it's a feature
-                    elif isinstance(v[0], list):
-                        dimensions[k] = len(v[0])
-                    else:
-                        dimensions[k] = 1
-
-                # if its either the entity or an adjacency (it is a dictionary, that is non-empty)
-                elif v:
-                    first_key = list(v.keys())[0]  # first key of the list
-                    element = v[first_key]  # first value of the list (another list)
-                    if (not isinstance(element[0], str)) and isinstance(element[0], list):
-                        # the element[0][0] is the adjacency node. The element[0][1] is the edge information
-                        dimensions[k] = len(element[0][1])
-                    else:
-                        dimensions[k] = 0
-
-            return dimensions
-
-        except:
-            tf.compat.v1.logging.error('IGNNITION: Failed to read the data file ' + sample)
-            sys.exit(1)
-
-
-    def str_to_bool(self, a):
-        """
-        Parameters
-        ----------
-        a:    str
-           Input
+        samples: [array]
+            Array of samples to be used as input (if any)
         """
 
-        if a == 'True':
-            return True
+        if samples is not None:
+            sample = samples[0]  # take the first one to find the dimensions
+
         else:
-            return False
+            sample_paths = (glob.glob(path + '/*.tar.gz') + glob.glob(path + '/*.json'))
 
-
-    def train_and_evaluate(self, training_samples = None, eval_samples = None):
-        print()
-        tf.compat.v1.logging.warn(
-            'IGNNITION: Starting the training and evaluation process...\n---------------------------------------------------------------------------\n')
-
-        filenames_train = self.CONFIG['PATHS']['train_dataset']
-        filenames_eval = self.CONFIG['PATHS']['eval_dataset']
-
-        model_dir = self.CONFIG['PATHS']['model_dir']
-        if model_dir[-1] != '/':
-            model_dir += '/'
-        model_dir += 'CheckPoint'
-        model_dir = model_dir + '/experiment_' + str(datetime.datetime.now())
-
-        if self.CONFIG.has_option('PATHS', 'warm_start_path'):
-            warm_start_setting = tf.estimator.WarmStartSettings(
-                ckpt_to_initialize_from=self.CONFIG['PATHS']['warm_start_path'],
-                vars_to_warm_start=["message_passing*", "model_initializations.*"])
-        else:
-            warm_start_setting = None
-
-        d = {}
-        if self.CONFIG.has_option('TRAINING_OPTIONS', 'execute_gpu'):
-            if self.CONFIG['TRAINING_OPTIONS']['execute_gpu'] == 'False':
-                d = {'GPU':0}
-
-        my_checkpointing_config = tf.estimator.RunConfig(
-            save_checkpoints_secs=int(self.CONFIG['TRAINING_OPTIONS']['save_checkpoints_secs']),
-            keep_checkpoint_max=int(self.CONFIG['TRAINING_OPTIONS']['keep_checkpoint_max']),
-            session_config=tf.compat.v1.ConfigProto(device_count=d)
-        )
-
-        estimator = tf.estimator.Estimator(
-            model_fn=self.model_fn,
-            model_dir=model_dir,
-            warm_start_from=warm_start_setting,
-            config=my_checkpointing_config
-        )
-
-
-        func_train = lambda: self.input_fn_generator(filenames_train,
-                          shuffle=self.str_to_bool(self.CONFIG['TRAINING_OPTIONS']['shuffle_train_samples']),
-                          batch_size=int(self.CONFIG['TRAINING_OPTIONS']['batch_size']), data_samples= training_samples)
-
-        train_spec = tf.estimator.TrainSpec(
-            input_fn= func_train,max_steps=int(self.CONFIG['TRAINING_OPTIONS']['train_steps']))
-
-
-        func_eval = lambda: self.input_fn_generator(filenames_eval,
-                      shuffle=self.str_to_bool(self.CONFIG['TRAINING_OPTIONS']['shuffle_train_samples']),
-                      batch_size=int(self.CONFIG['TRAINING_OPTIONS']['batch_size']), data_samples=eval_samples)
-
-
-        eval_spec = tf.estimator.EvalSpec(
-            input_fn= func_eval,
-                            throttle_secs=int(self.CONFIG['TRAINING_OPTIONS']['evaluation_time']),
-                            steps=int(self.CONFIG['TRAINING_OPTIONS']['eval_samples']))
-
-        tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
-
-
-    def predict(self, pred_samples = None):
-        """
-        Parameters
-        ----------
-        model_info:    object
-         Object with the json information model
-        """
-
-        print()
-        tf.compat.v1.logging.warn(
-            'IGNNITION: Starting to make the predictions...\n---------------------------------------------------------\n')
-
-        graph = tf.Graph()
-        tf.compat.v1.disable_eager_execution()
-
-        try:
-            warm_path = self.CONFIG['PATHS']['warm_start_path']
-        except:
-            tf.compat.v1.logging.error(
-                'IGNNITION: The path of the model to use for the predictions is unspecified. Please add a field warm_start_path in the train_options.ini with the corresponding path to the model you want to restore.')
-            sys.exit(0)
-
-        try:
-            if pred_samples is None:
-                data_path = self.CONFIG['PATHS']['predict_dataset']
+            if sample_paths == []:
+                print_failure("No dataset found. Please make sure the paths of the datasets are correct.")
             else:
-                data_path = None
-        except:
-            tf.compat.v1.logging.error(
-                'IGNNITION: The path of dataset to use for the prediction is unspecified. Please add a field predict_dataset in the train_config.ini file with the corresponding path to the dataset you want to predict.')
-            sys.exit(0)
+                sample_path = sample_paths[0] # choose one single file to extract the dimensions
 
-        with graph.as_default():
-            gnn_model = Gnn_model(self.model)
-            it = self.input_fn_generator(data_path, training=False, data_samples = pred_samples)
-            features = it.get_next()
+            if '.tar.gz' in sample_path:
+                try:
+                    tar = tarfile.open(sample_path, 'r:gz')  # read the tar files
+                    member = tar.getmembers()[0]
+                    file_samples = tar.extractfile(member)
+                except:
+                    print_failure('The tar file ' + sample_path + ' could not be opened')
 
-            # this predictions still need to be denormalized (or to do the predictions with the estimators)
-            pred = gnn_model(features, training=False)
+            # if it is already a json file
+            else:
+                file_samples = open(sample_path, 'r')
 
-            # automatic denormalization
-            output_name, _, output_denormalization = self.model.get_output_info()  # for now suppose we only have one output type
             try:
-                pred = getattr(main, output_denormalization)(pred, output_name)
+                file_samples.read(1)
+                aux = stream_read_json(file_samples)
+                sample = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
+
             except:
-                tf.compat.v1.logging.warn('IGNNITION: A denormalization function for output ' + output_name + ' was not defined. The output will be normalized.')
+                print_failure('Failed to read the data file ' + sample)
 
-        with tf.compat.v1.Session(graph=graph) as sess:
-            sess.run(tf.compat.v1.local_variables_initializer())
-            sess.run(tf.compat.v1.global_variables_initializer())
-            saver = tf.compat.v1.train.Saver()
+            # Now that we have the sample, we can process the dimensions
+            dimensions = {}  # for each key, we have a tuple of (length, num_elements)
 
-            # path to the checkpoint we want to restore
-            saver.restore(sess, warm_path)
+            # COMPUTE THE DIMENSIONS USING ONE OF THE SAMPLES
+            # 1) Transform it to networkx
+            # 2) Obtain all the nodes attributes
+            # 3) Obtain all the edge attributes
+            # 4) Obtain all the graph attributes
 
-            all_predictions = []
-            try:
-                sess.run(it.initializer)
-                while True:
-                    p = sess.run([pred])
-                    p = np.array(p)
-                    p = p.flatten()
-                    all_predictions.append(p)
+            # 1) Obtain the corresponding graph
+            G = json_graph.node_link_graph(sample)
 
-            except tf.errors.OutOfRangeError:
-                pass
+            # 1) Node attributes
+            node_attrs = list(set(chain.from_iterable(d.keys() for _, d in G.nodes(data=True))))
+            for n in node_attrs:
+                if n != 'entity:':
+                    features = list(nx.get_node_attributes(G, n).values())
+                    elem = features[0]
+                    # if features has dimension 1, then dim = 1.
+                    if isinstance(elem, list):
+                        dimensions[n] = len(elem)
+                    else:
+                        dimensions[n] = 1
 
-            return all_predictions
+            # 2) Edge attributes
+            edge_attrs = list(set(chain.from_iterable(d.keys() for *_, d in G.edges(data=True))))
+            for e in edge_attrs:
+                features = list(nx.get_edge_attributes(G, e).values())
+                if isinstance(features[0], list):
+                    dimensions[e] = len(features[0])
+                else:
+                    dimensions[e] = 1
 
+            # 3) Graph attributes
+            graph_attrs = list(G.graph.keys())
+            for g in graph_attrs:
+                feature = G.graph[g]
+                dimensions[g] = len(feature)
 
-    def scatter_nd_numpy(self, indices, updates, shape):
-        target = np.zeros(shape, dtype=updates.dtype)
-        indices = tuple(indices.reshape(-1, indices.shape[-1]).T)
-        updates = updates.ravel()
-        np.add.at(target, indices, updates)
-        return target
+            return dimensions, sample
 
-
-    def get_k_best_accuracy(self):
+    # FUNCTIONALITIES
+    # --------------------------------------------------
+    def train_and_validate(self, training_samples=None, val_samples=None):
         """
         Parameters
         ----------
-        model_info:    object
-         Object with the json information model
+        training_samples:    [array]
+            Array of input training samples, if no dataset is used.
+        val_samples:    [array]
+            Array of input validation samples, if no dataset is used.
         """
 
+        # Create the GNN model
+        if not hasattr(self, 'gnn_model'):
+            if training_samples is None:  # look for the dataset path
+                training_path = self.__process_path(self.CONFIG['train_dataset'])
+                self.__create_gnn(path=training_path)
+            else:
+                self.__create_gnn(samples=training_samples)
+
         print()
-        tf.compat.v1.logging.warn(
-            'IGNNITION: Starting to make the predictions...\n---------------------------------------------------------\n')
+        print_header(
+            'Starting the training and validation process...\n---------------------------------------------------------------------------\n')
 
-        graph = tf.Graph()
-        tf.compat.v1.disable_eager_execution()
+        filenames_train = self.__process_path(self.CONFIG['train_dataset'])
+        filenames_val = self.__process_path(self.CONFIG['validation_dataset'])
 
+        output_path = self.__process_path(self.CONFIG['output_path'])
+        output_path = os.path.join(output_path, 'CheckPoint')
+
+        if not os.path.isdir(output_path):
+            os.mkdir(output_path)
+
+        output_path = os.path.join(output_path,
+                                   'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
+        os.mkdir(output_path)
+
+        strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
+        print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
+        train_dataset = self.__input_fn_generator(filenames_train,
+                                                  shuffle=str_to_bool(
+                                                      self.CONFIG['shuffle_training_set']),
+                                                  data_samples=training_samples)
+        validation_dataset = self.__input_fn_generator(filenames_val,
+                                                       shuffle=str_to_bool(
+                                                           self.CONFIG['shuffle_validation_set']),
+                                                       data_samples=val_samples)
+
+        mini_epoch_size = self.CONFIG.get('epoch_size', None)
+        if mini_epoch_size is not None:
+            mini_epoch_size = int(mini_epoch_size)
+
+        num_epochs = int(self.CONFIG['epochs'])
+
+        callbacks = self.__get_model_callbacks(output_path=output_path)
+
+        self.gnn_model.fit(train_dataset,
+                           epochs=num_epochs,
+                           initial_epoch=self.CONFIG.get('initial_epoch', 0),
+                           steps_per_epoch=mini_epoch_size,
+                           batch_size=self.CONFIG.get('batch_size', 1),
+                           validation_data=validation_dataset,
+                           validation_freq=int(self.CONFIG['val_frequency']),
+                           validation_steps=int(self.CONFIG['val_samples']),
+                           callbacks=callbacks,
+                           use_multiprocessing=True,
+                           verbose=1)
+
+    def predict(self, prediction_samples=None, verbose=True):
+        """
+        Parameters
+        ----------
+        prediction_samples:    [array]
+            Array of samples to be used for prediction, useful only if no prediction dataset is specified.
+        verbose: bool
+            Indicates if there should be verbosity in the prints of the terminal or not.
+        """
+
+        prediction_path = None
+        if not hasattr(self, 'gnn_model'):
+            if prediction_samples is None:  # look for the dataset path
+                try:
+                    prediction_path = self.__process_path(self.CONFIG['predict_dataset'])
+                    self.__create_gnn(path=prediction_path, verbose=verbose)
+                except:
+                    print_failure(
+                        'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the prediction dataset')
+
+            else:
+                self.__create_gnn(samples=prediction_samples, verbose=verbose)
+
+        if verbose:
+            print()
+            print_header(
+                'Starting to make the predictions...\n---------------------------------------------------------\n')
+
+        sample_it = self.__input_fn_generator(prediction_path, training=False, data_samples=prediction_samples,
+                                              iterator=True)
+        all_predictions = []
         try:
-            warm_path = self.CONFIG['PATHS']['warm_start_path']
-        except:
-            tf.compat.v1.logging.error(
-                'IGNNITION: The path of the model to use for the predictions is unspecified. Please add a field warm_start_path in the train_options.ini with the corresponding path to the model you want to restore.')
-            sys.exit(0)
-
-        try:
-            data_path = self.CONFIG['PATHS']['predict_dataset']
-        except:
-            tf.compat.v1.logging.error(
-                'IGNNITION: The path of dataset to use for the prediction is unspecified. Please add a field predict_dataset in the train_config.ini file with the corresponding path to the dataset you want to predict.')
-            sys.exit(0)
-
-        with graph.as_default():
-            model = Gnn_model(self.model)
-
-            it = self.input_fn_generator(data_path,training=True)
-            features, labels = it.get_next()    #normalized data
-            # this predictions still need to be denormalized (or to do the predictions with the estimators)
-            preds = model(features, training=False)
-
-            # automatic denormalization
-            output_name, _, output_denormalization = self.model.get_output_info()  # for now suppose we only have one output type
-            #try:
-            #    preds = eval(output_denormalization)(preds, output_name)
-            #    labels = eval(output_denormalization)(labels, output_name)
-            #except:
-            #    tf.compat.v1.logging.warn('IGNNITION: A denormalization function for output ' + output_name + ' was not defined. The output will be normalized.')
-
-
-
-        with tf.compat.v1.Session(graph=graph) as sess:
-            sess.run(tf.compat.v1.local_variables_initializer())
-            sess.run(tf.compat.v1.global_variables_initializer())
-            saver = tf.compat.v1.train.Saver()
-
-            # path to the checkpoint we want to restore
-            saver.restore(sess, warm_path)
-
+            # find the denormalization function
             try:
-                accuracies_edges = []
-                accuracies_paths = []
-                accuracies_links = []
+                denorm_func = getattr(self.module, 'denormalization')
+            except:
+                denorm_func = None
 
-                for k in range(1, 100):
-                    print("K = ", k)
-                    sess.run(it.initializer)
-                    edge_counter = 0
-                    path_counter = 0
-                    link_counter = 0
-                    for j in range(100):
-                        p, l, f = sess.run([preds, labels, features])
-                        # take the best k positions (so we look for the best k links-paths)
-                        p = np.array(p).flatten()
-                        l = np.array(l)
+            # while there are predictions
+            while True:
+                pred = self.gnn_model(sample_it.get_next(), training=False)
+                pred = tf.squeeze(pred)
+                output_name = self.model_info.get_output_info()  # for now suppose we only have one output type
 
-                        p = (p * 0.3347904538999522) + 0.346676083526478
-                        l = (l * 0.3347904538999522) + 0.346676083526478
+                if denorm_func is not None:
+                    try:
+                        pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
+                    except:
+                        print_failure('The denormalization function failed')
 
+                all_predictions.append(pred)
 
-                        k_best_predictions = np.argpartition(p, -k)[-k:]
-                        k_best_labels = np.argpartition(l, -k)[-k:]
+        except tf.errors.OutOfRangeError:
+            pass
 
-                        # BY SET (EDGES)
-                        k_best_predictions_set = set(k_best_predictions.flatten())
-                        k_best_labels_set = set(k_best_labels)
-
-                        complementary = k_best_labels_set - k_best_predictions_set
-                        intersection = k - len(complementary)
-                        edge_counter += intersection / k
-
-
-                        #OTHER ACCURACIES (OBTAIN MASKS)
-                        links = f['src_adj_link_path']
-                        paths = f['dst_adj_link_path']
-                        indices = np.stack([paths, links], axis=1)
-                        shape = [f['num_path'], f['num_link']]
-
-                        mask_pred = self.scatter_nd_numpy(indices, p, shape)
-                        mask_label = self.scatter_nd_numpy(indices, l, shape)
-
-                        adj_matrix = self.scatter_nd_numpy(indices, np.ones_like(p), shape)
-
-                        # ACCURACY TO FIND THE MOST IMPORTANT PATH
-                        if k <= 182:
-                            path_mean_pred = np.sum(mask_pred, axis=1) / np.sum(adj_matrix, axis=1)
-                            path_mean_label = np.sum(mask_label, axis=1) / np.sum(adj_matrix, axis=1)
-
-                            k_best_predictions = np.argpartition(path_mean_pred, -k)[-k:]
-                            k_best_labels = np.argpartition(path_mean_label, -k)[-k:]
-
-                            k_best_predictions = set(k_best_predictions.flatten())
-                            k_best_labels = set(k_best_labels)
-
-                            complementary = k_best_labels - k_best_predictions
-                            intersection = k - len(complementary)
-                            path_counter += intersection / k
-
-
-                        # ACCURACY FINDING THE MOST IMPORTANT LINK
-                        if k <= 42:
-                            link_mean_pred = np.sum(mask_pred, axis=0) / np.sum(adj_matrix, axis=0)
-                            link_mean_label = np.sum(mask_label, axis=0) / np.sum(adj_matrix, axis=0)
-
-                            k_best_predictions = np.argpartition(link_mean_pred, -k)[-k:]
-                            k_best_labels = np.argpartition(link_mean_label, -k)[-k:]
-
-                            k_best_predictions = set(k_best_predictions.flatten())
-                            k_best_labels = set(k_best_labels)
-
-                            complementary = k_best_labels - k_best_predictions
-                            intersection = k - len(complementary)
-                            link_counter += intersection / k
-
-
-                    edge_counter = edge_counter / 100
-                    print("Edge accuracy: ", edge_counter)
-                    accuracies_edges.append(edge_counter)
-
-                    if k < 182:
-                        path_counter = path_counter / 100
-                        print("Path accuracy: ", path_counter)
-                        accuracies_paths.append(path_counter)
-
-                    if k < 42:
-                        link_counter = link_counter / 100
-                        print("Link accuracy: ", link_counter)
-                        accuracies_links.append(link_counter)
-
-                print("edge_accuracies:", accuracies_edges)
-                print("link accuracies:", accuracies_links)
-                print("edge_accuracies:", accuracies_paths)
-
-            except tf.errors.OutOfRangeError:
-                pass
-
-
+        return all_predictions
 
     def computational_graph(self):
+        # Check if we can generate the computational graph without a dataset
+        train_path = self.__process_path(self.CONFIG['train_dataset'])
+        if not hasattr(self, 'gnn_model'):
+            self.__create_gnn(path=train_path)
+
+        print()
+        print_header(
+            'Generating the computational graph... \n---------------------------------------------------------------------------\n')
+
+        path = self.__process_path(self.CONFIG['output_path'])
+
+        path = os.path.join(path, 'computational_graphs',
+                            'experiment_' + str(datetime.datetime.now().strftime("%Y_%m_%d_%H_%M_%S")))
+
+        # tf.summary.trace_on() and tf.summary.trace_export().
+        writer = tf.summary.create_file_writer(path)
+        tf.summary.trace_on(graph=True, profiler=True)
+
+        # evaluate one single input
+        sample_it = self.__input_fn_generator(train_path, training=False, data_samples=None, iterator=True)
+        sample = sample_it.get_next()
+        # Call only one tf.function when tracing.
+        _ = self.gnn_model(sample, training=False)
+
+        with writer.as_default():
+            tf.summary.trace_export(
+                name="computational_graph_" + str(datetime.datetime.now()),
+                step=0,
+                profiler_outdir=path)
+
+    def evaluate(self, evaluation_samples=None, verbose=True):
         """
         Parameters
         ----------
-        model_description:    object
-            Object with the json information model
+        evaluation_samples:    [array]
+            Array of samples to be used for evaluation, useful only if no prediction dataset is specified.
+        verbose: bool
+            Indicates if there should be verbosity in the prints of the terminal or not.
         """
 
-        print()
-        tf.compat.v1.logging.warn(
-            'IGNNITION: Generating the computational graph... \n---------------------------------------------------------\n')
+        # Generate the model if it doesn't exist
+        if not hasattr(self, 'gnn_model'):
+            if evaluation_samples is None:  # look for the dataset path
+                val_path = self.__process_path(self.CONFIG['validation_dataset'])
+                self.__create_gnn(path=val_path)
+            else:
+                self.__create_gnn(samples=evaluation_samples)
 
-        filenames_train = self.CONFIG['PATHS']['train_dataset']
-        graph = tf.Graph()
-        tf.compat.v1.disable_eager_execution()
+        if verbose:
+            print()
+            print_header('Starting to make evaluations...\n---------------------------------------------------------\n')
 
-        with graph.as_default():
-            model = Gnn_model(self.model)
-            it = self.input_fn_generator(filenames_train, training=False)
-            data = it.get_next()
-            pred= model(data, training=False)
+        if evaluation_samples is None:
+            try:
+                data_path = self.CONFIG['validation_dataset']
+            except:
+                print_failure(
+                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the validation dataset')
+        else:
+            data_path = None
 
-        with tf.compat.v1.Session(graph=graph) as sess:
-            sess.run(tf.compat.v1.local_variables_initializer())
-            sess.run(tf.compat.v1.global_variables_initializer())
-            sess.run(it.initializer)
+        sample_it = self.__input_fn_generator(data_path, training=True, data_samples=evaluation_samples, iterator=True)
 
-        path = self.CONFIG['PATHS']['computational_graph_dir']
-        if path[-1] != '/':
-            path += '/'
+        all_metrics = []
+        try:
+            try:
+                denorm_func = getattr(self.module, 'denormalization')
+            except:
+                denorm_func = None
 
-        path += 'computational_graph'
+            # metric for the evaluation
+            try:
+                metric_func = getattr(self.module, 'evaluation_metric')
 
-        tf.compat.v1.summary.FileWriter(path, graph=sess.graph)
-        tf.compat.v1.logging.warn('IGNNITION: The computational graph has been generated.')
+            except:
+                print_failure('The evaluation metric function failed. '
+                              'Please make sure you define a valid python function taking as input the label '
+                              'and the prediction, and returning one single numerical value.')
+
+            # while there are predictions
+            while True:
+                features, label = sample_it.get_next()
+                pred = self.gnn_model(features, training=False)
+                pred = tf.squeeze(pred)
+                output_name = self.model_info.get_output_info()  # for now suppose we only have one output type
+                if denorm_func is not None:
+                    try:
+                        pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
+                        label = tf.py_function(func=denorm_func, inp=[label, output_name], Tout=tf.float32)
+                    except:
+                        print_failure('The denormalization function failed')
+
+                # compute the metric value
+                value = tf.py_function(func=metric_func, inp=[label, pred], Tout=tf.float32)
+                all_metrics.append(value)
+
+        except tf.errors.OutOfRangeError:
+            pass
+        return all_metrics
+
+    def batch_training(self, input_samples):
+        """
+        Parameters
+        ----------
+        input_samples:    [array]
+           Array of samples to be used for training (following the same format as if they were in a dataset)
+        """
+
+        if not hasattr(self, 'gnn_model'):
+            self.__create_gnn(samples=input_samples)
+
+        dataset = self.__input_fn_generator(None, training=True, data_samples=input_samples, iterator=False)
+        self.gnn_model.fit(dataset, batch_size=len(input_samples), verbose=0)

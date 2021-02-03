@@ -1,0 +1,97 @@
+# Definition of the entities
+entities:
+- name: link
+  state_dimension: 32
+  initial_state:
+    - type: build_state
+      input: [ link_capacity ]
+
+- name: path
+  state_dimension: 32
+  initial_state:
+    - type: build_state
+      input: [ traffic ]
+
+- name: node
+  state_dimension: 32
+  initial_state:
+    - type: build_state
+      input: [ queue_sizes ]
+
+# Definition of the message passing phase
+message_passing:
+  num_iterations: 8
+  stages:
+  # STAGE 1
+  - stage_message_passings:
+    # links and nodes to path
+    - destination_entity: path
+      source_entities:
+      - name: link
+        message:
+        - type: direct_assignment
+      - name: node
+        message:
+        - type: direct_assignment
+      aggregation:
+        - type: interleave
+          interleave_definition: path_interleave
+      update:
+        type: neural_network
+        nn_name: recurrent1
+
+  # STAGE 2
+  - stage_message_passings:
+    # paths to links
+    - destination_entity: link
+      source_entities:
+      - name: path
+        message:
+        - type: direct_assignment
+      aggregation:
+        - type: sum
+      update:
+        type: neural_network
+        nn_name: recurrent1
+
+    # paths to nodes
+    - destination_entity: node
+      source_entities:
+      - name: path
+        message:
+        - type: direct_assignment
+      aggregation:
+        - type: sum
+      update:
+        type: neural_network
+        nn_name: recurrent1
+
+# Definition of the readout
+readout:
+- type: neural_network
+  input: [path]
+  nn_name: readout_model
+  output_label: delay
+
+# Definition of the neural networks
+neural_networks:
+# Feed-forward model
+- nn_name: readout_model
+  nn_architecture:
+  - type_layer: Dense
+    units: 256
+    kernel_regularizer: 0.1
+    activation: selu
+  - type_layer: Dense
+    units: 256
+    kernel_regularizer: 0.1
+    activation: selu
+  - type_layer: Dense
+    units: 1
+    kernel_regularizer: 0.01
+    activation: None
+
+# RNN model
+- nn_name: recurrent1
+  nn_architecture:
+  - type_layer: GRU

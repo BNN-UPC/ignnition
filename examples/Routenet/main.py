@@ -22,25 +22,25 @@ import sys
 import tensorflow as tf
 import ignnition
 
-def normalization_routenet(feature, feature_name):
+def normalization(feature, feature_name):
     if feature_name == 'traffic':
         feature = (feature - 170) / 130
-    if feature_name == 'link_capacity':
+    elif feature_name == 'capacity':
         feature = (feature - 25000) / 40000
-
+    elif feature_name == 'delay':
+        feature = tf.math.log(feature)
     return feature
 
-def log(feature, feature_name):
-    return tf.math.log(feature)
-
-def exp(feature, feature_name):
-    return tf.math.exp(feature)
+def denormalization(feature, feature_name):
+    if feature_name == 'delay':
+        feature = tf.math.exp(feature)
+    return feature
 
 
 def main():
-    model = ignnition.create_model('./train_options.ini')
+    model = ignnition.create_model(model_dir= './')
     model.computational_graph()
-    model.train_and_evaluate()
+    model.train_and_validate()
     #model.predict()
 
 
