@@ -4,7 +4,7 @@ from setuptools import setup
 setup(
   name = 'ignnition',         # How you named your package folder (MyLib)
   packages = ['ignnition'],   # Choose the same as "name"
-  version = 'v_0.02',      # Start with a small number and increase it with every change you make
+  version = '0.02',      # Start with a small number and increase it with every change you make
   license='MIT',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
   description = 'Library for fast prototyping of GNN',   # Give a short description about your library
   author = 'Barcelona Neural Networking Center',                   # Type in your name
