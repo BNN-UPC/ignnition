@@ -9,8 +9,8 @@ setup(
   description = 'Library for fast prototyping of GNN',   # Give a short description about your library
   author = 'Barcelona Neural Networking Center',                   # Type in your name
   author_email = 'ignnition@contactus.net',      # Type in your E-Mail
-  #url = 'https://github.com/dpujol14/ignnition',   # Provide either the link to your github or to your website
-  #download_url = 'https://github.com/dpujol14/ignnition/archive/0.01.tar.gz',    # I explain this later on
+  url = 'https://ignnition.net/',   # Provide either the link to your github or to your website
+  download_url = 'https://github.com/knowledgedefinednetworking/ignnition/archive/v_0.02.tar.gz',    # I explain this later on
   package_data={'ignnition': ['schema.json']},
   keywords = ['Machine Learning', 'Graph Neural Networks', 'Networking', 'Artificial Intelligence'],   # Keywords that define your package best
   install_requires=[
