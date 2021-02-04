@@ -4,13 +4,13 @@ from setuptools import setup
 setup(
   name = 'ignnition',         # How you named your package folder (MyLib)
   packages = ['ignnition'],   # Choose the same as "name"
-  version = '0.01',      # Start with a small number and increase it with every change you make
+  version = '0.02',      # Start with a small number and increase it with every change you make
   license='MIT',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
   description = 'Library for fast prototyping of GNN',   # Give a short description about your library
   author = 'Barcelona Neural Networking Center',                   # Type in your name
   author_email = 'ignnition@contactus.net',      # Type in your E-Mail
-  #url = 'https://github.com/dpujol14/ignnition',   # Provide either the link to your github or to your website
-  #download_url = 'https://github.com/dpujol14/ignnition/archive/0.01.tar.gz',    # I explain this later on
+  url = 'https://ignnition.net/',   # Provide either the link to your github or to your website
+  download_url = 'https://github.com/knowledgedefinednetworking/ignnition/archive/0.02.tar.gz',    # I explain this later on
   package_data={'ignnition': ['schema.json']},
   keywords = ['Machine Learning', 'Graph Neural Networks', 'Networking', 'Artificial Intelligence'],   # Keywords that define your package best
   install_requires=[
@@ -64,6 +64,6 @@ setup(
     'Intended Audience :: Developers',      # Define that your audience are developers
     'Topic :: Software Development :: Build Tools',
     'License :: OSI Approved :: MIT License',   # Again, pick a license
-    'Programming Language :: Python :: 3.8.5',
+    'Programming Language :: Python :: 3.8',
   ],
 )
