@@ -57,6 +57,7 @@ Please, follow the [documentation](https://ignnition.net/doc/) to know all the d
 
 This software is part of a project that has received funding from the European Union’s Horizon 2020 research and innovation programme under grant agreement No 871528.
 
+
  <p align="center"> 
   <img src="/assets/ngi_sticker.png" width="160" alt>
 </p>
