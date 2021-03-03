@@ -55,7 +55,8 @@ Please, follow the [documentation](https://ignnition.net/doc/) to know all the d
 
 [Barcelona Neural Networking center](https://bnn.upc.edu/), Universitat Politècnica de Catalunya
 
-*IGNNITION* is an open source project funded by the European Comission through the [NGI POINTER program](https://www.ngi.eu/ngi-projects/ngi-pointer/)
+This software is part of a project that has received funding from the European Union’s Horizon 2020 research and innovation programme under grant agreement No 871528.
+
 
  <p align="center"> 
   <img src="/assets/ngi_sticker.png" width="160" alt>
