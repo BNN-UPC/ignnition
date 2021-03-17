@@ -89,7 +89,7 @@ class Operation():
         for i in input_nn:
             if i == 'source':
                 input_dim += int(dimensions.get(src.name))
-            elif i == 'destination':
+            elif i == 'target':
                 input_dim += int(dimensions.get(dst_name))
             elif i in dimensions:
                 input_dim += int(dimensions[i])
@@ -142,7 +142,7 @@ class Operation():
         for i in self.input:
             if i == 'source':
                 new_input = src_msgs
-            elif i == 'destination':
+            elif i == 'target':
                 new_input = dst_msgs
             else:
                 new_input = get_global_var_or_input(calculations, i, f_)

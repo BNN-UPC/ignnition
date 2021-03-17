@@ -455,7 +455,7 @@ class Yaml_preprocessing:
                 for s in source_entities:
                     for op in s.message_formation:  # for each operation
                         if op is not None and op.input is not None:
-                            new_inputs = [i for i in op.input if i !='source' and i!= 'destination']
+                            new_inputs = [i for i in op.input if i !='source' and i!= 'target']
                             input_names.update(new_inputs)
 
                             if op.output_name is not None:
