@@ -4,7 +4,7 @@ entities:
   state_dimension: 16
   initial_state:
     - type: build_state
-      input: [src-tgt]
+      input: [$src-tgt]
 
 # Definition of the message passing phase
 message_passing:
@@ -18,7 +18,7 @@ message_passing:
             message:
               - type: neural_network
                 nn_name: message_function
-                input: [source, weight]
+                input: [source, $weight]
         aggregation:
           - type: min
         update:
@@ -30,7 +30,7 @@ readout:
 - type: neural_network
   input: [node]
   nn_name: readout_model
-  output_label: sp
+  output_label: $sp
 
 # Definition of the Neural Networks
 neural_networks:

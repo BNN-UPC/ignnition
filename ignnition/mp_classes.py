@@ -77,7 +77,9 @@ class Entity:
         all_inputs = set()
         all_outputs = set()
         for op in operations:
-            all_inputs.update(op.get('input'))  # keep track of all the necessary features
+            # keep track of all the necessary features (remove the initial $ to indicate that it is in the dataset)
+            for input_item in op.get('input'):
+                all_inputs.add(input_item.split('$')[-1])
 
             # keep track of the outputs
             if 'output_name' in op:
