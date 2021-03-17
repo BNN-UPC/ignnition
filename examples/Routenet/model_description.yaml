@@ -4,13 +4,13 @@ entities:
   state_dimension: hidden_state_dim
   initial_state:
     - type: build_state
-      input: [capacity]
+      input: [$capacity]
 
 - name: path
   state_dimension: hidden_state_dim
   initial_state:
     - type: build_state
-      input: [traffic]
+      input: [$traffic]
 
 
 # Definition of the message passing phase
@@ -50,7 +50,7 @@ readout:
 - type: neural_network
   input: [path]
   nn_name: readout_model
-  output_label: delay
+  output_label: $delay
 
 # Definition of the Neural Networks
 neural_networks:

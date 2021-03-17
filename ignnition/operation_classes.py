@@ -42,9 +42,21 @@ class Operation():
         """
 
         self.type = op.get('type')
-        self.output_label = op.get('output_label', None)
         self.output_name = op.get('output_name', None)
-        self.input = op.get('input', None)
+
+        self.output_label = op.get('output_label', None)
+        if self.output_label is not None:
+            self.output_label = self.output_label.split('$')[-1]
+
+
+        # parse the input of the operation
+        self.input = []
+        if 'input' in op:
+            for input_item in op.get('input'):
+                if '$source' == input_item or '$target' == input_item:
+                    print_failure('The keywords source and target are reserved keywords. Thus, they cannot name feature from the dataset. Check that you really meant to use $, indicating that its a feature from the dataset')
+                else:
+                    self.input.append(input_item.split('$')[-1])
 
     def find_total_input_dim(self, dimensions, calculations):
         """
@@ -89,7 +101,7 @@ class Operation():
         for i in input_nn:
             if i == 'source':
                 input_dim += int(dimensions.get(src.name))
-            elif i == 'destination':
+            elif i == 'target':
                 input_dim += int(dimensions.get(dst_name))
             elif i in dimensions:
                 input_dim += int(dimensions[i])
@@ -142,7 +154,7 @@ class Operation():
         for i in self.input:
             if i == 'source':
                 new_input = src_msgs
-            elif i == 'destination':
+            elif i == 'target':
                 new_input = dst_msgs
             else:
                 new_input = get_global_var_or_input(calculations, i, f_)
