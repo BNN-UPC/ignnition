@@ -59,8 +59,7 @@ This software is part of a project that has received funding from the European U
 
 
  <p align="center"> 
-  <img src="/assets/ngi_sticker.png" width="160" alt>
-  <img src="/assets/european_flag.png" width="160" alt>
+  <img src="/assets/ngi_european_flag.png" width="160" alt>
 </p>
 
 ## License
