@@ -46,17 +46,19 @@ class Operation():
 
         self.output_label = op.get('output_label', None)
         if self.output_label is not None:
-            self.output_label = self.output_label.split('$')[-1]
+            self.output_label = self.output_label.split('$')[-1]    #delete the $ from the output label
 
 
         # parse the input of the operation
         self.input = []
+        self.source_dataset = False
+        self.destination_dataset = False
         if 'input' in op:
             for input_item in op.get('input'):
-                if '$source' == input_item or '$target' == input_item:
-                    print_failure('The keywords source and target are reserved keywords. Thus, they cannot name feature from the dataset. Check that you really meant to use $, indicating that its a feature from the dataset')
+                if '$source' == input_item or '$destination' == input_item:
+                    print_failure('The keywords source and destination are reserved keywords. Thus, they cannot name feature from the dataset. Check that you really meant to use $, indicating that its a feature from the dataset')
                 else:
-                    self.input.append(input_item.split('$')[-1])
+                    self.input.append(input_item.split('$')[-1])    # delete the $ from the inputs (if any)
 
     def find_total_input_dim(self, dimensions, calculations):
         """
@@ -67,17 +69,20 @@ class Operation():
         calculations:    dict
            Dictionary with the current calculations throughout the execution of the GNN model
         """
-
         if self.input is not None:
             input_nn = self.input
             input_dim = 0
             for i in input_nn:
                 if '_initial_state' in i:
                     i = i.split('_initial_state')[0]
+
                 if i in dimensions:
                     dimension = dimensions[i]
-                else:
+                elif i+'_dim' in calculations:
                     dimension = calculations[i + '_dim']  # take the dimension from here or from self.dimensions
+                else:
+                    print_failure("Keyword " + i + " used in the model definition was not recognized")
+
                 input_dim += dimension
             return input_dim
 
@@ -94,20 +99,20 @@ class Operation():
         src: Source_mp object
             Object that includes the information about the source entity of the mp
         """
-
         # Find out the dimension of the model
         input_nn = self.input
         input_dim = 0
         for i in input_nn:
             if i == 'source':
                 input_dim += int(dimensions.get(src.name))
-            elif i == 'target':
+            elif i == 'destination':
                 input_dim += int(dimensions.get(dst_name))
             elif i in dimensions:
                 input_dim += int(dimensions[i])
+            elif i+'_dim' in calculations:
+                input_dim += dimensions
             else:
-                dimension = calculations[i + '_dim']
-                input_dim += dimension
+                print_failure("Keyword " + i + " used in the message passing was not recognized.")
 
         return input_dim
 
@@ -154,7 +159,7 @@ class Operation():
         for i in self.input:
             if i == 'source':
                 new_input = src_msgs
-            elif i == 'target':
+            elif i == 'destination':
                 new_input = dst_msgs
             else:
                 new_input = get_global_var_or_input(calculations, i, f_)

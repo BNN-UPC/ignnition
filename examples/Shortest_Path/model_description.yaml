@@ -18,7 +18,7 @@ message_passing:
             message:
               - type: neural_network
                 nn_name: message_function
-                input: [source, $weight]
+                input: [source, $source, $weight]
         aggregation:
           - type: min
         update:
