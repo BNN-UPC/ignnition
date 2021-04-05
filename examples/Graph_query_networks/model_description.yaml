@@ -59,7 +59,7 @@ readout:
 
 - type: neural_network
   input: [aux]
-  output_label: $label
+  output_label: [$label]
   nn_name: F
 
 neural_networks:

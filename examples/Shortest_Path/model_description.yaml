@@ -30,7 +30,7 @@ readout:
 - type: neural_network
   input: [node]
   nn_name: readout_model
-  output_label: $sp
+  output_label: [$sp]
 
 # Definition of the Neural Networks
 neural_networks:

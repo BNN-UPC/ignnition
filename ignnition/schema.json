@@ -422,8 +422,13 @@
                     },
                     "output_label":
                     {
-                        "description": "Label matching the dataset which contains the true labels of the predictions we aim to make.",
-                        "type": "string"
+                        "description": "Labels matching the dataset which contains the true labels of the predictions we aim to make.",
+                        "type": "array",
+                        "items":
+                        {
+                            "description": "One of the labels",
+                            "type": "string"
+                        }
                     },
                     "nn_name":
                     {

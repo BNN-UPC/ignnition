@@ -630,7 +630,7 @@ class Gnn_model(tf.keras.Model):
     def treat_message_function_input(self, var_name, f_):
         if var_name == 'source':
             new_input = self.src_messages
-        elif var_name == 'target':
+        elif var_name == 'destination':
             new_input = self.dst_messages
         else:
             new_input = get_global_var_or_input(self.calculations, var_name, f_)

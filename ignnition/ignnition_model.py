@@ -345,7 +345,7 @@ class Ignnition_model:
             adj_names = self.model_info.get_adjacency_info()
             interleave_list = self.model_info.get_interleave_tensors()
             interleave_sources = self.model_info.get_interleave_sources()
-            output_name = self.model_info.get_output_info()
+            output_names = self.model_info.get_output_info()
             additional_input = self.model_info.get_additional_input_names()
             unique_additional_input = [a for a in additional_input if a not in feature_list]
             entity_names = self.model_info.get_entity_names()
@@ -386,7 +386,7 @@ class Ignnition_model:
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
-                                                                     output_name,  # adjacency_info,
+                                                                     output_names,  # adjacency_info,
                                                                      interleave_list, unique_additional_input, training,
                                                                      shuffle),
                         output_types=(types, tf.float32),
@@ -396,7 +396,7 @@ class Ignnition_model:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
-                                                                   output_name,  # adjacency_info,
+                                                                   output_names,  # adjacency_info,
                                                                    interleave_list,
                                                                    unique_additional_input, training, shuffle),
                         output_types=(types, tf.float32),
@@ -406,7 +406,7 @@ class Ignnition_model:
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
-                                                                     output_name,  # adjacency_info,
+                                                                     output_names,  # adjacency_info,
                                                                      interleave_list, unique_additional_input, training,
                                                                      shuffle),
                         output_types=(types),
@@ -416,7 +416,7 @@ class Ignnition_model:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
-                                                                   output_name,  # adjacency_info,
+                                                                   output_names,  # adjacency_info,
                                                                    interleave_list,
                                                                    unique_additional_input, training, shuffle),
                         output_types=(types),
@@ -427,13 +427,13 @@ class Ignnition_model:
                 if batch_norm is None:
                     if training:
                         ds = ds.map(
-                            lambda x, y: self.__global_normalization(x, feature_list, output_name, y),
+                            lambda x, y: self.__global_normalization(x, feature_list, output_names, y),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
                         ds = ds.prefetch(tf.data.experimental.AUTOTUNE)
 
                     else:
                         ds = ds.map(
-                            lambda x: self.__global_normalization(x, feature_list, output_name),
+                            lambda x: self.__global_normalization(x, feature_list, output_names),
                             num_parallel_calls=tf.data.experimental.AUTOTUNE)
                         ds = iter(ds)
 
@@ -544,12 +544,15 @@ class Ignnition_model:
                 file_samples = open(sample_path, 'r')
 
             try:
-                file_samples.read(1)
+                ch1 = file_samples.read(1)
+                if ch1 != '[':
+                    print_failure("Error because the dataset files must be an array of json objects, and not single json objects")
+
                 aux = stream_read_json(file_samples)
                 sample = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
 
             except:
-                print_failure('Failed to read the data file ' + sample)
+                print_failure('Failed to read the data file ' + sample_path)
 
             # Now that we have the sample, we can process the dimensions
             dimensions = {}  # for each key, we have a tuple of (length, num_elements)
