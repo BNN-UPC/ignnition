@@ -68,6 +68,10 @@ class Generator:
         f:    dict
             Input data
         """
+        # check that it is a valid array of objects
+        pos1 = f.read(1)
+        if pos1 != '[':
+            print_failure("Error because the dataset files must be an array of json objects, and not single json objects")
 
         start_pos = 1
         while True:
@@ -377,7 +381,6 @@ class Generator:
                 else:
                     file_samples = open(sample_file, 'r')
 
-                file_samples.read(1)
                 data = self.stream_read_json(file_samples)
 
                 while True:

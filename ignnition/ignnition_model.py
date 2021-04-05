@@ -544,12 +544,15 @@ class Ignnition_model:
                 file_samples = open(sample_path, 'r')
 
             try:
-                file_samples.read(1)
+                ch1 = file_samples.read(1)
+                if ch1 != '[':
+                    print_failure("Error because the dataset files must be an array of json objects, and not single json objects")
+
                 aux = stream_read_json(file_samples)
                 sample = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
 
             except:
-                print_failure('Failed to read the data file ' + sample)
+                print_failure('Failed to read the data file ' + sample_path)
 
             # Now that we have the sample, we can process the dimensions
             dimensions = {}  # for each key, we have a tuple of (length, num_elements)
