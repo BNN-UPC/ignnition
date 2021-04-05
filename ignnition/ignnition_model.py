@@ -137,8 +137,8 @@ class Ignnition_model:
         # add the file with any additional function, if any
         if 'additional_functions_file' in self.CONFIG:
             additional_path = self.__process_path(self.CONFIG['additional_functions_file'])
-            sys.path.insert(1, additional_path)
-            self.module = __import__(additional_path.split('/')[-1][0:-3])
+            sys.path.insert(1, os.path.join(additional_path, os.pardir))
+            self.module = __import__(os.path.basename(additional_path)[0:-3])
 
         self.model_info = self.__create_model()
         self.generator = Generator()
@@ -529,7 +529,7 @@ class Ignnition_model:
             if sample_paths == []:
                 print_failure("No dataset found. Please make sure the paths of the datasets are correct.")
             else:
-                sample_path = sample_paths[0] # choose one single file to extract the dimensions
+                sample_path = sample_paths[0]  # choose one single file to extract the dimensions
 
             if '.tar.gz' in sample_path:
                 try:
@@ -546,7 +546,8 @@ class Ignnition_model:
             try:
                 ch1 = file_samples.read(1)
                 if ch1 != '[':
-                    print_failure("Error because the dataset files must be an array of json objects, and not single json objects")
+                    print_failure(
+                        "Error because the dataset files must be an array of json objects, and not single json objects")
 
                 aux = stream_read_json(file_samples)
                 sample = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
