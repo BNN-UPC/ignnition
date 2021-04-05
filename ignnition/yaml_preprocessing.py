@@ -240,7 +240,7 @@ class Yaml_preprocessing:
         if 'output_label' not in readout_op[-1]:
             print_failure('The last operation of the readout MUST contain the definition of the output_label')
         else:
-            input_names.append(readout_op[-1]['output_label'])
+            input_names += readout_op[-1]['output_label']
 
         # now check the entities
         entity_names = [a.get('name') for a in data.get('entities')]

@@ -44,9 +44,11 @@ class Operation():
         self.type = op.get('type')
         self.output_name = op.get('output_name', None)
 
+
         self.output_label = op.get('output_label', None)
         if self.output_label is not None:
-            self.output_label = self.output_label.split('$')[-1]    #delete the $ from the output label
+            # There may be more than one output_label
+            self.output_label = [output.split('$')[-1] for output in self.output_label]    #delete the $ from the output label
 
 
         # parse the input of the operation

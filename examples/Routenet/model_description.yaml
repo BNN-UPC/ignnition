@@ -50,7 +50,7 @@ readout:
 - type: neural_network
   input: [path]
   nn_name: readout_model
-  output_label: $delay
+  output_label: [$delay]
 
 # Definition of the Neural Networks
 neural_networks:
