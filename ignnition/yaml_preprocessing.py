@@ -189,11 +189,23 @@ class Yaml_preprocessing:
            Dictionary with the initial data
         """
 
+        entities = data['entities']
         stages = data['message_passing']['stages']
 
         src_names, dst_names, called_nn_names, input_names = [], [], [], []
         output_names = ['source', 'destination']
 
+
+        # check the hidden state creation
+        for entity_item in entities:
+            state_ops = entity_item['initial_state']
+            for op in state_ops:
+                if 'input' in op:
+                    input_names += op['input']
+                if 'output' in op:
+                    output_names += op['output']
+
+        # check the message passing
         for stage in stages:
             stage_mp = stage.get('stage_message_passings')
             for mp in stage_mp:  # for every message-passing
@@ -227,6 +239,8 @@ class Yaml_preprocessing:
 
         if 'output_label' not in readout_op[-1]:
             print_failure('The last operation of the readout MUST contain the definition of the output_label')
+        else:
+            input_names += readout_op[-1]['output_label']
 
         # now check the entities
         entity_names = [a.get('name') for a in data.get('entities')]
@@ -236,33 +250,30 @@ class Yaml_preprocessing:
             print_failure("The names of two NN are repeated. Please ensure that each NN has a unique name.")
 
 
-        try:
-            # check the source entities
-            for a in src_names:
-                if a not in entity_names:
-                    raise Exception(
-                        'The source entity "' + a + '" was used in a message passing. However, there is no such entity. \n Please check the spelling or define a new entity.')
+        # check the source entities
+        for a in src_names:
+            if a not in entity_names:
+                print_failure('The source entity "' + a + '" was used in a message passing. However, there is no such entity. \n Please check the spelling or define a new entity.')
 
-            # check the destination entities
-            for d in dst_names:
-                if d not in entity_names:
-                    raise Exception(
-                        'The destination entity "' + d + '" was used in a message passing. However, there is no such entity. \n Please check the spelling or define a new entity.')
+        # check the destination entities
+        for d in dst_names:
+            if d not in entity_names:
+                print_failure('The destination entity "' + d + '" was used in a message passing. However, there is no such entity. \n Please check the spelling or define a new entity.')
 
-            # check the nn_names
-            for name in called_nn_names:
-                if name not in nn_names:
-                    raise Exception(
-                        'The name "' + name + '" is used as a reference to a neural network (nn_name), even though the neural network was not defined. \n Please make sure the name is correctly spelled or define a neural network named ' + name)
+        # check the nn_names
+        for name in called_nn_names:
+            if name not in nn_names:
+                print_failure('The name "' + name + '" is used as a reference to a neural network (nn_name), even though the neural network was not defined. \n Please make sure the name is correctly spelled or define a neural network named ' + name)
 
-            # check the output and input names (ToDO: Change this since it may be referencing another feature from the dataset)
-            #for i in input_names:
-            #    if i not in output_names:
-            #        raise Exception(
-            #            'The name "' + i + '" was used as input of a message creation operation even though it was not the output of one.')
+        # ensure that all the inputs (that are not output of another operation) start with a $
+        for i in input_names:
+            if i not in output_names and i[0] != '$':
+                print_failure('The input name ' + i + ' references data from the dataset but does not start with $')
 
-        except Exception as inf:
-            print_failure(str(inf) + '\n')
+        for i in output_names:
+            if i[0] == '$':
+                print_failure('The keyword ' + i + ' starts with $ even though it does not represent data from the dataset.')
+
 
     def __get_nn_mapping(self, models):
         """

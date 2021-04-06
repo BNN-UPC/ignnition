@@ -4,19 +4,19 @@ entities:
   state_dimension: 32
   initial_state:
     - type: build_state
-      input: [ link_capacity ]
+      input: [$link_capacity ]
 
 - name: path
   state_dimension: 32
   initial_state:
     - type: build_state
-      input: [ traffic ]
+      input: [$traffic ]
 
 - name: node
   state_dimension: 32
   initial_state:
     - type: build_state
-      input: [ queue_sizes ]
+      input: [$queue_sizes ]
 
 # Definition of the message passing phase
 message_passing:
@@ -71,7 +71,7 @@ readout:
 - type: neural_network
   input: [path]
   nn_name: readout_model
-  output_label: delay
+  output_label: [$delay]
 
 # Definition of the neural networks
 neural_networks:

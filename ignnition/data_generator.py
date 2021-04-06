@@ -68,6 +68,10 @@ class Generator:
         f:    dict
             Input data
         """
+        # check that it is a valid array of objects
+        pos1 = f.read(1)
+        if pos1 != '[':
+            print_failure("Error because the dataset files must be an array of json objects, and not single json objects")
 
         start_pos = 1
         while True:
@@ -180,13 +184,31 @@ class Generator:
                 print_failure(message)
 
         if self.training:
-            # collect the output
-            try:
-                node_output = list(nx.get_node_attributes(D_G, self.output_name).values())
-                final_output = node_output
-            except:
-                global_output = list(D_G.graph[self.output_name].values())
-                final_output = global_output
+            # collect the output (if there is more than one, concatenate them on axis=1
+            # limitation: all the outputs must be of the same type (same number of elements)
+            first=True
+            for output in self.output_names:
+                try:
+                    node_output = list(nx.get_node_attributes(D_G, output).values())
+                    aux = node_output
+                except:
+                    global_output = list(D_G.graph[output].values())
+                    aux = global_output
+
+
+                # if it is a 1d array, transform it into a 2d array
+                if len(np.array(aux).shape) == 1:
+                    aux = np.expand_dims(aux,-1)
+
+                # try to concatenate them together. If error, it means that the two labels are incompatible
+                try:
+                    if first:
+                        final_output = aux
+                        first=False
+                    else:
+                        final_output = np.concatenate((final_output, aux), axis=1)
+                except:
+                    print_failure("More than one output label was defined by they dont seem to be compatible. Check that all of them are either node or global labels. If they are node labels, they should refer to the same entity nodes.")
 
         # find the adjacencies
         edges_list = list(D_G.edges())
@@ -251,7 +273,7 @@ class Generator:
                             data_samples,
                             entity_names,
                             feature_names,
-                            output_name,
+                            output_names,
                             interleave_names,
                             additional_input,
                             training,
@@ -265,8 +287,8 @@ class Generator:
             Name of the entities to be found in the dataset
         feature_names:    [array]
            Name of the features to be found in the dataset
-        output_name:    str
-           Name of the output data to be found in the dataset
+        output_names:    [str]
+           Names of the output data to be found in the dataset
         interleave_names:    [array]
            First parameter is the name of the interleave, and the second the destination entity
         additional_input:    [array]
@@ -280,7 +302,7 @@ class Generator:
         data_samples = [json.loads(x) for x in data_samples]
         self.entity_names = [x for x in entity_names]
         self.feature_names = [x for x in feature_names]
-        self.output_name = output_name
+        self.output_names = output_names
         self.interleave_names = [[i[0], i[1]] for i in interleave_names]
         self.additional_input = [x for x in additional_input]
         self.training = training
@@ -306,7 +328,7 @@ class Generator:
                               dir,
                               entity_names,
                               feature_names,
-                              output_name,
+                              output_names,
                               interleave_names,
                               additional_input,
                               training,
@@ -320,7 +342,7 @@ class Generator:
             Name of the entities to be found in the dataset
         feature_names:    [array]
            Name of the features to be found in the dataset
-        output_name:    str
+        output_names:    [str]
            Name of the output data to be found in the dataset
         interleave_names:    [array]
            First parameter is the name of the interleave, and the second the destination entity
@@ -334,7 +356,7 @@ class Generator:
 
         self.entity_names = entity_names
         self.feature_names = feature_names
-        self.output_name = output_name
+        self.output_names = output_names
         self.interleave_names = interleave_names
         self.additional_input = additional_input
         self.training = training
@@ -359,7 +381,6 @@ class Generator:
                 else:
                     file_samples = open(sample_file, 'r')
 
-                file_samples.read(1)
                 data = self.stream_read_json(file_samples)
 
                 while True:

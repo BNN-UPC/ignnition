@@ -33,8 +33,6 @@ class Gnn_model(tf.keras.Model):
     ----------
     call(self, input, training=False)
         Performs the GNN's action
-    get_global_var_or_input(self, var_name, input)
-        Obtains the global variable with var_name if exists, or the corresponding input
     save_global_variable(self, var_name, var_value)
         Save the global variable with var_name and with the corresponding value
     get_global_variable(self, var_name)
@@ -299,6 +297,7 @@ class Gnn_model(tf.keras.Model):
                                 # given one message from a given step
                                 msgs_stage = stage[1]
                                 num_msgs_stage = len(msgs_stage)
+
                                 for idx_msg in range(num_msgs_stage):
                                     mp = msgs_stage[idx_msg]
                                     dst_name = mp.destination_entity
