@@ -353,7 +353,7 @@ class Ignnition_model:
             feature_names = []
 
             for a in unique_additional_input:
-                types[a] = tf.int64
+                types[a] = tf.float32
                 shapes[a] = tf.TensorShape(None)
 
             for f_name in feature_list:
@@ -592,7 +592,7 @@ class Ignnition_model:
             graph_attrs = list(G.graph.keys())
             for g in graph_attrs:
                 feature = G.graph[g]
-                dimensions[g] = len(feature)
+                dimensions[g] = len(feature)  if isinstance(feature, list) else 1
 
             return dimensions, sample
 
