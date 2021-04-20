@@ -32,6 +32,7 @@ Once you have download and untared the dataset, place yourself at the scope of t
     python main.py <PATH TO DATASET> <PATH TO OUTPUT> <NUM_SAMPLES_PER_PATH>
 ```
 To execute this file, you need to pass three arguments as parameters. First of all, the path to the untared dataset. Then the path to the directory where the new dataset will be stored. Finally, the number of samples that each of the files in the new dataset can contain. For example, passing a 100 ensures that you end up with a directory with multiple files, each of which has at most 100 samples.
+It is important to consider that this process can take several minutes to finish.
 
 ### 3) Rerun
 Go to the *model_description.yaml* file and ensure that the *train_dataset* path points to your new dataset.
