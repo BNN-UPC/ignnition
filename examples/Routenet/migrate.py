@@ -24,6 +24,7 @@ from networkx.readwrite import json_graph
 import json
 import tarfile
 import os
+import sys
 
 
 def generator(data_dir):
@@ -126,5 +127,12 @@ def migrate_dataset(input_path, output_path, max_per_file):
             os.remove(path + 'data.json')
 
 
+def main():
+    migrate_dataset(sys.argv[1], output_path=sys.argv[2], max_per_file=int(sys.argv[3]))
 
-migrate_dataset('/Users/david/Documents/BNN/Datasets/nsfnetbw', output_path='./', max_per_file=100)
+if __name__ == "__main__":
+    if (len(sys.argv) != 4):
+        print(
+            "Error: You should pass three argument. The path to the downloaded dataset, the output path, and the maximum of samples per file")
+        sys.exit()
+    main()

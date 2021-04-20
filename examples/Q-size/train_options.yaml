@@ -1,6 +1,6 @@
 # PATHS
-train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/train
-validation_dataset: ../Datasets/Datasets_framework/Dataset_routenet/eval
+train_dataset: ./data/train
+validation_dataset: ./data/eval
 #predict_dataset:
 #load_model_path:
 additional_functions_file: ./main.py
