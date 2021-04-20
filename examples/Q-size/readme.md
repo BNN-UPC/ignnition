@@ -1,4 +1,4 @@
-#Executing Q-Size example
+# Executing Q-Size example
 
 For this example, the data is unfortunately not publicly available. Nevertheless, we provide the full set of required files to execute this model, which should be helful to get a general idea of the inner working of this model.
 
