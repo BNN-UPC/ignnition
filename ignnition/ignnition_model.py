@@ -491,10 +491,10 @@ class Ignnition_model:
             Input dictionary necessary to initialize all the dimensions
         """
 
-        checkpoint_path = self.CONFIG.get('warm_start_path', '')
+        checkpoint_path = self.CONFIG.get('load_model_path', '')
         if os.path.isfile(checkpoint_path):
             print("Restoring from", checkpoint_path)
-            # in this case we need to initialize the weights to be able to use a warm-start checkpoint
+            # in this case we need to initialize the weights to be able to use a load_model checkpoint
 
             sample_it = self.__input_fn_generator(training=False,
                                                   data_samples=[sample])
