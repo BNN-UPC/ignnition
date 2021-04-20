@@ -2,7 +2,7 @@
 train_dataset: ../Datasets/Datasets_framework/Dataset_routenet/train
 validation_dataset: ../Datasets/Datasets_framework/Dataset_routenet/eval
 #predict_dataset:
-#warm_start_path:
+#load_model_path:
 additional_functions_file: ./main.py
 output_path: ./examples/Q-size/
 
