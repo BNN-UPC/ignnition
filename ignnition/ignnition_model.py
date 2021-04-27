@@ -353,7 +353,7 @@ class Ignnition_model:
             feature_names = []
 
             for a in unique_additional_input:
-                types[a] = tf.int64
+                types[a] = tf.float32
                 shapes[a] = tf.TensorShape(None)
 
             for f_name in feature_list:
@@ -386,7 +386,7 @@ class Ignnition_model:
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
-                                                                     output_names,  # adjacency_info,
+                                                                     output_names, adj_names,
                                                                      interleave_list, unique_additional_input, training,
                                                                      shuffle),
                         output_types=(types, tf.float32),
@@ -396,7 +396,7 @@ class Ignnition_model:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
-                                                                   output_names,  # adjacency_info,
+                                                                   output_names, adj_names,
                                                                    interleave_list,
                                                                    unique_additional_input, training, shuffle),
                         output_types=(types, tf.float32),
@@ -406,7 +406,7 @@ class Ignnition_model:
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
-                                                                     output_names,  # adjacency_info,
+                                                                     output_names, adj_names,
                                                                      interleave_list, unique_additional_input, training,
                                                                      shuffle),
                         output_types=(types),
@@ -416,7 +416,7 @@ class Ignnition_model:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
-                                                                   output_names,  # adjacency_info,
+                                                                   output_names, adj_names,
                                                                    interleave_list,
                                                                    unique_additional_input, training, shuffle),
                         output_types=(types),

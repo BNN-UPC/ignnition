@@ -51,7 +51,7 @@ def print_failure(msg):
     """
 
     tf.print(bcolors.FAIL + msg + bcolors.ENDC, output_stream=sys.stderr)
-    sys.exit()
+    os._exit(1)
 
 
 def print_info(msg):
