@@ -100,9 +100,12 @@ class Generator:
         file:    str
             Path to these file (which is useful for error-checking purposes)
         """
-
         # load the model
         G = json_graph.node_link_graph(sample)
+
+        # transform the undirected graphs to directed (to ensure proper working during the MP)
+        if not nx.is_directed(G):
+            G = G.to_directed()
 
         entity_counter = {}
         mapping = {}
