@@ -386,7 +386,7 @@ class Ignnition_model:
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
-                                                                     output_names,  # adjacency_info,
+                                                                     output_names, adj_names,
                                                                      interleave_list, unique_additional_input, training,
                                                                      shuffle),
                         output_types=(types, tf.float32),
@@ -396,7 +396,7 @@ class Ignnition_model:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
-                                                                   output_names,  # adjacency_info,
+                                                                   output_names, adj_names,
                                                                    interleave_list,
                                                                    unique_additional_input, training, shuffle),
                         output_types=(types, tf.float32),
@@ -406,7 +406,7 @@ class Ignnition_model:
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
-                                                                     output_names,  # adjacency_info,
+                                                                     output_names, adj_names,
                                                                      interleave_list, unique_additional_input, training,
                                                                      shuffle),
                         output_types=(types),
@@ -416,7 +416,7 @@ class Ignnition_model:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
-                                                                   output_names,  # adjacency_info,
+                                                                   output_names, adj_names,
                                                                    interleave_list,
                                                                    unique_additional_input, training, shuffle),
                         output_types=(types),
@@ -491,10 +491,10 @@ class Ignnition_model:
             Input dictionary necessary to initialize all the dimensions
         """
 
-        checkpoint_path = self.CONFIG.get('warm_start_path', '')
+        checkpoint_path = self.CONFIG.get('load_model_path', '')
         if os.path.isfile(checkpoint_path):
             print("Restoring from", checkpoint_path)
-            # in this case we need to initialize the weights to be able to use a warm-start checkpoint
+            # in this case we need to initialize the weights to be able to use a load_model checkpoint
 
             sample_it = self.__input_fn_generator(training=False,
                                                   data_samples=[sample])

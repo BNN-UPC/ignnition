@@ -2,7 +2,7 @@
 train_dataset: ./data/train
 validation_dataset: ./data/eval
 #predict_dataset:
-#warm_start_path:
+#load_model_path:
 additional_functions_file: ./main.py
 output_path: ./
 

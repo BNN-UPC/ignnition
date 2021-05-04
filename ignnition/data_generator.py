@@ -147,7 +147,7 @@ class Generator:
                                                    "but was not defined in the dataset."
                     if file is not None:
                         message = "Error in the dataset file located in '" + file + ".\n" + message
-                    print_failure(message)
+                    raise Exception(message)
                 else:
                     data[f] = feature
 
@@ -156,7 +156,7 @@ class Generator:
                                                "but was not defined in the dataset."
                 if file is not None:
                     message = "Error in the dataset file located in '" + file + ".\n" + message
-                print_failure(message)
+                raise Exception(message)
 
         # take other inputs if needed (check that they might be global features)
         for a in self.additional_input:
@@ -181,7 +181,7 @@ class Generator:
                                                    'but was not defined in the dataset.'
                 if file is not None:
                     message = "Error in the dataset file located in '" + file + ".\n" + message
-                print_failure(message)
+                raise Exception(message)
 
         if self.training:
             # collect the output (if there is more than one, concatenate them on axis=1
@@ -220,6 +220,7 @@ class Generator:
         # find the adjacencies
         edges_list = list(D_G.edges())
         processed_neighbours = {}
+
         for e in edges_list:
             src_node, dst_node = e
             src_num = int(src_node.split('_')[-1])
@@ -241,6 +242,15 @@ class Generator:
             data['seq_' + src_entity + '_to_' + dst_entity].append(processed_neighbours[dst_node])
 
             processed_neighbours[dst_node] += 1  # this is useful to check which sequence number to use
+
+
+        # check that the dataset contains all the adjacencies needed
+        for adj_name_item in self.adj_names:
+            if('src_' + adj_name_item not in data):
+                src_entity = adj_name_item.split('_to_')[0]
+                dst_entity = adj_name_item.split('_to_')[1]
+                raise Exception("WARNING: The GNN definition use edges between " + src_entity + " and " + dst_entity + " but these were not found in the input graph. One reason for this error is to define a directed graph instead of an undirected graph.")
+
 
         # this collects the sequence for the interleave aggregation (if any)
         for i in self.interleave_names:
@@ -281,6 +291,7 @@ class Generator:
                             entity_names,
                             feature_names,
                             output_names,
+                            adj_names,
                             interleave_names,
                             additional_input,
                             training,
@@ -310,6 +321,7 @@ class Generator:
         self.entity_names = [x for x in entity_names]
         self.feature_names = [x for x in feature_names]
         self.output_names = output_names
+        self.adj_names = adj_names
         self.interleave_names = [[i[0], i[1]] for i in interleave_names]
         self.additional_input = [x for x in additional_input]
         self.training = training
@@ -323,19 +335,18 @@ class Generator:
                 pass
 
             except KeyboardInterrupt:
-                sys.exit
+                sys.exit()
 
             except Exception as inf:
-                print_failure("\n There was an unexpected error: \n" + str(inf))
-                print_failure('Please make sure that all the names used in the sample passed ')
+                print_failure("\n There was an unexpected error: \n" + str(inf)+ "\n Please make sure that all the names used in the sample passed ")
 
-            sys.exit
 
     def generate_from_dataset(self,
                               dir,
                               entity_names,
                               feature_names,
                               output_names,
+                              adj_names,
                               interleave_names,
                               additional_input,
                               training,
@@ -364,6 +375,7 @@ class Generator:
         self.entity_names = entity_names
         self.feature_names = feature_names
         self.output_names = output_names
+        self.adj_names = adj_names
         self.interleave_names = interleave_names
         self.additional_input = additional_input
         self.training = training
@@ -401,8 +413,5 @@ class Generator:
                 sys.exit()
 
             except Exception as inf:
-                print_info("\n There was an unexpected error: \n" + str(inf))
-                print_info('Please make sure that all the names used in the file ' + sample_file +
+                print_failure("\n There was an unexpected error: \n" + str(inf) + "\n Please make sure that all the names used in the file: " + sample_file +
                            ' are defined in your dataset')
-
-                sys.exit()
