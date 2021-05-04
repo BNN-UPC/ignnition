@@ -189,12 +189,16 @@ class Generator:
             first=True
             for output in self.output_names:
                 try:
-                    node_output = list(nx.get_node_attributes(D_G, output).values())
-                    aux = node_output
-                except:
-                    global_output = list(D_G.graph[output].values())
-                    aux = global_output
+                    aux = list(nx.get_node_attributes(D_G, output).values())
+                    if not aux:  # When having global/graph-level output
+                        aux = D_G.graph[output]
+                        aux = aux if isinstance(aux, list) else [aux]
 
+                except:
+                    print_failure(
+                        f"Error when trying to get output with name: {output}. "
+                        "Check the data which corresponds to the output_label in the readout block."
+                    )
 
                 # if it is a 1d array, transform it into a 2d array
                 if len(np.array(aux).shape) == 1:
@@ -208,7 +212,10 @@ class Generator:
                     else:
                         final_output = np.concatenate((final_output, aux), axis=1)
                 except:
-                    raise Exception("More than one output label was defined by they dont seem to be compatible. Check that all of them are either node or global labels. If they are node labels, they should refer to the same entity nodes.")
+                    print_failure(
+                        "More than one output label was defined by they don't seem to be compatible. "
+                        "Check that all of them are either node or global labels. "
+                        "If they are node labels, they should refer to the same entity nodes.")
 
         # find the adjacencies
         edges_list = list(D_G.edges())
