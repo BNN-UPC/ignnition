@@ -17,7 +17,7 @@ edge information (atom to atom distance and bond type).
 By default we use as target the molecules' dipole moment, but the provided data contains all
 molecule properties in the original dataset to explore other options.
 
-## Using a small subset of data
+## Running the example
 
 For this example you can find the directory *data* containing a very small subset of the dataset. In
 particular, 1000 molecules for training and 100 for validation. In addition, we have included the
