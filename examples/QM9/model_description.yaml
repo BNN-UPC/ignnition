@@ -1,0 +1,120 @@
+# QM9 model definition for iGNNition model
+entities:
+- name: atom
+  state_dimension: hidden_state_dimension
+  initial_state:
+    - type: build_state
+      input:
+        - $acceptor
+        - $aromatic
+        - $atomic_number
+        - $donor
+        - $element_c
+        - $element_f
+        - $element_h
+        - $element_n
+        - $element_o
+        - $hybridization_null
+        - $hybridization_sp
+        - $hybridization_sp2
+        - $hybridization_sp3
+        - $hydrogen_count
+
+message_passing:
+  num_iterations: 4
+  stages:
+    - stage_message_passings:
+      - destination_entity: atom
+        source_entities:
+          - name: atom
+            message:
+              - type: neural_network
+                nn_name: message_function
+                input:
+                  - source
+                  - destination
+                  - $distance
+                  - $order_1
+                  - $order_1_5
+                  - $order_2
+                  - $order_3
+        aggregation:
+          - type: sum
+        update:
+          type: neural_network
+          nn_name: update_function
+
+readout:
+- type: neural_network
+  input: [atom, atom_initial_state]
+  nn_name: readout_gate
+  output_name: gate
+- type: neural_network
+  input: [atom]
+  nn_name: readout_state
+  output_name: state
+- type: product
+  input: [gate, state]
+  output_name: readout
+  type_product: element_wise
+- type: pooling
+  input : [readout]
+  type_pooling: sum
+  output_name: graph_sate
+- type: neural_network
+  input: [graph_sate]
+  nn_name: readout_graph
+  output_label: [$dipole_moment]
+
+neural_networks:
+- nn_name: message_function
+  nn_architecture:
+  - type_layer: nn_layer
+    units: nn_units
+    activation: nn_activation
+  - type_layer: nn_layer
+    units: nn_units
+    activation: nn_activation
+  - type_layer: nn_layer
+    units: nn_units
+    activation: nn_activation
+  - type_layer: nn_layer
+    units: hidden_state_dimension
+
+- nn_name: update_function
+  nn_architecture:
+    - type_layer: GRU
+
+- nn_name: readout_gate
+  nn_architecture:
+  - type_layer: nn_layer
+    units: nn_units
+    activation: nn_activation
+  - type_layer: nn_layer
+    units: nn_units
+    activation: nn_activation
+  - type_layer: nn_layer
+    units: nn_units
+    activation: sigmoid
+
+- nn_name: readout_state
+  nn_architecture:
+  - type_layer: nn_layer
+    units: nn_units
+    activation: nn_activation
+  - type_layer: nn_layer
+    units: nn_units
+    activation: nn_activation
+  - type_layer: nn_layer
+    units: nn_units
+
+- nn_name: readout_graph
+  nn_architecture:
+  - type_layer: nn_layer
+    units: nn_units
+    activation: nn_activation
+  - type_layer: nn_layer
+    units: nn_units
+    activation: nn_activation
+  - type_layer: nn_layer
+    units: 1
