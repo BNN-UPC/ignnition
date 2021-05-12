@@ -79,7 +79,8 @@ class Entity:
         for op in operations:
             # keep track of all the necessary features (remove the initial $ to indicate that it is in the dataset)
             for input_item in op.get('input'):
-                all_inputs.add(input_item.split('$')[-1])
+                feature_name = input_item.split('$')[-1]
+                all_inputs.add(feature_name)
 
             # keep track of the outputs
             if 'output_name' in op:
@@ -94,7 +95,9 @@ class Entity:
                 hs_operations.append(Build_state(op, self.name, self.state_dimension))
 
         # remove all the references in the inputs that refer to a previous output
-        final_inputs = all_inputs.difference(all_outputs)
+        final_inputs = list(all_inputs.difference(all_outputs))
+
+
         return hs_operations, list(final_inputs)
 
     def get_entity_total_feature_size(self):
