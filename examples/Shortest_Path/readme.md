@@ -13,3 +13,4 @@ This command will create the GNN specified in *model_description.yaml* file. We 
 If you want to execute any other functionality that is not train and validate, simply change the *main.py* file, to specify the new functionality. Visit (https://ignnition.net/doc/train_and_evaluate/) for more information.
 
 Finally, we recommend you to visit [our documentation](https://ignnition.net/doc/quick_tutorial/) for further details regarding this model and the complete pipeline to execute it.
+
