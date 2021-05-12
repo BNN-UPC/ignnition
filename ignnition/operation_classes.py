@@ -221,11 +221,14 @@ class Build_state(Operation):
             Dictionary with the data of the current sample
         """
 
-        state = self.compute_all_input(calculations, f_)
-        remaining_zeros = tf.cast(self.entity_dim - tf.shape(state)[1], tf.int64)
-
-        shape = tf.stack([tf.cast(f_.get('num_' + self.entity_name), tf.int64), remaining_zeros], axis=0)  # shape (2,)
-        state = tf.concat([state, tf.zeros(shape)], axis=1)
+        if self.input:
+            state = self.compute_all_input(calculations, f_)
+            remaining_zeros = tf.cast(self.entity_dim - tf.shape(state)[1], tf.int64)
+            shape = tf.stack([tf.cast(f_.get('num_' + self.entity_name), tf.int64), remaining_zeros], axis=0)  # shape (2,)
+            state = tf.concat([state, tf.zeros(shape)], axis=1)
+        else:
+            shape = tf.stack([tf.cast(f_.get('num_' + self.entity_name), tf.int64), self.entity_dim],axis=0)  # shape (2,)
+            state = tf.zeros(shape)
         return state
 
 

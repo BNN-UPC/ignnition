@@ -305,143 +305,143 @@ class Gnn_model(tf.keras.Model):
                                     num_dst = f_['num_' + dst_name]
 
                                     # with tf.name_scope('mp_to_' + dst_name + 's') as _:
-                                    with tf.name_scope(mp.source_entities[0].name + 's_to_' + dst_name + 's') as _:
-                                        first_src = True
-                                        with tf.name_scope('message') as _:
+                                    with tf.name_scope('MP_to_' + dst_name) as _:
+
+                                        with tf.name_scope('message_phase') as _:
+                                            # this is useful to check if there was any message passing to do (o/w ignore this MP)
+                                            self.calculations[dst_name + '_non_empty'] = True
+                                            first_src = True
                                             for src in mp.source_entities:
                                                 src_name = src.name
-
                                                 # prepare the information
-                                                src_idx, dst_idx, seq = f_.get(
-                                                    'src_' + src_name + '_to_' + dst_name), f_.get(
-                                                    'dst_' + src_name + '_to_' + dst_name), f_.get(
-                                                    'seq_' + src_name + '_to_' + dst_name)
-
+                                                src_idx, dst_idx, seq = f_.get('src_' + src_name + '_to_' + dst_name), \
+                                                                        f_.get('dst_' + src_name + '_to_' + dst_name), \
+                                                                        f_.get('seq_' + src_name + '_to_' + dst_name)
                                                 src_idx = tf.squeeze(src_idx)
                                                 dst_idx = tf.squeeze(dst_idx)
                                                 seq = tf.squeeze(seq)
 
-                                                src_states = get_global_variable(self.calculations, str(src_name))
+                                                with tf.name_scope(src_name + '_to_' + dst_name) as _:
+                                                    src_states = get_global_variable(self.calculations, str(src_name))
 
-                                                with tf.name_scope(
-                                                        'create_message_' + src_name + '_to_' + dst_name) as _:
+                                                    with tf.name_scope('create_message_' + src_name + '_to_' + dst_name) as _:
+                                                        # check here if the indices is not empty??
+                                                        self.src_messages = tf.gather(src_states, src_idx)
+                                                        self.dst_messages = tf.gather(dst_states, dst_idx)
+                                                        message_creation_models = src.message_formation
 
-                                                    self.src_messages = tf.gather(src_states, src_idx)
-                                                    self.dst_messages = tf.gather(dst_states, dst_idx)
-                                                    message_creation_models = src.message_formation
+                                                        # by default, the source hs are the messages
+                                                        result = self.src_messages
+                                                        counter = 0
 
-                                                    # by default, the source hs are the messages
-                                                    result = self.src_messages
-                                                    counter = 0
+                                                        for op in message_creation_models:
+                                                            if op is not None:  # if it is not direct_assignation
+                                                                type_operation = op.type
 
-                                                    for op in message_creation_models:
-                                                        if op is not None:  # if it is not direct_assignation
-                                                            type_operation = op.type
+                                                                if type_operation == 'neural_network':
+                                                                    with tf.name_scope('apply_nn_' + str(counter)) as _:
+                                                                        # careful. This name could overlap with another model
+                                                                        var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(counter)
+                                                                        message_creator = get_global_variable(self.calculations, var_name)
+                                                                        result = op.apply_nn_msg(message_creator,
+                                                                                                 self.calculations, f_,
+                                                                                                 self.src_messages,
+                                                                                                 self.dst_messages)
 
-                                                            if type_operation == 'neural_network':
-                                                                with tf.name_scope('apply_nn_' + str(counter)) as _:
-                                                                    # careful. This name could overlap with another model
-                                                                    var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(
-                                                                        counter)
-                                                                    message_creator = get_global_variable(
-                                                                        self.calculations, var_name)
-                                                                    result = op.apply_nn_msg(message_creator,
-                                                                                             self.calculations, f_,
-                                                                                             self.src_messages,
-                                                                                             self.dst_messages)
+                                                                elif type_operation == 'product':
+                                                                    with tf.name_scope(
+                                                                            'apply_product_' + str(counter)) as _:
+                                                                        product_input1 = self.treat_message_function_input(
+                                                                            op.input[0], f_)
 
-                                                            elif type_operation == 'product':
-                                                                with tf.name_scope(
-                                                                        'apply_product_' + str(counter)) as _:
-                                                                    product_input1 = self.treat_message_function_input(
-                                                                        op.input[0], f_)
+                                                                        product_input2 = self.treat_message_function_input(
+                                                                            op.input[1], f_)
+                                                                        result = op.calculate(product_input1,
+                                                                                              product_input2)
 
-                                                                    product_input2 = self.treat_message_function_input(
-                                                                        op.input[1], f_)
-                                                                    result = op.calculate(product_input1,
-                                                                                          product_input2)
+                                                                if op.output_name is not None:
+                                                                    save_global_variable(self.calculations,
+                                                                                         op.output_name, result)
+                                                            final_messages = result
+                                                            counter += 1
 
-                                                            if op.output_name is not None:
-                                                                save_global_variable(self.calculations,
-                                                                                     op.output_name, result)
-                                                        final_messages = result
-                                                        counter += 1
+                                                        # PREPARE FOR THE AGGREGATION
+                                                        with tf.name_scope('combine_messages_' + src_name + '_to_' + dst_name) as _:
+                                                            ids = tf.stack([dst_idx, seq], axis=1)
 
-                                                    # PREPARE FOR THE AGGREGATION
-                                                    with tf.name_scope(
-                                                            'combine_messages_' + src_name + '_to_' + dst_name) as _:
-                                                        ids = tf.stack([dst_idx, seq], axis=1)
+                                                            lens = tf.math.unsorted_segment_sum(tf.ones_like(dst_idx),
+                                                                                                dst_idx, num_dst)
 
-                                                        lens = tf.math.unsorted_segment_sum(tf.ones_like(dst_idx),
-                                                                                            dst_idx, num_dst)
+                                                            # only a few aggregations actually needed to keep the order
 
-                                                        # only a few aggregations actually needed to keep the order
-                                                        max_len = tf.reduce_max(seq) + 1
+                                                            max_len = tf.math.maximum(tf.cast(0,tf.int64),tf.reduce_max(seq) + 1)  #fix an error in the case that it is empty
 
-                                                        message_dim = int(get_global_variable(self.calculations,
-                                                                                              "final_message_dim_" + str(
-                                                                                                  idx_stage) + '_' + str(
-                                                                                                  idx_msg)))
+                                                            message_dim = int(get_global_variable(self.calculations,
+                                                                                                  "final_message_dim_" + str(
+                                                                                                      idx_stage) + '_' + str(
+                                                                                                      idx_msg)))
 
-                                                        shape = tf.stack([num_dst, max_len, message_dim])
-                                                        s = tf.scatter_nd(ids, final_messages,
-                                                                          shape)  # find the input ordering it by sequence
+                                                            shape = tf.stack([num_dst, max_len, message_dim])
+                                                            s = tf.scatter_nd(ids, final_messages,shape)  # find the input ordering it by sequence
 
-                                                        aggr = mp.aggregations
-                                                        if isinstance(aggr, Concat_aggr):
-                                                            with tf.name_scope("concat_" + src_name) as _:
+                                                            aggr = mp.aggregations
+                                                            if isinstance(aggr, Concat_aggr):
+                                                                with tf.name_scope("concat_" + src_name) as _:
+                                                                    if first_src:
+                                                                        src_input = s
+                                                                        final_len = lens
+                                                                        first_src = False
+                                                                    else:
+                                                                        src_input = tf.concat([src_input, s],
+                                                                                              axis=aggr.concat_axis)
+                                                                        if aggr.concat_axis == 1:  # if axis=2, then the number of messages received is the same. Simply create bigger messages
+                                                                            final_len += lens
+
+                                                            elif isinstance(aggr, Interleave_aggr):
+                                                                with tf.name_scope('add_' + src_name) as _:
+                                                                    indices_source = f_.get(
+                                                                        "indices_" + src_name + '_to_' + dst_name)
+                                                                    if first_src:
+                                                                        first_src = False
+                                                                        src_input = s  # destinations x max_of_sources_to_dest x dim_source
+                                                                        indices = indices_source
+                                                                        final_len = lens
+                                                                    else:
+                                                                        # destinations x max_of_sources_to_dest_concat x dim_source
+                                                                        src_input = tf.concat([src_input, s], axis=1)
+                                                                        indices = tf.stack([indices, indices_source],
+                                                                                           axis=0)
+                                                                        final_len = tf.math.add(final_len, lens)
+
+                                                            # if we must aggregate them together into a single embedding (sum, attention, edge_attention, ordered)
+                                                            # the pipeline will either use the operations below or from above.
+                                                            else:
+                                                                # obtain the overall input of each of the destinations
                                                                 if first_src:
-                                                                    src_input = s
-                                                                    final_len = lens
                                                                     first_src = False
-                                                                else:
-                                                                    src_input = tf.concat([src_input, s],
-                                                                                          axis=aggr.concat_axis)
-                                                                    if aggr.concat_axis == 1:  # if axis=2, then the number of messages received is the same. Simply create bigger messages
-                                                                        final_len += lens
+                                                                    src_input = s  # destinations x sources_to_dest x dim_source
+                                                                    comb_src_states, comb_dst_idx, comb_seq = final_messages, dst_idx, seq  # we need this for the attention and convolutional mechanism
+                                                                    final_len = lens
 
-                                                        elif isinstance(aggr, Interleave_aggr):
-                                                            with tf.name_scope('add_' + src_name) as _:
-                                                                indices_source = f_.get(
-                                                                    "indices_" + src_name + '_to_' + dst_name)
-                                                                if first_src:
-                                                                    first_src = False
-                                                                    src_input = s  # destinations x max_of_sources_to_dest x dim_source
-                                                                    indices = indices_source
-                                                                    final_len = lens
                                                                 else:
                                                                     # destinations x max_of_sources_to_dest_concat x dim_source
                                                                     src_input = tf.concat([src_input, s], axis=1)
-                                                                    indices = tf.stack([indices, indices_source],
-                                                                                       axis=0)
+                                                                    comb_src_states = tf.concat(
+                                                                        [comb_src_states, final_messages],
+                                                                        axis=0)
+                                                                    comb_dst_idx = tf.concat([comb_dst_idx, dst_idx],
+                                                                                             axis=0)
+
+                                                                    aux_lens = tf.gather(final_len,
+                                                                                         dst_idx)  # lens of each src-dst value
+                                                                    aux_seq = seq + aux_lens  # sum to the sequences the current length for each dest
+                                                                    comb_seq = tf.concat([comb_seq, aux_seq], axis=0)
+
                                                                     final_len = tf.math.add(final_len, lens)
 
+                                                #aux = tf.cond(tf.size(src_idx) == 0, lambda: False, lambda: True)
+                                                #self.calculations[dst_name + '_non_empty'] = tf.math.logical_or(self.calculations[dst_name + '_non_empty'], aux)
 
-                                                        # if we must aggregate them together into a single embedding (sum, attention, edge_attention, ordered)
-                                                        # the pipeline will either use the operations below or from above.
-                                                        else:
-                                                            # obtain the overall input of each of the destinations
-                                                            if first_src:
-                                                                first_src = False
-                                                                src_input = s  # destinations x sources_to_dest x dim_source
-                                                                comb_src_states, comb_dst_idx, comb_seq = final_messages, dst_idx, seq  # we need this for the attention and convolutional mechanism
-                                                                final_len = lens
-
-                                                            else:
-                                                                # destinations x max_of_sources_to_dest_concat x dim_source
-                                                                src_input = tf.concat([src_input, s], axis=1)
-                                                                comb_src_states = tf.concat(
-                                                                    [comb_src_states, final_messages],
-                                                                    axis=0)
-                                                                comb_dst_idx = tf.concat([comb_dst_idx, dst_idx],
-                                                                                         axis=0)
-
-                                                                aux_lens = tf.gather(final_len,
-                                                                                     dst_idx)  # lens of each src-dst value
-                                                                aux_seq = seq + aux_lens  # sum to the sequences the current length for each dest
-                                                                comb_seq = tf.concat([comb_seq, aux_seq], axis=0)
-
-                                                                final_len = tf.math.add(final_len, lens)
 
                                         # --------------
                                         # perform the actual aggregation
@@ -453,31 +453,37 @@ class Gnn_model(tf.keras.Model):
                                             for aggr in aggrs:
                                                 with tf.name_scope(aggr.type) as _:
                                                     if aggr.type == 'sum':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
+                                                        src_input = aggr.calculate_input(comb_src_states,
+                                                                                         comb_dst_idx,
                                                                                          num_dst)
 
                                                     elif aggr.type == 'mean':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                     num_dst)
+                                                        src_input = aggr.calculate_input(comb_src_states,
+                                                                                         comb_dst_idx,
+                                                                                         num_dst)
 
                                                     elif aggr.type == 'min':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                     num_dst)
+                                                        src_input = aggr.calculate_input(comb_src_states,
+                                                                                         comb_dst_idx,
+                                                                                         num_dst)
 
                                                     elif aggr.type == 'max':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                     num_dst)
+                                                        src_input = aggr.calculate_input(comb_src_states,
+                                                                                         comb_dst_idx,
+                                                                                         num_dst)
 
                                                     elif aggr.type == 'std':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                     num_dst)
+                                                        src_input = aggr.calculate_input(comb_src_states,
+                                                                                         comb_dst_idx,
+                                                                                         num_dst)
 
                                                     elif aggr.type == 'attention':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
-                                                                                     dst_states,
-                                                                                     comb_seq, num_dst,
-                                                                                     self.node_kernel,
-                                                                                     self.attn_kernel)
+                                                        src_input = aggr.calculate_input(comb_src_states,
+                                                                                         comb_dst_idx,
+                                                                                         dst_states,
+                                                                                         comb_seq, num_dst,
+                                                                                         self.node_kernel,
+                                                                                         self.attn_kernel)
 
                                                     elif aggr.type == 'edge_attention':
                                                         var_name = 'edge_attention_' + src_name + '_to_' + dst_name
@@ -489,17 +495,21 @@ class Gnn_model(tf.keras.Model):
                                                                                 axis=1)
 
                                                         # define the shape of the input
-                                                        dimension = self.dimensions[src_name] + self.dimensions[dst_name]
-                                                        model_input = tf.ensure_shape(model_input, [None, dimension] )
+                                                        dimension = self.dimensions[src_name] + self.dimensions[
+                                                            dst_name]
+                                                        model_input = tf.ensure_shape(model_input,
+                                                                                      [None, dimension])
 
                                                         weights = edge_att_model(model_input)
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
+                                                        src_input = aggr.calculate_input(comb_src_states,
+                                                                                         comb_dst_idx,
                                                                                          num_dst,
                                                                                          weights)
 
                                                     # convolutional aggregation (the messages sent by the destination must have the same shape as the destinations)
                                                     elif aggr.type == 'convolution':
-                                                        src_input = aggr.calculate_input(comb_src_states, comb_dst_idx,
+                                                        src_input = aggr.calculate_input(comb_src_states,
+                                                                                         comb_dst_idx,
                                                                                          dst_states,
                                                                                          num_dst, self.conv_kernel)
 
@@ -509,8 +519,10 @@ class Gnn_model(tf.keras.Model):
                                                     elif aggr.type == 'neural_network':
                                                         # concatenate in the axis 0 all the input tensors
                                                         var_name = 'aggr_nn'
-                                                        aggregator_nn = get_global_variable(self.calculations, var_name)
-                                                        src_input = aggr.apply_nn(aggregator_nn, self.calculations, f_)
+                                                        aggregator_nn = get_global_variable(self.calculations,
+                                                                                            var_name)
+                                                        src_input = aggr.apply_nn(aggregator_nn, self.calculations,
+                                                                                  f_)
 
                                                 # save the result of this operation with its output_name
                                                 if aggr.output_name is not None:
@@ -524,55 +536,58 @@ class Gnn_model(tf.keras.Model):
                                             save_global_variable(self.calculations, 'update_input_' + dst_name,
                                                                  src_input)
 
+
                                 # ---------------------------------------
                                 # updates
                                 with tf.name_scope('updates') as _:
                                     for mp in stage[1]:
                                         dst_name = mp.destination_entity
-                                        with tf.name_scope('update_' + dst_name + 's') as _:
-                                            update_model = mp.update
-                                            src_input = get_global_variable(self.calculations,
-                                                                            'update_input_' + dst_name)
-                                            old_state = get_global_variable(self.calculations, dst_name)
 
-                                            # by default use the aggregated messages as new state
-                                            # This should only be compatible with sum/attention/convolution (obtain a single tensor)
-                                            if update_model is None:
-                                                new_state = src_input
+                                        with tf.name_scope('update_' + dst_name) as _:
+                                            if self.calculations[dst_name + '_non_empty']:
+                                                update_model = mp.update
+                                                src_input = get_global_variable(self.calculations, 'update_input_' + dst_name)
+                                                old_state = get_global_variable(self.calculations, dst_name)
 
-                                            # recurrent update
-                                            elif isinstance(update_model, RNN_operation):
-                                                model = get_global_variable(self.calculations, dst_name + '_update')
-                                                if not mp.aggregations_global_type:
-                                                    dst_dim = int(self.dimensions[
-                                                                      dst_name])  # should this be the source dimensions??? CHECK
-                                                    new_state = update_model.model.perform_unsorted_update(model,
-                                                                                                           src_input,
-                                                                                                           old_state,
-                                                                                                           dst_dim)
+                                                # if there was no accumulated input (no adjacencies)
+                                                if update_model is None:
+                                                    # by default use the aggregated messages as new state
+                                                    # This should only be compatible with sum/attention/convolution (obtain a single tensor)
+                                                    new_state = src_input
 
-                                                # if the aggregation was ordered or concat
+                                                # recurrent update
+                                                elif isinstance(update_model, RNN_operation):
+                                                    model = get_global_variable(self.calculations, dst_name + '_update')
+                                                    if not mp.aggregations_global_type:
+                                                        # should this be the source dimensions??? CHECK
+                                                        dst_dim = int(self.dimensions[dst_name])
+                                                        new_state = update_model.model.perform_unsorted_update(model,
+                                                                                                               src_input,
+                                                                                                               old_state,
+                                                                                                               dst_dim)
+
+                                                    # if the aggregation was ordered or concat
+                                                    else:
+                                                        final_len = get_global_variable(self.calculations,
+                                                                                        'update_lens_' + dst_name)
+                                                        new_state = update_model.model.perform_sorted_update(model,
+                                                                                                             src_input,
+                                                                                                             dst_name,
+                                                                                                             old_state,
+                                                                                                             final_len)
+
+                                                # feed-forward update:
+                                                # restriction: It can only be used if the aggreagation was not ordered.
                                                 else:
-                                                    final_len = get_global_variable(self.calculations,
-                                                                                    'update_lens_' + dst_name)
-                                                    new_state = update_model.model.perform_sorted_update(model,
-                                                                                                         src_input,
-                                                                                                         dst_name,
-                                                                                                         old_state,
-                                                                                                         final_len)
+                                                    var_name = dst_name + "_ff_update"
+                                                    update = get_global_variable(self.calculations, var_name)
 
-                                            # feed-forward update:
-                                            # restriction: It can only be used if the aggreagation was not ordered.
-                                            else:
-                                                var_name = dst_name + "_ff_update"
-                                                update = get_global_variable(self.calculations, var_name)
+                                                    # now we need to obtain for each adjacency the concatenation of the source and the destination
+                                                    update_input = tf.concat([src_input, old_state], axis=1)
+                                                    new_state = update(update_input)
 
-                                                # now we need to obtain for each adjacency the concatenation of the source and the destination
-                                                update_input = tf.concat([src_input, old_state], axis=1)
-                                                new_state = update(update_input)
-
-                                            # update the old state
-                                            save_global_variable(self.calculations, dst_name, new_state)
+                                                # update the old state
+                                                self.calculations[dst_name] = new_state
 
             # -----------------------------------------------------------------------------------
             # READOUT PHASE

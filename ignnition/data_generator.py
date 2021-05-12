@@ -60,6 +60,7 @@ class Generator:
 
     def __init__(self):
         self.end_symbol = bytes(']', 'utf-8')
+        self.warnings_shown = False
 
     def stream_read_json(self, f):
         """
@@ -100,9 +101,12 @@ class Generator:
         file:    str
             Path to these file (which is useful for error-checking purposes)
         """
-
         # load the model
         G = json_graph.node_link_graph(sample)
+
+        # transform the undirected graphs to directed (to ensure proper working during the MP)
+        if not nx.is_directed(G):
+            G = G.to_directed()
 
         entity_counter = {}
         mapping = {}
@@ -116,8 +120,7 @@ class Generator:
             attributes = G.nodes[node_name]
 
             if 'entity' not in attributes:
-                print_failure("Error in the dataset file located in '" + file + ".")
-                print_failure('The node named' + node_name + '" was not assigned an entity.')
+                print_failure("Error in the dataset file located in '" + file + ". The node named'" + node_name + "' was not assigned an entity.")
 
             entity_name = attributes['entity']
             new_node_name = entity_name + '_{}'
@@ -221,6 +224,17 @@ class Generator:
         edges_list = list(D_G.edges())
         processed_neighbours = {}
 
+
+        # create the adjacency lists that we are required to pass
+        for adj_name_item in self.adj_names:
+            src_entity = adj_name_item.split('_to_')[0]
+            dst_entity = adj_name_item.split('_to_')[1]
+
+            data['src_' + src_entity + '_to_' + dst_entity] = []
+            data['dst_' + src_entity + '_to_' + dst_entity] = []
+            data['seq_' + src_entity + '_to_' + dst_entity] = []
+
+
         for e in edges_list:
             src_node, dst_node = e
             src_num = int(src_node.split('_')[-1])
@@ -231,26 +245,22 @@ class Generator:
             if dst_node not in processed_neighbours:
                 processed_neighbours[dst_node] = 0
 
-            # all the necessary info for the adjacency lists
-            if 'src_' + src_entity + '_to_' + dst_entity not in data:
-                data['src_' + src_entity + '_to_' + dst_entity] = []
-                data['dst_' + src_entity + '_to_' + dst_entity] = []
-                data['seq_' + src_entity + '_to_' + dst_entity] = []
+            if src_entity + '_to_' + dst_entity in self.adj_names:
+                data['src_' + src_entity + '_to_' + dst_entity].append(src_num)
+                data['dst_' + src_entity + '_to_' + dst_entity].append(dst_num)
+                data['seq_' + src_entity + '_to_' + dst_entity].append(processed_neighbours[dst_node])
 
-            data['src_' + src_entity + '_to_' + dst_entity].append(src_num)
-            data['dst_' + src_entity + '_to_' + dst_entity].append(dst_num)
-            data['seq_' + src_entity + '_to_' + dst_entity].append(processed_neighbours[dst_node])
-
-            processed_neighbours[dst_node] += 1  # this is useful to check which sequence number to use
+                processed_neighbours[dst_node] += 1  # this is useful to check which sequence number to use
 
 
         # check that the dataset contains all the adjacencies needed
-        for adj_name_item in self.adj_names:
-            if('src_' + adj_name_item not in data):
-                src_entity = adj_name_item.split('_to_')[0]
-                dst_entity = adj_name_item.split('_to_')[1]
-                raise Exception("WARNING: The GNN definition use edges between " + src_entity + " and " + dst_entity + " but these were not found in the input graph. One reason for this error is to define a directed graph instead of an undirected graph.")
-
+        if not self.warnings_shown:
+            for adj_name_item in self.adj_names:
+                if data['src_' + adj_name_item] == []:
+                    src_entity = adj_name_item.split('_to_')[0]
+                    dst_entity = adj_name_item.split('_to_')[1]
+                    print_info("WARNING: The GNN definition uses edges between " + src_entity + " and " + dst_entity + " but these were not found in the input graph. The MP defined between these two entities will be ignored.\nIn case the graph ought to contain such edges, one reason for this error is a mistake in defining the graph as directional, when the edges have been defined as undirected. Please check the documentation.")
+                    self.warnings_shown = True
 
         # this collects the sequence for the interleave aggregation (if any)
         for i in self.interleave_names:
