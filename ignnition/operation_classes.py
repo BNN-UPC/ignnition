@@ -44,12 +44,11 @@ class Operation():
         self.type = op.get('type')
         self.output_name = op.get('output_name', None)
 
-
         self.output_label = op.get('output_label', None)
         if self.output_label is not None:
             # There may be more than one output_label
-            self.output_label = [output.split('$')[-1] for output in self.output_label]    #delete the $ from the output label
-
+            self.output_label = [output.split('$')[-1] for output in
+                                 self.output_label]  # delete the $ from the output label
 
         # parse the input of the operation
         self.input = []
@@ -58,9 +57,10 @@ class Operation():
         if 'input' in op:
             for input_item in op.get('input'):
                 if '$source' == input_item or '$destination' == input_item:
-                    print_failure('The keywords source and destination are reserved keywords. Thus, they cannot name feature from the dataset. Check that you really meant to use $, indicating that its a feature from the dataset')
+                    print_failure(
+                        'The keywords source and destination are reserved keywords. Thus, they cannot name feature from the dataset. Check that you really meant to use $, indicating that its a feature from the dataset')
                 else:
-                    self.input.append(input_item.split('$')[-1])    # delete the $ from the inputs (if any)
+                    self.input.append(input_item.split('$')[-1])  # delete the $ from the inputs (if any)
 
     def find_total_input_dim(self, dimensions, calculations):
         """
@@ -80,7 +80,7 @@ class Operation():
 
                 if i in dimensions:
                     dimension = dimensions[i]
-                elif i+'_dim' in calculations:
+                elif i + '_dim' in calculations:
                     dimension = calculations[i + '_dim']  # take the dimension from here or from self.dimensions
                 else:
                     print_failure("Keyword " + i + " used in the model definition was not recognized")
@@ -111,7 +111,7 @@ class Operation():
                 input_dim += int(dimensions.get(dst_name))
             elif i in dimensions:
                 input_dim += int(dimensions[i])
-            elif i+'_dim' in calculations:
+            elif i + '_dim' in calculations:
                 input_dim += dimensions
             else:
                 print_failure("Keyword " + i + " used in the message passing was not recognized.")
@@ -224,10 +224,12 @@ class Build_state(Operation):
         if self.input:
             state = self.compute_all_input(calculations, f_)
             remaining_zeros = tf.cast(self.entity_dim - tf.shape(state)[1], tf.int64)
-            shape = tf.stack([tf.cast(f_.get('num_' + self.entity_name), tf.int64), remaining_zeros], axis=0)  # shape (2,)
+            shape = tf.stack([tf.cast(f_.get('num_' + self.entity_name), tf.int64), remaining_zeros],
+                             axis=0)  # shape (2,)
             state = tf.concat([state, tf.zeros(shape)], axis=1)
         else:
-            shape = tf.stack([tf.cast(f_.get('num_' + self.entity_name), tf.int64), self.entity_dim],axis=0)  # shape (2,)
+            shape = tf.stack([tf.cast(f_.get('num_' + self.entity_name), tf.int64), self.entity_dim],
+                             axis=0)  # shape (2,)
             state = tf.zeros(shape)
         return state
 

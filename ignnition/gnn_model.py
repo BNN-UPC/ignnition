@@ -262,7 +262,7 @@ class Gnn_model(tf.keras.Model):
             # Initialize all the hidden states for all the nodes.
             with tf.name_scope('states_creation') as _:
                 for entity in entities:
-                    with tf.name_scope(str(entity.name) ) as _:
+                    with tf.name_scope(str(entity.name)) as _:
                         counter = 0
                         operations = entity.operations
                         for op in operations:
@@ -324,7 +324,8 @@ class Gnn_model(tf.keras.Model):
                                                 with tf.name_scope(src_name + '_to_' + dst_name) as _:
                                                     src_states = get_global_variable(self.calculations, str(src_name))
 
-                                                    with tf.name_scope('create_message_' + src_name + '_to_' + dst_name) as _:
+                                                    with tf.name_scope(
+                                                            'create_message_' + src_name + '_to_' + dst_name) as _:
                                                         # check here if the indices is not empty??
                                                         self.src_messages = tf.gather(src_states, src_idx)
                                                         self.dst_messages = tf.gather(dst_states, dst_idx)
@@ -341,8 +342,10 @@ class Gnn_model(tf.keras.Model):
                                                                 if type_operation == 'neural_network':
                                                                     with tf.name_scope('apply_nn_' + str(counter)) as _:
                                                                         # careful. This name could overlap with another model
-                                                                        var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(counter)
-                                                                        message_creator = get_global_variable(self.calculations, var_name)
+                                                                        var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(
+                                                                            counter)
+                                                                        message_creator = get_global_variable(
+                                                                            self.calculations, var_name)
                                                                         result = op.apply_nn_msg(message_creator,
                                                                                                  self.calculations, f_,
                                                                                                  self.src_messages,
@@ -366,7 +369,8 @@ class Gnn_model(tf.keras.Model):
                                                             counter += 1
 
                                                         # PREPARE FOR THE AGGREGATION
-                                                        with tf.name_scope('combine_messages_' + src_name + '_to_' + dst_name) as _:
+                                                        with tf.name_scope(
+                                                                'combine_messages_' + src_name + '_to_' + dst_name) as _:
                                                             ids = tf.stack([dst_idx, seq], axis=1)
 
                                                             lens = tf.math.unsorted_segment_sum(tf.ones_like(dst_idx),
@@ -374,7 +378,9 @@ class Gnn_model(tf.keras.Model):
 
                                                             # only a few aggregations actually needed to keep the order
 
-                                                            max_len = tf.math.maximum(tf.cast(0,tf.int64),tf.reduce_max(seq) + 1)  #fix an error in the case that it is empty
+                                                            max_len = tf.math.maximum(tf.cast(0, tf.int64),
+                                                                                      tf.reduce_max(
+                                                                                          seq) + 1)  # fix an error in the case that it is empty
 
                                                             message_dim = int(get_global_variable(self.calculations,
                                                                                                   "final_message_dim_" + str(
@@ -382,7 +388,8 @@ class Gnn_model(tf.keras.Model):
                                                                                                       idx_msg)))
 
                                                             shape = tf.stack([num_dst, max_len, message_dim])
-                                                            s = tf.scatter_nd(ids, final_messages,shape)  # find the input ordering it by sequence
+                                                            s = tf.scatter_nd(ids, final_messages,
+                                                                              shape)  # find the input ordering it by sequence
 
                                                             aggr = mp.aggregations
                                                             if isinstance(aggr, Concat_aggr):
@@ -440,8 +447,8 @@ class Gnn_model(tf.keras.Model):
                                                                     final_len = tf.math.add(final_len, lens)
 
                                                 aux = tf.cond(tf.size(src_idx) == 0, lambda: False, lambda: True)
-                                                self.calculations[dst_name + '_non_empty'] = tf.math.logical_or(self.calculations[dst_name + '_non_empty'], aux)
-
+                                                self.calculations[dst_name + '_non_empty'] = tf.math.logical_or(
+                                                    self.calculations[dst_name + '_non_empty'], aux)
 
                                         # --------------
                                         # perform the actual aggregation
@@ -536,7 +543,6 @@ class Gnn_model(tf.keras.Model):
                                             save_global_variable(self.calculations, 'update_input_' + dst_name,
                                                                  src_input)
 
-
                                 # ---------------------------------------
                                 # updates
                                 with tf.name_scope('updates') as _:
@@ -546,7 +552,8 @@ class Gnn_model(tf.keras.Model):
                                         with tf.name_scope('update_' + dst_name) as _:
                                             if self.calculations[dst_name + '_non_empty']:
                                                 update_model = mp.update
-                                                src_input = get_global_variable(self.calculations, 'update_input_' + dst_name)
+                                                src_input = get_global_variable(self.calculations,
+                                                                                'update_input_' + dst_name)
                                                 old_state = get_global_variable(self.calculations, dst_name)
 
                                                 # if there was no accumulated input (no adjacencies)
