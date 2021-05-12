@@ -309,7 +309,7 @@ class Gnn_model(tf.keras.Model):
 
                                         with tf.name_scope('message_phase') as _:
                                             # this is useful to check if there was any message passing to do (o/w ignore this MP)
-                                            self.calculations[dst_name + '_non_empty'] = True
+                                            self.calculations[dst_name + '_non_empty'] = False
                                             first_src = True
                                             for src in mp.source_entities:
                                                 src_name = src.name
@@ -439,8 +439,8 @@ class Gnn_model(tf.keras.Model):
 
                                                                     final_len = tf.math.add(final_len, lens)
 
-                                                #aux = tf.cond(tf.size(src_idx) == 0, lambda: False, lambda: True)
-                                                #self.calculations[dst_name + '_non_empty'] = tf.math.logical_or(self.calculations[dst_name + '_non_empty'], aux)
+                                                aux = tf.cond(tf.size(src_idx) == 0, lambda: False, lambda: True)
+                                                self.calculations[dst_name + '_non_empty'] = tf.math.logical_or(self.calculations[dst_name + '_non_empty'], aux)
 
 
                                         # --------------
