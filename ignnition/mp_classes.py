@@ -97,7 +97,6 @@ class Entity:
         # remove all the references in the inputs that refer to a previous output
         final_inputs = list(all_inputs.difference(all_outputs))
 
-
         return hs_operations, list(final_inputs)
 
     def get_entity_total_feature_size(self):

@@ -72,7 +72,8 @@ class Generator:
         # check that it is a valid array of objects
         pos1 = f.read(1)
         if pos1 != '[':
-            print_failure("Error because the dataset files must be an array of json objects, and not single json objects")
+            print_failure(
+                "Error because the dataset files must be an array of json objects, and not single json objects")
 
         start_pos = 1
         while True:
@@ -120,7 +121,8 @@ class Generator:
             attributes = G.nodes[node_name]
 
             if 'entity' not in attributes:
-                print_failure("Error in the dataset file located in '" + file + ". The node named'" + node_name + "' was not assigned an entity.")
+                print_failure(
+                    "Error in the dataset file located in '" + file + ". The node named'" + node_name + "' was not assigned an entity.")
 
             entity_name = attributes['entity']
             new_node_name = entity_name + '_{}'
@@ -189,7 +191,7 @@ class Generator:
         if self.training:
             # collect the output (if there is more than one, concatenate them on axis=1
             # limitation: all the outputs must be of the same type (same number of elements)
-            first=True
+            first = True
             for output in self.output_names:
                 try:
                     aux = list(nx.get_node_attributes(D_G, output).values())
@@ -205,13 +207,13 @@ class Generator:
 
                 # if it is a 1d array, transform it into a 2d array
                 if len(np.array(aux).shape) == 1:
-                    aux = np.expand_dims(aux,-1)
+                    aux = np.expand_dims(aux, -1)
 
                 # try to concatenate them together. If error, it means that the two labels are incompatible
                 try:
                     if first:
                         final_output = aux
-                        first=False
+                        first = False
                     else:
                         final_output = np.concatenate((final_output, aux), axis=1)
                 except:
@@ -224,7 +226,6 @@ class Generator:
         edges_list = list(D_G.edges())
         processed_neighbours = {}
 
-
         # create the adjacency lists that we are required to pass
         for adj_name_item in self.adj_names:
             src_entity = adj_name_item.split('_to_')[0]
@@ -233,7 +234,6 @@ class Generator:
             data['src_' + src_entity + '_to_' + dst_entity] = []
             data['dst_' + src_entity + '_to_' + dst_entity] = []
             data['seq_' + src_entity + '_to_' + dst_entity] = []
-
 
         for e in edges_list:
             src_node, dst_node = e
@@ -252,14 +252,14 @@ class Generator:
 
                 processed_neighbours[dst_node] += 1  # this is useful to check which sequence number to use
 
-
         # check that the dataset contains all the adjacencies needed
         if not self.warnings_shown:
             for adj_name_item in self.adj_names:
                 if data['src_' + adj_name_item] == []:
                     src_entity = adj_name_item.split('_to_')[0]
                     dst_entity = adj_name_item.split('_to_')[1]
-                    print_info("WARNING: The GNN definition uses edges between " + src_entity + " and " + dst_entity + " but these were not found in the input graph. The MP defined between these two entities will be ignored.\nIn case the graph ought to contain such edges, one reason for this error is a mistake in defining the graph as directional, when the edges have been defined as undirected. Please check the documentation.")
+                    print_info(
+                        "WARNING: The GNN definition uses edges between " + src_entity + " and " + dst_entity + " but these were not found in the input graph. The MP defined between these two entities will be ignored.\nIn case the graph ought to contain such edges, one reason for this error is a mistake in defining the graph as directional, when the edges have been defined as undirected. Please check the documentation.")
                     self.warnings_shown = True
 
         # this collects the sequence for the interleave aggregation (if any)
@@ -348,8 +348,8 @@ class Generator:
                 sys.exit()
 
             except Exception as inf:
-                print_failure("\n There was an unexpected error: \n" + str(inf)+ "\n Please make sure that all the names used in the sample passed ")
-
+                print_failure("\n There was an unexpected error: \n" + str(
+                    inf) + "\n Please make sure that all the names used in the sample passed ")
 
     def generate_from_dataset(self,
                               dir,
@@ -423,5 +423,6 @@ class Generator:
                 sys.exit()
 
             except Exception as inf:
-                print_failure("\n There was an unexpected error: \n" + str(inf) + "\n Please make sure that all the names used in the file: " + sample_file +
-                           ' are defined in your dataset')
+                print_failure("\n There was an unexpected error: \n" + str(
+                    inf) + "\n Please make sure that all the names used in the file: " + sample_file +
+                              ' are defined in your dataset')

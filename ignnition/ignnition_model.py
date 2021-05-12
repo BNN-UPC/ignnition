@@ -592,7 +592,7 @@ class Ignnition_model:
             graph_attrs = list(G.graph.keys())
             for g in graph_attrs:
                 feature = G.graph[g]
-                dimensions[g] = len(feature)  if isinstance(feature, list) else 1
+                dimensions[g] = len(feature) if isinstance(feature, list) else 1
 
             return dimensions, sample
 
