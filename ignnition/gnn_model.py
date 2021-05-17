@@ -193,8 +193,7 @@ class Gnn_model(tf.keras.Model):
                                                                                  idx_stage) + '_' + str(idx_msg))
 
                                 # if we are concatenating by message (CHECK!!)
-                                aggr = message.aggregations
-                                if aggr.type == 'concat' and aggr.concat_axis == 2:
+                                if aggregation.type == 'concat' and aggregation.concat_axis == 2:
                                     message_dimensionality = reduce(lambda accum, s: accum + int(
                                         get_global_variable(self.calculations,
                                                             "final_message_dim_" + str(idx_stage) + '_' + str(
