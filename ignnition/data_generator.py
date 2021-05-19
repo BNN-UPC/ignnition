@@ -28,6 +28,7 @@ import random
 import tensorflow as tf
 import json
 import warnings
+import functools
 from ignnition.utils import *
 
 import networkx as nx
@@ -135,26 +136,32 @@ class Generator:
         for name in self.entity_names:
             data['num_' + name] = entity_counter[name]
 
-        # do we need this??
+        # rename the name of the nodes to a mapping that also indicates its entity type
         D_G = nx.relabel_nodes(G, mapping)
 
         # load the features (all the features are set to be lists. So we always return a list of lists)
         for f in self.feature_names:
             try:
-                feature = np.array(list(nx.get_node_attributes(D_G, f).values()))
+                features_dict = nx.get_node_attributes(D_G, f)
+                feature_vals = np.array(list(features_dict.values()))
+                entity_names = set([name.split('_')[0] for name in features_dict.keys()])   #indicates the (unique) names of the entities that have that feature
+
+                if len(entity_names) > 1:
+                    entities_string = functools.reduce(lambda x,y: str(x) + ',' + str(y), entity_names )
+                    print_failure("The feature " + f + " was defined in several entities(" + entities_string + "). The feature names should be unique for each type of node.")
 
                 # it should always be a 2d array
-                if len(np.shape(feature)) == 1:
-                    feature = np.expand_dims(feature, axis=-1)
+                if len(np.shape(feature_vals)) == 1:
+                    feature_vals = np.expand_dims(feature_vals, axis=-1)
 
-                if feature.size == 0:
+                if feature_vals.size == 0:
                     message = "The feature " + f + " was used in the model_description.yaml file " \
                                                    "but was not defined in the dataset."
                     if file is not None:
                         message = "Error in the dataset file located in '" + file + ".\n" + message
                     raise Exception(message)
                 else:
-                    data[f] = feature
+                    data[f] = feature_vals
 
             except:
                 message = "The feature " + f + " was used in the model_description.yaml file " \
@@ -165,22 +172,61 @@ class Generator:
 
         # take other inputs if needed (check that they might be global features)
         for a in self.additional_input:
-            node_attr = np.array(list(nx.get_node_attributes(D_G, a).values()))
+            # 1) try to see if this name has been defined as a node attribute
+            node_dict = nx.get_node_attributes(D_G, a)
+            node_attr = np.array(list(node_dict.values()))
+            entity_names = set([name.split('_')[0] for name in node_dict.keys()])  # indicates the (unique) names of the entities that have that feature
+
+            if len(entity_names) > 1:
+                entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
+                print_failure(
+                    "The feature " + a + " was defined in several entities(" + entities_string + "). The feature names should be unique for each type of node.")
+
             # it should always be a 2d array
             if len(np.shape(node_attr)) == 1:
                 node_attr = np.expand_dims(node_attr, axis=-1)
 
-            edge_attr = np.array(list(nx.get_edge_attributes(D_G, a).values()))
+            # 2) try to see if this name has been defined as an edge feature
+            edge_dict = nx.get_edge_attributes(D_G, a)
+            edge_attr = np.array(list(edge_dict.values()))
+            entity_names = set([(pair[0].split('_')[0], pair[1].split('_')[0]) for pair in edge_dict.keys()])  # indicates the (unique) names of the entities that have that feature
+            # obtain the entities, with a small token indicating if it is source or destination
+
+            # Problem: When we transform an undirected graph to directed, we double all the edges. Hence, we still need to differentiate between source and destination entities??
+            # Solution: Allow only directed??
+
+            # for now, check that the name is unique for every src-dst. Problem: One node connected to another but the reverse to other nodes??
+            if len(entity_names) > 2:
+                print(entity_names)
+                entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
+                print_failure(
+                    "The edge feature " + a + " was defined in connecting two different source-destination entities(" + entities_string + "). Make sure that an edge feature is unique for a given pair of entities (types of nodes).")
+
+
             # it should always be a 2d array
             if len(np.shape(edge_attr)) == 1:
                 edge_attr = np.expand_dims(edge_attr, axis=-1)
 
+
+            # 3) try to see if this name has been defined as a graph feature
+            graph_attr = [D_G.graph[a]] if a in D_G.graph else []
+
+            # Check that this name has not been defined both as node features and as edge_features
+            if node_attr.size != 0 and edge_attr.size != 0 and len(graph_attr) != 0:
+                print_failure("The feature " + a + " was defined both as node feature, edge feature and graph feature. Please use unique names in this case.")
+            elif node_attr.size != 0 and edge_attr.size != 0:
+                print_failure("The feature " + a + " was defined both as node feature and as edge feature. Please use unique names in this case.")
+            elif node_attr.size != 0 and len(graph_attr) != 0:
+                print_failure("The feature " + a + " was defined both as node feature and as graph feature. Please use unique names in this case.")
+
+
+            # Return the correct value
             if node_attr.size != 0:
                 data[a] = node_attr
             elif edge_attr.size != 0:
                 data[a] = edge_attr
             elif a in D_G.graph:
-                data[a] = [D_G.graph[a]]
+                data[a] = graph_attr
             else:
                 message = 'The data named "' + a + '" was used in the model_description.yaml file ' \
                                                    'but was not defined in the dataset.'
