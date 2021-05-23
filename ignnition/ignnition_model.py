@@ -180,7 +180,7 @@ class Ignnition_model:
             output_name = self.model_info.get_output_info()
             denorm_y_true = tf.py_function(func=denorm_func, inp=[y_true, output_name], Tout=tf.float32)
             denorm_y_pred = tf.py_function(func=denorm_func, inp=[y_pred, output_name], Tout=tf.float32)
-            return metric(denorm_y_true,denorm_y_pred)
+            return metric(denorm_y_true, denorm_y_pred)
 
         denorm_metric.__name__ = 'denorm_{}'.format(metric.name)
         return denorm_metric
@@ -188,6 +188,7 @@ class Ignnition_model:
     def __get_keras_metrics(self):
         metric_names = self.CONFIG['metrics']
         metrics = []
+
         try:
             denorm_func = getattr(self.module, 'denormalization')
         except:
@@ -197,11 +198,11 @@ class Ignnition_model:
             if hasattr(tf.keras.metrics, name):
                 metric = getattr(tf.keras.metrics, name)()
                 metrics.append(metric)
-                if denorm_func:
+                if denorm_func is not None:
                     metrics.append(self.__denormalized_metric(metric, denorm_func))
             elif hasattr(self.module, name):
                 metrics.append(getattr(self.module, name))
-                if denorm_func:
+                if denorm_func is not None:
                     metrics.append(self.__denormalized_metric(metric, denorm_func))
 
         return metrics
