@@ -28,6 +28,7 @@ import random
 import tensorflow as tf
 import json
 import warnings
+import functools
 from ignnition.utils import *
 
 import networkx as nx
@@ -60,6 +61,7 @@ class Generator:
 
     def __init__(self):
         self.end_symbol = bytes(']', 'utf-8')
+        self.warnings_shown = False
 
     def stream_read_json(self, f):
         """
@@ -71,7 +73,8 @@ class Generator:
         # check that it is a valid array of objects
         pos1 = f.read(1)
         if pos1 != '[':
-            print_failure("Error because the dataset files must be an array of json objects, and not single json objects")
+            print_failure(
+                "Error because the dataset files must be an array of json objects, and not single json objects")
 
         start_pos = 1
         while True:
@@ -100,9 +103,12 @@ class Generator:
         file:    str
             Path to these file (which is useful for error-checking purposes)
         """
-
         # load the model
         G = json_graph.node_link_graph(sample)
+
+        # transform the undirected graphs to directed (to ensure proper working during the MP)
+        if not nx.is_directed(G):
+            G = G.to_directed()
 
         entity_counter = {}
         mapping = {}
@@ -116,8 +122,8 @@ class Generator:
             attributes = G.nodes[node_name]
 
             if 'entity' not in attributes:
-                print_failure("Error in the dataset file located in '" + file + ".")
-                print_failure('The node named' + node_name + '" was not assigned an entity.')
+                print_failure(
+                    "Error in the dataset file located in '" + file + ". The node named'" + node_name + "' was not assigned an entity.")
 
             entity_name = attributes['entity']
             new_node_name = entity_name + '_{}'
@@ -130,89 +136,151 @@ class Generator:
         for name in self.entity_names:
             data['num_' + name] = entity_counter[name]
 
-        # do we need this??
+        # rename the name of the nodes to a mapping that also indicates its entity type
         D_G = nx.relabel_nodes(G, mapping)
 
         # load the features (all the features are set to be lists. So we always return a list of lists)
         for f in self.feature_names:
             try:
-                feature = np.array(list(nx.get_node_attributes(D_G, f).values()))
+                features_dict = nx.get_node_attributes(D_G, f)
+                feature_vals = np.array(list(features_dict.values()))
+                entity_names = set([name.split('_')[0] for name in features_dict.keys()])   #indicates the (unique) names of the entities that have that feature
+
+                if len(entity_names) > 1:
+                    entities_string = functools.reduce(lambda x,y: str(x) + ',' + str(y), entity_names )
+                    print_failure("The feature " + f + " was defined in several entities(" + entities_string + "). The feature names should be unique for each type of node.")
 
                 # it should always be a 2d array
-                if len(np.shape(feature)) == 1:
-                    feature = np.expand_dims(feature, axis=-1)
+                if len(np.shape(feature_vals)) == 1:
+                    feature_vals = np.expand_dims(feature_vals, axis=-1)
 
-                if feature.size == 0:
+                if feature_vals.size == 0:
                     message = "The feature " + f + " was used in the model_description.yaml file " \
                                                    "but was not defined in the dataset."
                     if file is not None:
                         message = "Error in the dataset file located in '" + file + ".\n" + message
-                    print_failure(message)
+                    raise Exception(message)
                 else:
-                    data[f] = feature
+                    data[f] = feature_vals
 
             except:
                 message = "The feature " + f + " was used in the model_description.yaml file " \
                                                "but was not defined in the dataset."
                 if file is not None:
                     message = "Error in the dataset file located in '" + file + ".\n" + message
-                print_failure(message)
+                raise Exception(message)
 
         # take other inputs if needed (check that they might be global features)
         for a in self.additional_input:
-            node_attr = np.array(list(nx.get_node_attributes(D_G, a).values()))
+            # 1) try to see if this name has been defined as a node attribute
+            node_dict = nx.get_node_attributes(D_G, a)
+            node_attr = np.array(list(node_dict.values()))
+            entity_names = set([name.split('_')[0] for name in node_dict.keys()])  # indicates the (unique) names of the entities that have that feature
+
+            if len(entity_names) > 1:
+                entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
+                print_failure(
+                    "The feature " + a + " was defined in several entities(" + entities_string + "). The feature names should be unique for each type of node.")
+
             # it should always be a 2d array
             if len(np.shape(node_attr)) == 1:
                 node_attr = np.expand_dims(node_attr, axis=-1)
 
-            edge_attr = np.array(list(nx.get_edge_attributes(D_G, a).values()))
+            # 2) try to see if this name has been defined as an edge feature
+            edge_dict = nx.get_edge_attributes(D_G, a)
+            edge_attr = np.array(list(edge_dict.values()))
+            entity_names = set([(pair[0].split('_')[0], pair[1].split('_')[0]) for pair in edge_dict.keys()])  # indicates the (unique) names of the entities that have that feature
+            # obtain the entities, with a small token indicating if it is source or destination
+
+            # Problem: When we transform an undirected graph to directed, we double all the edges. Hence, we still need to differentiate between source and destination entities??
+            # Solution: Allow only directed??
+
+            # for now, check that the name is unique for every src-dst. Problem: One node connected to another but the reverse to other nodes??
+            if len(entity_names) > 2:
+                print(entity_names)
+                entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
+                print_failure(
+                    "The edge feature " + a + " was defined in connecting two different source-destination entities(" + entities_string + "). Make sure that an edge feature is unique for a given pair of entities (types of nodes).")
+
+
             # it should always be a 2d array
             if len(np.shape(edge_attr)) == 1:
                 edge_attr = np.expand_dims(edge_attr, axis=-1)
 
+
+            # 3) try to see if this name has been defined as a graph feature
+            graph_attr = [D_G.graph[a]] if a in D_G.graph else []
+
+            # Check that this name has not been defined both as node features and as edge_features
+            if node_attr.size != 0 and edge_attr.size != 0 and len(graph_attr) != 0:
+                print_failure("The feature " + a + " was defined both as node feature, edge feature and graph feature. Please use unique names in this case.")
+            elif node_attr.size != 0 and edge_attr.size != 0:
+                print_failure("The feature " + a + " was defined both as node feature and as edge feature. Please use unique names in this case.")
+            elif node_attr.size != 0 and len(graph_attr) != 0:
+                print_failure("The feature " + a + " was defined both as node feature and as graph feature. Please use unique names in this case.")
+
+
+            # Return the correct value
             if node_attr.size != 0:
                 data[a] = node_attr
             elif edge_attr.size != 0:
                 data[a] = edge_attr
             elif a in D_G.graph:
-                data[a] = [D_G.graph[a]]
+                data[a] = graph_attr
             else:
                 message = 'The data named "' + a + '" was used in the model_description.yaml file ' \
                                                    'but was not defined in the dataset.'
                 if file is not None:
                     message = "Error in the dataset file located in '" + file + ".\n" + message
-                print_failure(message)
+                raise Exception(message)
 
         if self.training:
             # collect the output (if there is more than one, concatenate them on axis=1
             # limitation: all the outputs must be of the same type (same number of elements)
-            first=True
+            first = True
             for output in self.output_names:
                 try:
-                    node_output = list(nx.get_node_attributes(D_G, output).values())
-                    aux = node_output
-                except:
-                    global_output = list(D_G.graph[output].values())
-                    aux = global_output
+                    aux = list(nx.get_node_attributes(D_G, output).values())
+                    if not aux:  # When having global/graph-level output
+                        aux = D_G.graph[output]
+                        aux = aux if isinstance(aux, list) else [aux]
 
+                except:
+                    print_failure(
+                        f"Error when trying to get output with name: {output}. "
+                        "Check the data which corresponds to the output_label in the readout block."
+                    )
 
                 # if it is a 1d array, transform it into a 2d array
                 if len(np.array(aux).shape) == 1:
-                    aux = np.expand_dims(aux,-1)
+                    aux = np.expand_dims(aux, -1)
 
                 # try to concatenate them together. If error, it means that the two labels are incompatible
                 try:
                     if first:
                         final_output = aux
-                        first=False
+                        first = False
                     else:
                         final_output = np.concatenate((final_output, aux), axis=1)
                 except:
-                    print_failure("More than one output label was defined by they dont seem to be compatible. Check that all of them are either node or global labels. If they are node labels, they should refer to the same entity nodes.")
+                    print_failure(
+                        "More than one output label was defined by they don't seem to be compatible. "
+                        "Check that all of them are either node or global labels. "
+                        "If they are node labels, they should refer to the same entity nodes.")
 
         # find the adjacencies
         edges_list = list(D_G.edges())
         processed_neighbours = {}
+
+        # create the adjacency lists that we are required to pass
+        for adj_name_item in self.adj_names:
+            src_entity = adj_name_item.split('_to_')[0]
+            dst_entity = adj_name_item.split('_to_')[1]
+
+            data['src_' + src_entity + '_to_' + dst_entity] = []
+            data['dst_' + src_entity + '_to_' + dst_entity] = []
+            data['seq_' + src_entity + '_to_' + dst_entity] = []
+
         for e in edges_list:
             src_node, dst_node = e
             src_num = int(src_node.split('_')[-1])
@@ -223,17 +291,22 @@ class Generator:
             if dst_node not in processed_neighbours:
                 processed_neighbours[dst_node] = 0
 
-            # all the necessary info for the adjacency lists
-            if 'src_' + src_entity + '_to_' + dst_entity not in data:
-                data['src_' + src_entity + '_to_' + dst_entity] = []
-                data['dst_' + src_entity + '_to_' + dst_entity] = []
-                data['seq_' + src_entity + '_to_' + dst_entity] = []
+            if src_entity + '_to_' + dst_entity in self.adj_names:
+                data['src_' + src_entity + '_to_' + dst_entity].append(src_num)
+                data['dst_' + src_entity + '_to_' + dst_entity].append(dst_num)
+                data['seq_' + src_entity + '_to_' + dst_entity].append(processed_neighbours[dst_node])
 
-            data['src_' + src_entity + '_to_' + dst_entity].append(src_num)
-            data['dst_' + src_entity + '_to_' + dst_entity].append(dst_num)
-            data['seq_' + src_entity + '_to_' + dst_entity].append(processed_neighbours[dst_node])
+                processed_neighbours[dst_node] += 1  # this is useful to check which sequence number to use
 
-            processed_neighbours[dst_node] += 1  # this is useful to check which sequence number to use
+        # check that the dataset contains all the adjacencies needed
+        if not self.warnings_shown:
+            for adj_name_item in self.adj_names:
+                if data['src_' + adj_name_item] == []:
+                    src_entity = adj_name_item.split('_to_')[0]
+                    dst_entity = adj_name_item.split('_to_')[1]
+                    print_info(
+                        "WARNING: The GNN definition uses edges between " + src_entity + " and " + dst_entity + " but these were not found in the input graph. The MP defined between these two entities will be ignored.\nIn case the graph ought to contain such edges, one reason for this error is a mistake in defining the graph as directional, when the edges have been defined as undirected. Please check the documentation.")
+                    self.warnings_shown = True
 
         # this collects the sequence for the interleave aggregation (if any)
         for i in self.interleave_names:
@@ -274,6 +347,7 @@ class Generator:
                             entity_names,
                             feature_names,
                             output_names,
+                            adj_names,
                             interleave_names,
                             additional_input,
                             training,
@@ -303,6 +377,7 @@ class Generator:
         self.entity_names = [x for x in entity_names]
         self.feature_names = [x for x in feature_names]
         self.output_names = output_names
+        self.adj_names = adj_names
         self.interleave_names = [[i[0], i[1]] for i in interleave_names]
         self.additional_input = [x for x in additional_input]
         self.training = training
@@ -316,19 +391,18 @@ class Generator:
                 pass
 
             except KeyboardInterrupt:
-                sys.exit
+                sys.exit()
 
             except Exception as inf:
-                print_failure("\n There was an unexpected error: \n" + str(inf))
-                print_failure('Please make sure that all the names used in the sample passed ')
-
-            sys.exit
+                print_failure("\n There was an unexpected error: \n" + str(
+                    inf) + "\n Please make sure that all the names used in the sample passed ")
 
     def generate_from_dataset(self,
                               dir,
                               entity_names,
                               feature_names,
                               output_names,
+                              adj_names,
                               interleave_names,
                               additional_input,
                               training,
@@ -357,6 +431,7 @@ class Generator:
         self.entity_names = entity_names
         self.feature_names = feature_names
         self.output_names = output_names
+        self.adj_names = adj_names
         self.interleave_names = interleave_names
         self.additional_input = additional_input
         self.training = training
@@ -394,8 +469,6 @@ class Generator:
                 sys.exit()
 
             except Exception as inf:
-                print_info("\n There was an unexpected error: \n" + str(inf))
-                print_info('Please make sure that all the names used in the file ' + sample_file +
-                           ' are defined in your dataset')
-
-                sys.exit()
+                print_failure("\n There was an unexpected error: \n" + str(
+                    inf) + "\n Please make sure that all the names used in the file: " + sample_file +
+                              ' are defined in your dataset')
