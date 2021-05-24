@@ -175,14 +175,14 @@ class Ignnition_model:
 
         return total_loss
 
-    def __denormalized_metric(self, metric, denorm_func):
+    def __denormalized_metric(self, metric, metric_name, denorm_func):
         def denorm_metric(y_true, y_pred):
             output_name = self.model_info.get_output_info()
             denorm_y_true = tf.py_function(func=denorm_func, inp=[y_true, output_name], Tout=tf.float32)
             denorm_y_pred = tf.py_function(func=denorm_func, inp=[y_pred, output_name], Tout=tf.float32)
             return metric(denorm_y_true, denorm_y_pred)
 
-        denorm_metric.__name__ = 'denorm_{}'.format(metric.name)
+        denorm_metric.__name__ = 'denorm_{}'.format(metric_name)
         return denorm_metric
 
     def __get_keras_metrics(self):
@@ -199,11 +199,12 @@ class Ignnition_model:
                 metric = getattr(tf.keras.metrics, name)()
                 metrics.append(metric)
                 if denorm_func is not None:
-                    metrics.append(self.__denormalized_metric(metric, denorm_func))
+                    metrics.append(self.__denormalized_metric(metric, metric.name, denorm_func))
             elif hasattr(self.module, name):
-                metrics.append(getattr(self.module, name))
+                metric = getattr(self.module, name)
+                metrics.append(metric)
                 if denorm_func is not None:
-                    metrics.append(self.__denormalized_metric(metric, denorm_func))
+                    metrics.append(self.__denormalized_metric(metric, name, denorm_func))
 
         return metrics
 
