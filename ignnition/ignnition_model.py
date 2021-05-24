@@ -183,6 +183,7 @@ class Ignnition_model:
             return metric(denorm_y_true, denorm_y_pred)
 
         denorm_metric.__name__ = 'denorm_{}'.format(metric_name)
+
         return denorm_metric
 
     def __get_keras_metrics(self):
