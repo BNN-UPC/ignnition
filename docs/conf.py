@@ -36,7 +36,7 @@ with (Path(".") / ".." / "ignnition" / "_version.py").open() as f:
     version = _vars.get("__version__", "0.0.0")
     del _vars
 # The full version, including alpha/beta/rc tags.
-release = "master"
+release = "main"
 
 
 # -- General configuration ---------------------------------------------------
@@ -72,7 +72,7 @@ html_theme_options = {
 
 html_context = {
     "display_github": True,  # Integrate Github
-    "github_user": "knowledgedefinednetworking",  # Username
+    "github_user": "BNN-UPC",  # Username
     "github_repo": "ignnition",  # Repo name
     "github_version": release,  # Version
     "conf_py_path": "/docs/",  # Path in the checkout to the docs root
