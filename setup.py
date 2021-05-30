@@ -23,6 +23,7 @@ setup(
   license='MIT',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
   description='Library for fast prototyping of GNN',   # Give a short description about your library
   long_description=long_description,
+  long_description_content_type="text/markdown",
   author='Barcelona Neural Networking Center',                   # Type in your name
   author_email='ignnition@contactus.net',      # Type in your E-Mail
   url='https://ignnition.net/',   # Provide either the link to your github or to your website
