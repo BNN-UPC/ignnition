@@ -697,16 +697,23 @@ class Ignnition_model:
             Indicates if there should be verbosity in the prints of the terminal or not.
         """
 
-        prediction_path = None
+        # Extract the path to the prediction dataset, if any
+        data_path = None
+        if prediction_samples is None:
+            try:
+                data_path = self.__process_path(self.CONFIG['predict_dataset'])
+            except:
+                print_failure(
+                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the predict dataset')
+
+        # create the GNN model --and load the previous checkpoint-- if it does not exist already
         if not hasattr(self, 'gnn_model'):
             if prediction_samples is None:  # look for the dataset path
                 try:
-                    prediction_path = self.__process_path(self.CONFIG['predict_dataset'])
-                    self.__create_gnn(path=prediction_path, verbose=verbose)
+                    self.__create_gnn(path=data_path, verbose=verbose)
                 except:
                     print_failure(
                         'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the prediction dataset')
-
             else:
                 self.__create_gnn(samples=prediction_samples, verbose=verbose)
 
@@ -715,7 +722,7 @@ class Ignnition_model:
             print_header(
                 'Starting to make the predictions...\n---------------------------------------------------------\n')
 
-        sample_it = self.__input_fn_generator(prediction_path, training=False, data_samples=prediction_samples,
+        sample_it = self.__input_fn_generator(data_path, training=False, data_samples=prediction_samples,
                                               iterator=True)
         all_predictions = []
         try:
@@ -785,26 +792,25 @@ class Ignnition_model:
             Indicates if there should be verbosity in the prints of the terminal or not.
         """
 
+        # Extract the path to the validation dataset, if any
+        data_path = None
+        if evaluation_samples is None:
+            try:
+                data_path = self.__process_path(self.CONFIG['validation_dataset'])
+            except:
+                print_failure(
+                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the validation dataset')
+
         # Generate the model if it doesn't exist
         if not hasattr(self, 'gnn_model'):
             if evaluation_samples is None:  # look for the dataset path
-                val_path = self.__process_path(self.CONFIG['validation_dataset'])
-                self.__create_gnn(path=val_path)
+                self.__create_gnn(path=data_path)
             else:
                 self.__create_gnn(samples=evaluation_samples)
 
         if verbose:
             print()
             print_header('Starting to make evaluations...\n---------------------------------------------------------\n')
-
-        if evaluation_samples is None:
-            try:
-                data_path = self.CONFIG['validation_dataset']
-            except:
-                print_failure(
-                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the validation dataset')
-        else:
-            data_path = None
 
         sample_it = self.__input_fn_generator(data_path, training=True, data_samples=evaluation_samples, iterator=True)
 
