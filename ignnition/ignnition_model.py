@@ -24,6 +24,8 @@ import warnings
 import glob
 import tarfile
 import json
+from importlib import import_module
+from pathlib import Path
 from tensorflow.keras.losses import *
 from tensorflow.keras.optimizers import *
 from tensorflow.keras.optimizers.schedules import *
@@ -136,9 +138,11 @@ class Ignnition_model:
 
         # add the file with any additional function, if any
         if 'additional_functions_file' in self.CONFIG:
-            additional_path = self.__process_path(self.CONFIG['additional_functions_file'])
-            sys.path.insert(1, os.path.join(additional_path, os.pardir))
-            self.module = __import__(os.path.basename(additional_path)[0:-3])
+            additional_path = Path(self.__process_path(self.CONFIG['additional_functions_file']))
+            if not additional_path.exists():
+                print_failure(f"Additional functions file in {additional_path} does not exists.")
+            sys.path.insert(1, str(additional_path.resolve().parent))
+            self.module = import_module(additional_path.stem)
 
         self.model_info = self.__create_model()
         self.generator = Generator()
