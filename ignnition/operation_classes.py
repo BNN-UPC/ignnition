@@ -45,7 +45,7 @@ class Operation():
         self.output_name = op.get('output_name', None)
 
         self.output_label = op.get('output_label', None)
-        print(self.output_label)
+
         if self.output_label is not None:
             # There may be more than one output_label
             self.output_label = [output.split('$')[-1] for output in

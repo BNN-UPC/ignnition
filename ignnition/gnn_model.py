@@ -668,7 +668,7 @@ class Gnn_model(tf.keras.Model):
             new_input = get_global_var_or_input(self.calculations, var_name, f_)
         return new_input
 
-    def train_step(self, data):
+    """def train_step(self, data):
         # Unpack the data. Its structure depends on your model and
         # on what you pass to `fit()`.
         x, y = data
@@ -697,4 +697,4 @@ class Gnn_model(tf.keras.Model):
         tf.print("y_pred_fin", summarize=-1)
         self.compiled_metrics.update_state(y, y_pred)
         # Return a dict mapping metric names to current value
-        return {m.name: m.result() for m in self.metrics}
+        return {m.name: m.result() for m in self.metrics}"""

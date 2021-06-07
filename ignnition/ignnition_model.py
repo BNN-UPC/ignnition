@@ -189,7 +189,7 @@ class Ignnition_model:
                 denorm_y_true.append(tf.py_function(func=denorm_func, inp=[y_true, o], Tout=tf.float32))
                 denorm_y_pred.append(tf.py_function(func=denorm_func, inp=[y_pred, o], Tout=tf.float32))
 
-            return metric(tf.concat(denorm_y_true,axis=0), tf.concat(denorm_y_pred,axis=0))
+            return metric(tf.concat(denorm_y_true, axis=0), tf.concat(denorm_y_pred, axis=0))
 
         denorm_metric.__name__ = 'denorm_{}'.format(metric_name)
 
@@ -198,7 +198,7 @@ class Ignnition_model:
     def __get_keras_metrics(self):
         metric_names = self.CONFIG['metrics']
         metrics = []
-
+        output_name = self.model_info.get_output_info()
         try:
             denorm_func = getattr(self.module, 'denormalization')
         except:
@@ -209,12 +209,22 @@ class Ignnition_model:
                 metric = getattr(tf.keras.metrics, name)()
                 metrics.append(metric)
                 if denorm_func is not None:
-                    metrics.append(self.__denormalized_metric(metric, metric.name, denorm_func))
+                    if len(output_name) == 1:
+                        metrics.append(self.__denormalized_metric(metric, metric.name, denorm_func))
+                    else:
+                        # TODO: ADD WARNING NORMALIZATION/DENORMALIZATION IS NOT SUPPORTED
+                        # WHEN ADDING MORE THAN ONE OUTPUT LABEL
+                        pass
             elif hasattr(self.module, name):
                 metric = getattr(self.module, name)
                 metrics.append(metric)
                 if denorm_func is not None:
-                    metrics.append(self.__denormalized_metric(metric, name, denorm_func))
+                    if len(output_name) == 1:
+                        metrics.append(self.__denormalized_metric(metric, name, denorm_func))
+                    else:
+                        # TODO: ADD WARNING NORMALIZATION/DENORMALIZATION IS NOT SUPPORTED
+                        # WHEN ADDING MORE THAN ONE OUTPUT LABEL
+                        pass
 
         return metrics
 
@@ -344,24 +354,18 @@ class Ignnition_model:
 
             # output
             if y is not None:
-                if len(output_name) == 1:
-                    pos = 0
-                    out_list = []
-                    for o in output_name:
-                        # try:
-                        out_list.append(
-                            tf.py_function(func=norm_func, inp=[y[pos:pos + x['__ignnition_{}_len'.format(o)]], o],
-                                           Tout=tf.float32))
-                        pos += x['__ignnition_{}_len'.format(o)]
-                        # except:
-                        #    print_failure('The normalization function computing the output label' + o + ' failed.')
-                    y = tf.concat(out_list, axis=1)
-                    tf.print(out_list, summarize=-1)
-                    tf.print("denorm_y")
-                    tf.print(y, summarize=-1)
-                else:
-                    #TODO: ADD WARNING
-                    pass
+                # if len(output_name) == 1:
+                pos = 0
+                out_list = []
+                for o in output_name:
+                    # try:
+                    out_list.append(
+                        tf.py_function(func=norm_func, inp=[y[pos:pos + x['__ignnition_{}_len'.format(o)]], o],
+                                       Tout=tf.float32))
+                    pos += x['__ignnition_{}_len'.format(o)]
+                    # except:
+                    #    print_failure('The normalization function computing the output label' + o + ' failed.')
+                y = tf.concat(out_list, axis=0)
                 return x, y
             return x
 
