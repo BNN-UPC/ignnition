@@ -66,11 +66,11 @@ class Ignnition_model:
     __process_path(self, path)
         This method takes as input a path and, considering the location of the model directory, converts all the relative path to absolute paths starting from such model_directory
 
-    __loss_function(self, labels, predictions)
-       Function that calls executes the loss function object from the keras libarary if specified. O/w it looks for a custom loss function specified in the module file.
+    __get_loss(self, labels, predictions)
+       Function that return the loss obkect from the keras libarary if specified, or looks for a custom loss objective function specified in the module file.
 
-    __get_keras_metrics(self)
-        Creates all the keras metrics corresponding to tf.keras objects, or it creates objects based on custom function specified in the module path.
+    __get_metrics(self)
+        Creates all the metrics corresponding to tf.keras objects, or looks for custom metric functions specified in the module file.
 
     __get_compiled_model(self, model_info)
         Compiles the tf model with all the corresponding options
@@ -157,28 +157,19 @@ class Ignnition_model:
         """
         return os.path.normpath(os.path.join(self.model_dir, path))
 
-    def __loss_function(self, labels, predictions):
-        """
-        Parameters
-        ----------
-        labels:    tensor
-           Input label
-        predictions:    tensor
-           Predictions of the GNN model
-        """
+    def __get_loss(self):
+        """Get loss instance or function for the model."""
 
-        loss_func_name = self.CONFIG['loss']
-        try:
-            loss_function = getattr(tf.keras.losses, loss_func_name)()
-            regularization_loss = sum(self.gnn_model.losses)
-            loss = loss_function(labels, predictions)
-            total_loss = loss + regularization_loss
-
-        except:  # go to the main file and find the function by this name
-            loss_function = getattr(self.module, loss_func_name)
-            total_loss = tf.py_function(func=loss_function, inp=[predictions, labels, self.gnn_model], Tout=tf.float32)
-
-        return total_loss
+        loss_name = self.CONFIG['loss']
+        if hasattr(tf.keras.losses, loss_name):
+            return getattr(tf.keras.losses, loss_name)()
+        elif hasattr(self.module, loss_name):
+            return getattr(self.module, loss_name)
+        else:
+            print_failure(
+                "Loss name is neither a Tensorflow Keras Loss nor an objective function in the "
+                "additional functions file."
+            )
 
     def __denormalized_metric(self, metric, metric_name, denorm_func):
         def denorm_metric(y_true, y_pred):
@@ -195,14 +186,14 @@ class Ignnition_model:
 
         return denorm_metric
 
-    def __get_keras_metrics(self):
+    def __get_metrics(self):
         metric_names = self.CONFIG['metrics']
         metrics = []
         output_name = self.model_info.get_output_info()
-        try:
-            denorm_func = getattr(self.module, 'denormalization')
-        except:
-            denorm_func = None
+        denorm_func = (
+            getattr(self.module, 'denormalization')
+            if hasattr(self.module, 'denormalization') else None
+        )
 
         for name in metric_names:
             if hasattr(tf.keras.metrics, name):
@@ -259,9 +250,9 @@ class Ignnition_model:
 
         # create an instance of the optimizer class indicated by the user. Accepts any loss function from keras documentation
         optimizer = o(**optimizer_params)
-        gnn_model.compile(loss=self.__loss_function,
+        gnn_model.compile(loss=self.__get_loss(),
                           optimizer=optimizer,
-                          metrics=self.__get_keras_metrics(),
+                          metrics=self.__get_metrics(),
                           run_eagerly=False)
         return gnn_model
 
