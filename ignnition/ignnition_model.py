@@ -23,6 +23,7 @@ import datetime
 import warnings
 import glob
 import tarfile
+import copy
 import json
 from tensorflow.keras.losses import *
 from tensorflow.keras.optimizers import *
@@ -178,9 +179,13 @@ class Ignnition_model:
     def __denormalized_metric(self, metric, metric_name, denorm_func):
         def denorm_metric(y_true, y_pred):
             output_name = self.model_info.get_output_info()
-            denorm_y_true = tf.py_function(func=denorm_func, inp=[y_true, output_name], Tout=tf.float32)
-            denorm_y_pred = tf.py_function(func=denorm_func, inp=[y_pred, output_name], Tout=tf.float32)
-            return metric(denorm_y_true, denorm_y_pred)
+            denorm_y_true = []
+            denorm_y_pred = []
+            for o in output_name:
+                denorm_y_true.append(tf.py_function(func=denorm_func, inp=[y_true, o], Tout=tf.float32))
+                denorm_y_pred.append(tf.py_function(func=denorm_func, inp=[y_pred, o], Tout=tf.float32))
+
+            return metric(tf.concat(denorm_y_true,axis=0), tf.concat(denorm_y_pred,axis=0))
 
         denorm_metric.__name__ = 'denorm_{}'.format(metric_name)
 
@@ -335,10 +340,24 @@ class Ignnition_model:
 
             # output
             if y is not None:
-                try:
-                    y = tf.py_function(func=norm_func, inp=[y, output_name], Tout=tf.float32)
-                except:
-                    print_failure('The normalization function computing the output label' + output_name + ' failed.')
+                if len(output_name) == 1:
+                    pos = 0
+                    out_list = []
+                    for o in output_name:
+                        # try:
+                        out_list.append(
+                            tf.py_function(func=norm_func, inp=[y[pos:pos + x['__ignnition_{}_len'.format(o)]], o],
+                                           Tout=tf.float32))
+                        pos += x['__ignnition_{}_len'.format(o)]
+                        # except:
+                        #    print_failure('The normalization function computing the output label' + o + ' failed.')
+                    y = tf.concat(out_list, axis=1)
+                    tf.print(out_list, summarize=-1)
+                    tf.print("denorm_y")
+                    tf.print(y, summarize=-1)
+                else:
+                    #TODO: ADD WARNING
+                    pass
                 return x, y
             return x
 
@@ -403,9 +422,12 @@ class Ignnition_model:
 
             for i in interleave_sources:
                 types['indices_' + i[0] + '_to_' + i[1]] = tf.int64
-                shapes['indices_' + i[0] + '_to_' + i[1]] = tf.TensorShape([None])
+                shapes['indices_' + i[0] + '_to_' + i[1]] = tf.TensorShape(None)
 
             if training:  # if we do training, we also expect the labels
+                for o in output_names:
+                    types['__ignnition_{}_len'.format(o)] = tf.int64
+                    shapes['__ignnition_{}_len'.format(o)] = tf.TensorShape(None)
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
@@ -473,7 +495,7 @@ class Ignnition_model:
             if iterator:
                 ds = iter(ds)
 
-        return ds
+            return ds
 
     # -------------------------------------
     def __create_model(self):

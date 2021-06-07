@@ -208,6 +208,7 @@ class Gnn_model(tf.keras.Model):
             # --------------------------------
             # Create the readout model
             readout_operations = self.model_info.get_readout_operations()
+            #print(readout_operations)
             counter = 0
             for operation in readout_operations:
                 if operation.type == 'neural_network':
@@ -237,6 +238,11 @@ class Gnn_model(tf.keras.Model):
                 elif operation.type == 'extend_adjacencies':
                     self.dimensions[operation.output_name[0]] = self.dimensions.get(operation.input[0])
                     self.dimensions[operation.output_name[1]] = self.dimensions.get(operation.input[1])
+
+                elif operation.type == 'concat':
+                    dimensionality = 0
+                    for inp in operation.input:
+                        dimensionality += self.dimensions.get(inp)
 
                 if operation.type != 'extend_adjacencies' and operation.output_name is not None:
                     self.dimensions[operation.output_name] = dimensionality
@@ -639,6 +645,11 @@ class Gnn_model(tf.keras.Model):
                             save_global_variable(self.calculations, operation.output_name[0], extended_src)
                             save_global_variable(self.calculations, operation.output_name[1], extended_dst)
 
+                        elif operation.type == 'concat':
+                            inputs = []
+                            for param in operation.input:
+                                inputs.append(get_global_var_or_input(self.calculations, param, f_))
+                            result = operation.calculate(inputs)
                         # output of the readout
                         if operation.type != 'extend_adjacencies':
                             if j == n - 1:  # last one
@@ -656,3 +667,34 @@ class Gnn_model(tf.keras.Model):
         else:
             new_input = get_global_var_or_input(self.calculations, var_name, f_)
         return new_input
+
+    def train_step(self, data):
+        # Unpack the data. Its structure depends on your model and
+        # on what you pass to `fit()`.
+        x, y = data
+
+        tf.print(x, summarize=-1)
+        tf.print(y, summarize=-1)
+        with tf.GradientTape() as tape:
+            y_pred = self(x, training=True)  # Forward pass
+            # Compute the loss value
+            # (the loss function is configured in `compile()`)
+            loss = self.compiled_loss(y, y_pred, regularization_losses=self.losses)
+
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        # Update metrics (includes the metric that tracks the loss)
+
+        print(self.compiled_metrics)
+        tf.print("y", summarize=-1)
+        tf.print(y, summarize=-1)
+        tf.print("y_fin", summarize=-1)
+        tf.print("y_pred", summarize=-1)
+        tf.print(y_pred, summarize=-1)
+        tf.print("y_pred_fin", summarize=-1)
+        self.compiled_metrics.update_state(y, y_pred)
+        # Return a dict mapping metric names to current value
+        return {m.name: m.result() for m in self.metrics}

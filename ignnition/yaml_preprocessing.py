@@ -401,6 +401,11 @@ class Yaml_preprocessing:
             elif type == 'extend_adjacencies':
                 result.append(Extend_adjacencies(op))
 
+            elif type == 'concat':
+                result.append(Concat(op))
+                print("HERE")
+                tf.print("HERE")
+
         return result
 
     # ----------------------------------------------------------------

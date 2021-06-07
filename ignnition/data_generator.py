@@ -197,7 +197,7 @@ class Generator:
 
             # for now, check that the name is unique for every src-dst. Problem: One node connected to another but the reverse to other nodes??
             if len(entity_names) > 2:
-                print(entity_names)
+                #print(entity_names)
                 entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
                 print_failure(
                     "The edge feature " + a + " was defined in connecting two different source-destination entities(" + entities_string + "). Make sure that an edge feature is unique for a given pair of entities (types of nodes).")
@@ -237,7 +237,7 @@ class Generator:
         if self.training:
             # collect the output (if there is more than one, concatenate them on axis=1
             # limitation: all the outputs must be of the same type (same number of elements)
-            first = True
+            final_output = []
             for output in self.output_names:
                 try:
                     aux = list(nx.get_node_attributes(D_G, output).values())
@@ -256,17 +256,16 @@ class Generator:
                     aux = np.expand_dims(aux, -1)
 
                 # try to concatenate them together. If error, it means that the two labels are incompatible
-                try:
-                    if first:
-                        final_output = aux
-                        first = False
-                    else:
-                        final_output = np.concatenate((final_output, aux), axis=1)
-                except:
-                    print_failure(
-                        "More than one output label was defined by they don't seem to be compatible. "
-                        "Check that all of them are either node or global labels. "
-                        "If they are node labels, they should refer to the same entity nodes.")
+                #try:
+                final_output.extend(aux)
+                data['__ignnition_{}_len'.format(output)] = len(aux)
+                """print("final_output")
+                print(final_output)"""
+                #except:
+                #    print_failure(
+                #        "More than one output label was defined by they don't seem to be compatible. "
+                #        "Check that all of them are either node or global labels. "
+                #        "If they are node labels, they should refer to the same entity nodes.")
 
         # find the adjacencies
         edges_list = list(D_G.edges())
@@ -468,7 +467,7 @@ class Generator:
             except KeyboardInterrupt:
                 sys.exit()
 
-            except Exception as inf:
-                print_failure("\n There was an unexpected error: \n" + str(
-                    inf) + "\n Please make sure that all the names used in the file: " + sample_file +
-                              ' are defined in your dataset')
+            #except Exception as inf:
+            #    print_failure("\n There was an unexpected error: \n" + str(
+            #        inf) + "\n Please make sure that all the names used in the file: " + sample_file +
+            #                  ' are defined in your dataset')
