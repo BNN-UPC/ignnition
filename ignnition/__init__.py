@@ -1,3 +1,4 @@
+from ignnition._version import __version__
 from ignnition.ignnition_model import Ignnition_model
 
 
