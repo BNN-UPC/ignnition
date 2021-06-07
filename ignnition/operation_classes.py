@@ -45,6 +45,7 @@ class Operation():
         self.output_name = op.get('output_name', None)
 
         self.output_label = op.get('output_label', None)
+
         if self.output_label is not None:
             # There may be more than one output_label
             self.output_label = [output.split('$')[-1] for output in
@@ -509,3 +510,51 @@ class Extend_adjacencies(Operation):
                 self.adj_list) + ' was not possible. Check that the indexes of the destination of the adjacency list match the input given.')
 
         return extended_src, extended_dst
+
+
+class Concat(Operation):
+    """
+    Subclass of Operation class that represents the product operation between two tensors (also considers several types of products)
+
+    Attributes:
+    ----------
+    type_product:    str
+        Type of product to be used
+    output_name:    str
+        Name to save the output of the operation with (included in the super object)
+
+    Methods:
+    ----------
+    calculate(self, product_input1, product_input2)
+        Computes the product specified by the user of the two input tensors.
+    """
+
+    def __init__(self, op):
+        """
+        Parameters
+        ----------
+        op:    dict
+            Dictionary with the data defining this product operation
+        """
+
+        super(Concat, self).__init__(op)
+        self.axis = op.get('axis', 0)
+
+    def calculate(self, inputs):
+        """
+        Parameters
+        ----------
+        product_input1:    tensor
+           Input 1
+        product_input2:    tensor
+           Input 2
+        """
+
+        try:
+            result = tf.concat(inputs, axis=self.axis)
+            return result
+
+        except:
+            print_failure(
+                'The concat operation failed. Check that the dimensions are compatible.')
+            sys.exit(1)
