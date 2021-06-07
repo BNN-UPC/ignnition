@@ -109,7 +109,7 @@ class Yaml_preprocessing:
 
         # validate with the schema
         with importlib.resources.path('ignnition', "schema.json") as schema_file:
-            validate(instance=self.data,schema=self.__read_json(schema_file))  # validate that the json is well defined
+            validate(instance=self.data, schema=self.__read_json(schema_file))  # validate that the json is well defined
 
         # add the global variables (if any)
         global_variables_path = os.path.join(model_dir, 'global_variables.yaml')
@@ -118,7 +118,8 @@ class Yaml_preprocessing:
             self.data = self.__add_global_variables(self.data, global_variables)
 
         else:
-            print_info("No global_variables.yaml file detected in path: " + global_variables_path + ".\nIf you didn't use it in your model definition, ignore this message.")
+            print_info(
+                "No global_variables.yaml file detected in path: " + global_variables_path + ".\nIf you didn't use it in your model definition, ignore this message.")
 
         self.__validate_model_description(self.data)
 
@@ -169,9 +170,9 @@ class Yaml_preprocessing:
             Dictionary mapping global variables to its corresponding names
         """
         if isinstance(data, dict):
-            for k,v in data.items():
+            for k, v in data.items():
                 if isinstance(v, str) and global_variables is not None and v in global_variables:
-                        data[k] = global_variables[v]
+                    data[k] = global_variables[v]
                 # make a recursive call
                 elif isinstance(v, dict):
                     self.__add_global_variables(v, global_variables)
@@ -194,7 +195,6 @@ class Yaml_preprocessing:
 
         src_names, dst_names, called_nn_names, input_names = [], [], [], []
         output_names = ['source', 'destination']
-
 
         # check the hidden state creation
         for entity_item in entities:
@@ -249,21 +249,23 @@ class Yaml_preprocessing:
         if len(nn_names) != len(set(nn_names)):
             print_failure("The names of two NN are repeated. Please ensure that each NN has a unique name.")
 
-
         # check the source entities
         for a in src_names:
             if a not in entity_names:
-                print_failure('The source entity "' + a + '" was used in a message passing. However, there is no such entity. \n Please check the spelling or define a new entity.')
+                print_failure(
+                    'The source entity "' + a + '" was used in a message passing. However, there is no such entity. \n Please check the spelling or define a new entity.')
 
         # check the destination entities
         for d in dst_names:
             if d not in entity_names:
-                print_failure('The destination entity "' + d + '" was used in a message passing. However, there is no such entity. \n Please check the spelling or define a new entity.')
+                print_failure(
+                    'The destination entity "' + d + '" was used in a message passing. However, there is no such entity. \n Please check the spelling or define a new entity.')
 
         # check the nn_names
         for name in called_nn_names:
             if name not in nn_names:
-                print_failure('The name "' + name + '" is used as a reference to a neural network (nn_name), even though the neural network was not defined. \n Please make sure the name is correctly spelled or define a neural network named ' + name)
+                print_failure(
+                    'The name "' + name + '" is used as a reference to a neural network (nn_name), even though the neural network was not defined. \n Please make sure the name is correctly spelled or define a neural network named ' + name)
 
         # ensure that all the inputs (that are not output of another operation) start with a $
         for i in input_names:
@@ -272,8 +274,8 @@ class Yaml_preprocessing:
 
         for i in output_names:
             if i[0] == '$':
-                print_failure('The keyword ' + i + ' starts with $ even though it does not represent data from the dataset.')
-
+                print_failure(
+                    'The keyword ' + i + ' starts with $ even though it does not represent data from the dataset.')
 
     def __get_nn_mapping(self, models):
         """
@@ -337,12 +339,11 @@ class Yaml_preprocessing:
         # add the aggregation nn architectures
         aggrs = m.get('aggregation')
         for aggr in aggrs:
-            type =aggr.get('type')
+            type = aggr.get('type')
             if type == 'edge_attention' or type == 'neural_network':
                 info = copy.deepcopy(self.nn_architectures[aggr['nn_name']])
                 del aggr['nn_name']
                 aggr['architecture'] = info.get('nn_architecture')
-
 
         # add the update nn architecture
         if 'update' in m:
@@ -361,7 +362,9 @@ class Yaml_preprocessing:
            Dictionary with the definition of each message passing
         """
 
-        return [['stage_' + str(step_number), [Message_Passing(self.__add_nn_architecture_mp(m)) for m in stage['stage_message_passings']]] for step_number, stage in enumerate(inst)]
+        return [['stage_' + str(step_number),
+                 [Message_Passing(self.__add_nn_architecture_mp(m)) for m in stage['stage_message_passings']]] for
+                step_number, stage in enumerate(inst)]
 
     def __add_readout_architecture(self, output):
         """
@@ -392,14 +395,17 @@ class Yaml_preprocessing:
             if type == 'pooling':
                 result.append(Pooling_operation(op))
 
-            elif type== 'product':
+            elif type == 'product':
                 result.append(Product_operation(op))
 
             elif type == 'neural_network':
-                result.append(Feed_forward_operation(self.__add_readout_architecture(op), model_role = 'readout'))
+                result.append(Feed_forward_operation(self.__add_readout_architecture(op), model_role='readout'))
 
             elif type == 'extend_adjacencies':
                 result.append(Extend_adjacencies(op))
+
+            elif type == 'concat':
+                result.append(Concat(op))
 
         return result
 
@@ -418,7 +424,7 @@ class Yaml_preprocessing:
             dimensions[e.get('name')] = e.get('state_dimension')
             dimensions[e.get('name') + '_initial'] = e.get('state_dimension')
 
-        self.input_dim = dimensions # CHECK THIS
+        self.input_dim = dimensions  # CHECK THIS
         del self.data
 
     # GETTERS
@@ -426,14 +432,16 @@ class Yaml_preprocessing:
         return self.input_dim
 
     def get_interleave_sources(self):
-        aux =  [[[src.name, mp.destination_entity] for src in mp.source_entities] for stage_name, mps in self.mp_instances for mp in mps if isinstance(mp.aggregations,Interleave_aggr)]
-        return reduce(lambda accum, a: accum +a, aux, [])
+        aux = [[[src.name, mp.destination_entity] for src in mp.source_entities] for stage_name, mps in
+               self.mp_instances for mp in mps if isinstance(mp.aggregations, Interleave_aggr)]
+        return reduce(lambda accum, a: accum + a, aux, [])
 
     def get_mp_iterations(self):
         return self.iterations_mp
 
     def get_interleave_tensors(self):
-        return [[mp.aggregations.combination_definition, mp.destination_entity] for stage_name, mps in self.mp_instances for mp in mps if isinstance(mp.aggregations, Interleave_aggr)]
+        return [[mp.aggregations.combination_definition, mp.destination_entity] for stage_name, mps in self.mp_instances
+                for mp in mps if isinstance(mp.aggregations, Interleave_aggr)]
 
     def get_mp_instances(self):
         return self.mp_instances
@@ -459,14 +467,14 @@ class Yaml_preprocessing:
         output_names = set()
         input_names = set()
 
-        #gather here the inputs of the message operations (that are not source or destination)
+        # gather here the inputs of the message operations (that are not source or destination)
         for stage in self.mp_instances:
             for mp in stage[1]:
                 source_entities = mp.source_entities
                 for s in source_entities:
                     for op in s.message_formation:  # for each operation
                         if op is not None and op.input is not None:
-                            new_inputs = [i for i in op.input if i !='source' and i!= 'destination']
+                            new_inputs = [i for i in op.input if i != 'source' and i != 'destination']
                             input_names.update(new_inputs)
 
                             if op.output_name is not None:
@@ -487,4 +495,3 @@ class Yaml_preprocessing:
             output_names.add(e.name + '_initial_state')
 
         return list(input_names.difference(output_names))
-
