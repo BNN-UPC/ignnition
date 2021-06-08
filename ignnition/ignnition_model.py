@@ -144,6 +144,8 @@ class Ignnition_model:
                 print_failure(f"Additional functions file in {additional_path} does not exists.")
             sys.path.insert(1, str(additional_path.resolve().parent))
             self.module = import_module(additional_path.stem)
+        else:
+            self.module = None
 
         self.model_info = self.__create_model()
         self.generator = Generator()
