@@ -66,11 +66,11 @@ class Ignnition_model:
     __process_path(self, path)
         This method takes as input a path and, considering the location of the model directory, converts all the relative path to absolute paths starting from such model_directory
 
-    __get_loss(self, labels, predictions)
-       Function that return the loss obkect from the keras libarary if specified, or looks for a custom loss objective function specified in the module file.
+    __get_loss(self)
+        Obtain model loss either instantiating a tf.keras.losses.Loss object or a custom loss objective function specified in the module file.
 
     __get_metrics(self)
-        Creates all the metrics corresponding to tf.keras objects, or looks for custom metric functions specified in the module file.
+        Obtain model metrics either instantiating tf.keras.metrics.Metric objects or returning custom metric functions specified in the module file.
 
     __get_compiled_model(self, model_info)
         Compiles the tf model with all the corresponding options
@@ -189,6 +189,7 @@ class Ignnition_model:
         return denorm_metric
 
     def __get_metrics(self):
+        """Get metrics instances or functions for the model."""
         metric_names = self.CONFIG['metrics']
         metrics = []
         output_name = self.model_info.get_output_info()
