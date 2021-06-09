@@ -1,0 +1,21 @@
+# PATHS
+additional_functions_file: ./main.py
+output_path: ./
+train_dataset: ./data/train
+validation_dataset: ./data/validation
+
+# OPTIMIZATION OPTIONS
+loss: sum_rate_loss
+optimizer:
+  type: Adam
+  learning_rate: 0.001
+metrics: [sum_rate_metric]
+
+# TRAINING OPTIONS
+batch_size: 1
+epochs: 10
+epoch_size: 1000
+shuffle_training_set: False
+shuffle_validation_set: False
+val_samples: 100
+val_frequency: 1
