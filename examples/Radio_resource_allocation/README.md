@@ -24,7 +24,7 @@ which consists of:
 
 The model is trained in an unsupervised way with a custom loss function which maximizes the weighted
 sum rate of the network, by using the predicted power value together with the channel losses with
-other pairs and the power of the additive noise. For more details, checkthe paper's discussion in
+other pairs and the power of the additive noise. For more details, check the paper's discussion in
 [[1]](#scalable-radio).
 
 ## Running the example
