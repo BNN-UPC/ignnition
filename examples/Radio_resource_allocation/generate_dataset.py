@@ -163,7 +163,7 @@ def generate_graphs(output_dir="data/raw", output_prefix="network", empty_dirs=F
         wmmse_power = get_wmmse_power(channel_loss, noise_power)
         graph = nx.DiGraph()
         # We add as node attribute a placeholder per node power label to use as target
-        # altough the loss we plan to use will be unsupervised.
+        # altough the loss we plan to use will be self-supervised.
         graph.add_nodes_from([
             (link_idx, {
                 "entity": "transmitter_receiver_pair",
