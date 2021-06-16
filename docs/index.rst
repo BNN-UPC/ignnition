@@ -1,20 +1,47 @@
-.. ignnition documentation master file, created by
-   sphinx-quickstart on Wed May 19 18:12:25 2021.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Table of contents
+===================
+.. toctree::
+   :maxdepth: 2
+   :caption: Home
 
-Welcome to ignnition's documentation!
-=====================================
+   documents/index
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Getting Started
 
-   documents/ignnition
+   documents/ignnition_at_glance
+   documents/installation
+   documents/quick_tutorial
 
-Indices and tables
-==================
+.. toctree::
+   :maxdepth: 2
+   :caption: Background On GNNs
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   documents/motivation
+   documents/what_are_gnns
+
+.. toctree::
+   :maxdepth: 2
+   :caption: User Guide
+
+   documents/intro
+   documents/model_description
+   documents/generate_your_dataset
+   documents/train_and_evaluate
+   documents/debugging_assistant
+   documents/global_variables
+   documents/examples
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Misc
+
+   documents/contact_and_issues
+   documents/about
+   documents/license
+..
+    * :ref:`genindex`
+    * :ref:`modindex`
+    * :ref:`search`
+..

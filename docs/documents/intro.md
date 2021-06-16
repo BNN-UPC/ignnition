@@ -1,12 +1,12 @@
-# User-guide introduction
+# Introduction
 *IGNNITION* enables users to define potentially very complex *GNNs* in a matter of a few hours. To do so, we require three main steps:
 
 ![MSMP definition](./Images/user_workflow.png)
 
 ## STEP 1: Design your model
-First of all, the user must define the inehrent architecture of the *GNN*. This task can be very challanging, specially as conceptualizing the elements forming the *GNN* is not trivial. To help conceptualizing the model, we propose a novel high-level abstraction, which you can check at [Multi-stage message passing](./msmp.md), and which will serve as the key-stone of our final implementation.
+First of all, the user must define the inehrent architecture of the *GNN*. This task can be very challanging, specially as conceptualizing the elements forming the *GNN* is not trivial. To help conceptualizing the model, we propose a novel high-level abstraction, which you can check at [Multi-stage message passing](./model_description.md#multi-stage-message-passing), and which will serve as the key-stone of our final implementation.
 
-Once we have conceptualized our *GNN*, we must now translate it into the required *yaml* format. To do so, check [generate your GNN](./generate_your_gnn.md), where you will find all the details regarding the general structure of the *model_description.yaml* file, which will contain the architecture of the *GNN*. To design each of these sections, you will need to use the available keywords, which you can find explained in [keywords](./keywords.md), and in the form of a [cheat sheet](./cheat_sheet.md). Also check [use global variables](./global_variables.md) to learn about the use of global variables, as we consider it an essential tool to design your model.
+Once we have conceptualized our *GNN*, we must now translate it into the required *yaml* format. To do so, check [generate your GNN](./model_description.md#generate-your-gnn), where you will find all the details regarding the general structure of the *model_description.yaml* file, which will contain the architecture of the *GNN*. To design each of these sections, you will need to use the available keywords, which you can find explained in [keywords](./keywords.md), and in the form of a [cheat sheet](./cheat_sheet.md). Also check [use global variables](./global_variables.md) to learn about the use of global variables, as we consider it an essential tool to design your model.
 
 Once you have familiarized youself with *IGNNTION*, we strongly recommend that you check out our [library of examples](./examples.md), where you will find implementations of well-known papers. This should serve as starting point for you implementation.
 

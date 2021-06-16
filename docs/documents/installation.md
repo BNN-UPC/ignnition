@@ -1,4 +1,4 @@
-# Install IGNNITION
+# Install
 To install *IGNNTION*, we provide the user with two possibilities. Note that both of them require to be working with a ***Python* version 3.5 or greater**.
 
 ## Pip
@@ -33,4 +33,4 @@ Finally, you have to install the *IGNNITION* library. For this, run the followin
 ```
 
 ## Next step
-To continue the process of creating your first *GNN*, if you feel confident with *GNNs*, we recommend you to check out the [user guide](./generate_your_gnn.md) where you will find all the information needed to write your new model. Check also [examples](./examples.md) where you will find implementations of other *GNNs* which might serve as starting point for your own model. In case you don't yet feel complitely confident with *GNNs*, we recommend you to examine our [quick tutorial](./quick_tutorial.md) where we review every step to create a *GNN* model for a simple use-case.
+To continue the process of creating your first *GNN*, if you feel confident with *GNNs*, we recommend you to check out the [user guide](./model_description.md#generate-your-gnn) where you will find all the information needed to write your new model. Check also [examples](./examples.md) where you will find implementations of other *GNNs* which might serve as starting point for your own model. In case you don't yet feel complitely confident with *GNNs*, we recommend you to examine our [quick tutorial](./quick_tutorial.md) where we review every step to create a *GNN* model for a simple use-case.
