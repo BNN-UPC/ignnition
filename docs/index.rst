@@ -37,6 +37,9 @@ Table of contents
    :maxdepth: 2
    :caption: Misc
 
+   documents/contributing
+   documents/community_bylaws
+   documents/mailing_list
    documents/contact_and_issues
    documents/about
    documents/license
