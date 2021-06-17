@@ -33,6 +33,57 @@ Furthermore, this operations will create (if it doesn't exist already) a directo
 
 Then, by visiting *localhost:6006*, the user can analyse the different statistics produced during the training phase to evaluate the model (e.g., loss, mean absolute error, mean relative error, R2...)
 
+One additional important consideration is that *IGNNITION* supports the definition of *custom loss functions*, *custom metrics* and *normalization functions* that can be used for training. 
+To make use of any of these functionalities, one must first create a new Python file, and indicate its path to the file *training_options.yaml*. Concretely, in the *additional_functions_file* field, as shown below:
+    
+    additional_functions_file: <PATH TO PYTHON FILE>
+
+Moreover, we show below a general overview on how to make use of each of the aforementioned functionalities:
+
+##### 1. Defining a custom loss function
+To define a custom loss function, one must define in the Python file a new function that takes as input the predictions and the labels, and outputs the loss value. Below we present one simple example that implements the well-known mean-squared error function:
+    
+    def my_loss(predict, label):
+        return pow((predict-label), 2)
+    
+Finally, force the model to use your new loss function, by specifying it the *training_options.yaml*. A simple example of this is shown below:
+    
+    # OPTIMIZATION OPTIONS
+    loss: my_loss
+ 
+##### 2. Defining a custom metric
+To define a custom metric, one must define in the Python file a new function that takes as input the predictions and the labels, and outputs the new metric value. In the code snipped shown below, we show how a simple metric could be implemented:
+    
+    def my_metric(predict, label):
+        return pow((predict-label), 2)
+    
+Finally, force the model to use your new loss function, by specifying it the *training_options.yaml*. A simple example of this is shown below:
+    
+    # OPTIMIZATION OPTIONS
+    metrics: [my_metric]
+
+##### 3. Defining a normalization function
+To define a normalization function, one must define a new function in the Python file, called *normalization*. This function takes as input the array of features, as well as its name.
+As we can see in the example below, with this function we are able to apply a distinct normalization function for each of the features used by the GNN model.
+
+    def normalization(feature, feature_name):
+        if feature_name == 'feature1':
+            return np.log(feature)
+        if feature_name == 'feature2':
+            return feature-1
+
+
+
+One might also be interested in providing the denormalization function, called *denormalization* (following the same method used for the normalization). By introducing this function, *IGNNITION* will make sure to provide additional statistics of the denormalized values during training, and the denormalized values when using the predict operation.
+Below we provide the very simple denormalization function that reverts the normalization function that the GNN model will use.
+
+    def denormalization(feature, feature_name):
+        if feature_name == 'feature1':
+            return np.exp(feature)
+        if feature_name == 'feature2':
+            return feature+1
+
+
 ### One-step training
 Finally, we incorporated another function that is specially interesting in the context of *Reinforcement Learning*. This function allows to do training only on a batch of data passed by parameter to the function. This allows the incorporation of *IGNNITION* in real-world *Deep Reinforcement Learning (DRL)* applications that make use of the incredible power of GNNs to develop cutting-edge solutions. For this, we must only make the call shown below, passing an array of samples, each of which follows the same structure defined in [Generate your dataset](./generate_your_dataset.md).
 

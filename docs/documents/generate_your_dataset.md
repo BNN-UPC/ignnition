@@ -17,6 +17,8 @@ We now review how we can generate a general sample which should give the user a 
 ### Create the graph
 First of all, the user must create a general grap using the calls from below. 
 
+Notice that IGNNITION requires all the graphs to be **directed** and **not to be multi-graphs**. Consequently, all the graphs can contain at most one edge connecting two nodes --in a given direction.
+
 ```python
     import networkx as nx 
     G = nx.DiGraph()

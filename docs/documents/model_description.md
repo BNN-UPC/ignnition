@@ -483,10 +483,13 @@ If concat_axis = 2, we weill get a new message
 \(aggregated\_message_j = [[1,2,3], [4,5,6],[4,5,6],[1,2,3]]\)
 
 ---
-##### Option 10: interleave
-**Description:** Axis to use for the concatenation. 
+#### Option 10: interleave
+**Description:** To_complete
 
-**Accepted values:** 1 or 2
+```yaml
+aggregation:
+    - type: interleave
+```
 
 ##### Option 11: neural_network
 **Description:** So far we have looked at examples where the aggregated function is defined with a single operation (e.g., max,min,mean...). In some ocasions, however, we must build more complicated functions. This operation, thus, allows to take the results of previous operations and pass them through a NN to compute a new value.

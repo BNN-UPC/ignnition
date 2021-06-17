@@ -4,7 +4,7 @@ Graph Neural Networks (GNNs) are becoming increasingly popular in communication 
 Check out our [quick start tutorial](./quick_tutorial.md) to start using IGNNITION.
 Also, you can visit our [examples library](./examples.md) with some of the most popular GNN models applied to communication networks already implemented.
 
-![MSMP definition](./Images/overview_ignnition.png)
+![MSMP definition](./Images/welcome.png)
 
 
 ## Getting started
