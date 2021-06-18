@@ -1,4 +1,4 @@
-#Mailing list
+# Mailing list
 
 Here you can find a list of the IGNNITION framework mailing lists:
 
