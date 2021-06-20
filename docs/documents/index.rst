@@ -99,7 +99,9 @@ license.
    :maxdepth: 2
    :hidden:
    :caption: Misc
-
-   ./contact_and_issues
    ./about
+   ./citing
+   ./contact_and_issues
+   ./mailing_list
+   ./community_bylaws
    ./license
