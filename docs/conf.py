@@ -13,9 +13,9 @@
 import os
 import sys
 from pathlib import Path
-sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../ignnition'))
 
+sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
@@ -38,7 +38,6 @@ with (Path(".") / ".." / "ignnition" / "_version.py").open() as f:
 # The full version, including alpha/beta/rc tags.
 release = "main"
 
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -59,7 +58,6 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -92,3 +90,5 @@ source_suffix = {
     '.txt': 'markdown',
     '.md': 'markdown',
 }
+
+master_doc = "documents/index"
