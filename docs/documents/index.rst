@@ -99,9 +99,11 @@ license.
    :maxdepth: 2
    :hidden:
    :caption: Misc
+
    ./about
    ./citing
    ./contact_and_issues
    ./mailing_list
+   ./contributing
    ./community_bylaws
    ./license

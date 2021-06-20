@@ -40,7 +40,7 @@ To make use of any of these functionalities, one must first create a new Python 
 
 Moreover, we show below a general overview on how to make use of each of the aforementioned functionalities:
 
-##### 1. Defining a custom loss function
+#### 1. Defining a custom loss function
 To define a custom loss function, one must define in the Python file a new function that takes as input the predictions and the labels, and outputs the loss value. Below we present one simple example that implements the well-known mean-squared error function:
     
     def my_loss(predict, label):
@@ -51,7 +51,7 @@ Finally, force the model to use your new loss function, by specifying it the *tr
     # OPTIMIZATION OPTIONS
     loss: my_loss
  
-##### 2. Defining a custom metric
+#### 2. Defining a custom metric
 To define a custom metric, one must define in the Python file a new function that takes as input the predictions and the labels, and outputs the new metric value. In the code snipped shown below, we show how a simple metric could be implemented:
     
     def my_metric(predict, label):
@@ -62,7 +62,7 @@ Finally, force the model to use your new loss function, by specifying it the *tr
     # OPTIMIZATION OPTIONS
     metrics: [my_metric]
 
-##### 3. Defining a normalization function
+#### 3. Defining a normalization function
 To define a normalization function, one must define a new function in the Python file, called *normalization*. This function takes as input the array of features, as well as its name.
 As we can see in the example below, with this function we are able to apply a distinct normalization function for each of the features used by the GNN model.
 

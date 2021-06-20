@@ -1,4 +1,4 @@
-# Contributing to Ignnition
+# Contributing
 
 Thank you for your interest in contributing to Ignnition! If you wish to contribute, please adhere to our branching system.
 
