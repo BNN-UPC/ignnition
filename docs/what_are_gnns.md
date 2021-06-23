@@ -12,7 +12,7 @@ Once the hidden states <img src="https://render.githubusercontent.com/render/mat
 
 All the process is also summarized in the figure below:
 
-![MP](./Images/message_passing.png)
+![MP](Images/message_passing.png)
 
 After completing the *T* message-passing iterations, a *Readout function* <img src="https://render.githubusercontent.com/render/math?math=R(\cdots)"> is used to produce the output of the GNN model. Particularly, this function takes as input the final node hidden states <img src="https://render.githubusercontent.com/render/math?math=h_v^T"> and converts them into the output labels of the model <img src="https://render.githubusercontent.com/render/math?math=\hat{y}">:
 
