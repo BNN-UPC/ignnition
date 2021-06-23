@@ -11,7 +11,7 @@ In order to optain this information, the user must run the *model.computational_
 Then, access through your web browser localhost://6006, which will show the graph.
 
 ### Visualization of Shortest-Path
-In order to further understand the information that this system provides, we will use the very simple example of Shortest-Path, presented in [quick start tutorial](quick_tutorial.md#step-5-debugging).
+In order to further understand the information that this system provides, we will use the very simple example of Shortest-Path, presented in [quick start tutorial](../quick_tutorial/#step-5-debugging).
 
 First of all, once you are in the Tensorboard page, look for a box named *Ignnition_model*. If you expand this box, you should see the following:
 

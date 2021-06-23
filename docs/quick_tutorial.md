@@ -1,7 +1,7 @@
 # Quick step-by-step tutorial
 First of all, if you have not intstalled *IGNNITION* yet, please go to the [installation guide](installation.md) to quickly install it with PyPI.
 
-In this tutorial we will learn how to solve the shortest path using a Message Passing Neural Network (MPNN). For sake of simplicity, we will present a very simple architecture, which of course could be improved. Before starting, if you are not familiar with this type of NN, we strongly recommend first reading the section [What is a GNN](what_are_gnns.md#what-is-a-gnn) where we explain in detail the different phases that a MPNN has. To do so, we are going to cover four main steps:<br><br>
+In this tutorial we will learn how to solve the shortest path using a Message Passing Neural Network (MPNN). For sake of simplicity, we will present a very simple architecture, which of course could be improved. Before starting, if you are not familiar with this type of NN, we strongly recommend first reading the section [What is a GNN](../what_are_gnns/#what-is-a-gnn) where we explain in detail the different phases that a MPNN has. To do so, we are going to cover four main steps:<br><br>
 1. [Understanding the problem](#understanding-the-problem)<br>
 2. [Building the Dataset](#building-the-dataset)<br>
 3. [Designing and implementing the GNN](#designing-and-implementing-the-gnn)<br>
@@ -66,7 +66,7 @@ In this case we only have one feature per node. Note however that the field *inp
 
 An important aspect to consider to design a *GNN* is the state dimension, which can be understood as an hyperparameter that needs to be tunned. Since the problem we are facing is a simple one, a state size of *16* is more than enough.
 
-For a more detailed explanation on how to build the entities object and what parameters accept or not, we suggest on reading the section [Entity definition](generate_your_gnn.md#1-entity-definition).
+For a more detailed explanation on how to build the entities object and what parameters accept or not, we suggest on reading the section [Entity definition](../model_description/#1-entity-definition).
 
 ### MPNN architecture
 At this point, we must define the core part of the *MPNN* algorithm, which is the neural message-passing phase. In this phase, different messages are send between nodes that are used to update the hidden state of each node. These hidden states will be finally used as input to the readout phase to generate the final input.
@@ -118,7 +118,7 @@ message_passing:
 
 This lines simply tell the model that the operation used to create the model is a NN that is identified with the name message_function and takes as input the source hidden state of the model and the weights that we defined for each of the edges in the dataset. Again, we write *$weights* to indicate that this is a feature that can be found in the dataset.
 
-Again, we refer the user to [keywords](model_description.md#keyword-definition), where we provide full detail of each of the available keywords.
+Again, we refer the user to [keywords](../model_description/#keyword-definition), where we provide full detail of each of the available keywords.
 
 ### Update phase
 Once all the messages are sent, the different nodes need to collect all the message that they received and use a function to aggregate them and transform them to something that the update function is able to understand. In this case, and for the sake of simplicity, we are going to use a *min* aggregator that will simply use the minimum among all the messages to use as input of the update function. To define the aggregation function we need to use the following line:
@@ -205,4 +205,4 @@ Place yourself within the scope of our experiment's directory, and execute the f
 tensorboard --logdir ./
 ```
 
-Then, again, visit [link](http://localhost:6006/) where you will observe the resulting computational graph. If you want more information regarding the interpretation of this graph, please visit [debugging assistant](debugging_assistant.md#visualization-of-shortest-path).
+Then, again, visit [link](http://localhost:6006/) where you will observe the resulting computational graph. If you want more information regarding the interpretation of this graph, please visit [debugging assistant](../debugging_assistant/#visualization-of-shortest-path).

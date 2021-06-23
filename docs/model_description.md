@@ -99,7 +99,7 @@ This can be done by creating two different stages. We then assign the first two 
 #### Defining the message-passing phase
 First of all, we must define the number of iterations (num_iterations). This indicates the number of times that all the given stages will perform all their single message-passings. Afterwards, we can proceed to define a list of *stages*. For sake of simplicity, let us only define one, as two define more, we must just include more elements in the list of *stages*.
 
-To define a *stage*, the user must define all the *stage_message_passings*, these being all the *single message-passings* that must be executed during these time step (all of them simultaniously). Note that for each of them we define the three functions mentioned before (message function, aggregation function and update function). Visit [keywords](model_description.md#keyword-definition) to get more information about the exact keywords that you can use in these sections.
+To define a *stage*, the user must define all the *stage_message_passings*, these being all the *single message-passings* that must be executed during these time step (all of them simultaniously). Note that for each of them we define the three functions mentioned before (message function, aggregation function and update function). Visit [keywords](../model_description/#keyword-definition) to get more information about the exact keywords that you can use in these sections.
 
 ```yaml
 message_passing:
