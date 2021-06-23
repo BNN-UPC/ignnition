@@ -13,9 +13,9 @@
 import os
 import sys
 from pathlib import Path
-sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../ignnition'))
 
+sys.path.insert(0, os.path.abspath('.'))
+sys.path.insert(0, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
@@ -38,7 +38,6 @@ with (Path(".") / ".." / "ignnition" / "_version.py").open() as f:
 # The full version, including alpha/beta/rc tags.
 release = "main"
 
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -48,7 +47,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'myst_parser'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -59,14 +59,16 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
+html_logo = 'Images/ignnition-logo-neg-res.png'
 html_theme_options = {
+    'logo_only': True,
+    'display_version': True,
     "collapse_navigation": False
 }
 
@@ -82,3 +84,9 @@ html_context = {
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.txt': 'markdown',
+    '.md': 'markdown',
+}

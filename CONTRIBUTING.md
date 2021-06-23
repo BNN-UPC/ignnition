@@ -17,7 +17,7 @@ There are three different kinds of development branches:
 
 - **hf-(name)**: This branch contains hotfixes (i.e. fixes deemed urgent enough to be included directly into the main 
 branch without having to wait to the end of the development cycle). These branches should start from the **main** 
-branch and its PR should be directed at the **main** branch. The hotfix version should be increased whenever one of these 
+branch and its Pull Request (PR) should be directed at the **main** branch. The hotfix version should be increased whenever one of these
 branches is created.
   
 - **bf-(name)**: This branch contains bugfixes (i.e. fixes not deemed urgent enough to be included directly into the 
@@ -33,8 +33,8 @@ the **development** branch.
 
 ## Versioning
 
-The *_version.py* file inside the *ignnition* folder contains the version of the package. The version follows a format 
-"x.y.z", in which *x* is the **major** version, *y* is the **minor** version and *z* is the **fix** version.
+The *_version.py* file inside the *ignnition* folder contains the version of the package. Versions follows the format 
+'**x.y.z**', where '*x*' is the **major** version, '*y*' is the **minor** version, and '*z*' is the **fix** version.
 
 The **fix** version is increased with every **hf-(name)** branch. The expected workflow should be the following: create 
 a new hotfix branch, increase the fix version and create a PR to the **main** branch. After that, the performed changes 

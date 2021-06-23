@@ -106,9 +106,12 @@ class Generator:
         # load the model
         G = json_graph.node_link_graph(sample)
 
-        # transform the undirected graphs to directed (to ensure proper working during the MP)
-        if not nx.is_directed(G):
-            G = G.to_directed()
+        # Only directed graphs are supported. Error checking message if the graph is undirected
+        if not G.is_directed():
+            print_failure("IGNNITION received as input an undirected graph, even though it only supports (at the moment) directed graphs. Please consider reformating your code accordingly. You can double the edges between two nodes (e.g., edge 1-2 can be transformed into 1->2 and 2->1) to simulate the same behaviour.")
+
+        if G.is_multigraph():
+            print_failure("IGNNITION received as input a multigraph, while these are not yet supported. This means, that for every pair of nodes, only one edge with the same source and destination can exist (e.g., you cannot have two edges 1->2 and 1->2. Notice that 1->2 and 2->1 does not incur in this problem.")
 
         entity_counter = {}
         mapping = {}
