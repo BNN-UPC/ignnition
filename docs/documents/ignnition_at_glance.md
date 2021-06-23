@@ -41,6 +41,6 @@ Traditionally all ML models are strongly dependent on the dataset it is applied 
 Despite the fact that *IGNNITION* allows its users to isolate intirely from the actual implementation of the *GNN*, this does not incur in any major overhead time-wise. Hence, our implementations result to be essentially as efficient as an actual native *Tensorflow* implementation.
 
 
-## Next step
+## Next step:
 *IGNNITION* is intended to be useful for both unexperienced and expert users in the field of *GNNs*. Nevertheless, we recommend unexperienced user to refer to section [GNN background](./what_are_gnns.md) which provides a basic intuition that can help you speed-up the design of your first GNN! For those with already some experiese, we recommend proceeding with the [installation guide](./installation.md) to start using *IGNNITION*.
 

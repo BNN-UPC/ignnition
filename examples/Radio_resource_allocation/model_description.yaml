@@ -1,0 +1,79 @@
+# QM9 model definition for iGNNition model
+entities:
+- name: transmitter_receiver_pair
+  state_dimension: hidden_state_dimension
+  initial_state:
+    - type: neural_network
+      nn_name: initial_state_network
+      input:
+        - $receiver_distance
+        - $channel_loss
+        - $power
+      output_name: normalized_state
+    - type: build_state
+      input: [$normalized_state]
+
+message_passing:
+  num_iterations: 3
+  stages:
+    - stage_message_passings:
+      - destination_entity: transmitter_receiver_pair
+        source_entities:
+          - name: transmitter_receiver_pair
+            message:
+              - type: neural_network
+                nn_name: message_function
+                input:
+                  - source
+                  - destination
+                  - $transceiver_receiver_loss
+        aggregation:
+          - type: max
+        update:
+          type: neural_network
+          nn_name: update_function
+
+readout:
+- type: neural_network
+  nn_name: readout_function
+  input: [transmitter_receiver_pair, $weights, $wmmse_power]
+  output_label: [$path_loss]
+
+neural_networks:
+- nn_name: initial_state_network
+  nn_architecture:
+  - type_layer: BatchNormalization
+    axis: -1
+    center: true
+    scale: true
+- nn_name: message_function
+  nn_architecture:
+  - type_layer: nn_layer
+    activation: nn_activation
+    units: 5
+  - type_layer: nn_layer
+    activation: nn_activation
+    units: 32
+  - type_layer: nn_layer
+    activation: nn_activation
+    units: 32
+  - type_layer: nn_layer
+    activation: nn_activation
+    units: hidden_state_dimension
+
+- nn_name: update_function
+  nn_architecture:
+  - type_layer: nn_layer
+    activation: nn_activation
+    units: 35
+  - type_layer: nn_layer
+    activation: nn_activation
+    units: 16
+  - type_layer: nn_layer
+    activation: sigmoid
+    units: hidden_state_dimension
+
+- nn_name: readout_function
+  nn_architecture:
+  - type_layer: Activation
+    activation: relu
