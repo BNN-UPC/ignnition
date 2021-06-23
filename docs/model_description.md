@@ -5,7 +5,7 @@ In order to efficiently define *GNN* models, we propose a novel high-level abstr
 
 The *MSMP* graph abstraction provides an interface with a flexible modular design, providing support for any variant of state-of-the-art *GNN* architectures as well as custom combinations of individual components present in existing *GNNs* (e.g., messages, aggregations, updates, loss, normalization functions). In the networking field, *GNN* models are usually non-standard. They often need to be highly customized in order to adapt to complex network scenarios, usually addressing challenging modeling or optimization problems. Thus, proposed solutions typically require tailor-made *GNN* architectures including different element types in graphs (e.g., forwarding devices, links) and message-passing schemes divided in multiples phases sequentially arranged. In this context --- and in line with the focus on network applications of *IGNNITION ---* one main novelty of the proposed *MSMP* graph abstraction is that it provides support to define message passings divided in multiple stages and including different types of elements (also called *entities*). To the best of our knowledge, this enables to implement all the existing GNN architectures applied to networking to date.
 
-![General MSMP definition](./Images/general_msmp.png)
+![General MSMP definition](Images/general_msmp.png)
 
 Particularly, with the *MSMP* graph abstraction, a *GNN* design can be intuitively defined by a set of graph entities and how they relate to each other in a sequential order, which eventually describes a message-passing iteration of the *GNN*. Fig.~\ref{fig:abstraction_graph} illustrates an example of a *GNN* with three different entity types (*e1*, *e2* and *e3*). In this MSMP graph, we can observe two differentiated stages in the message passing. In the first stage, entities of type *e1* and *e2* send their hidden states to their neighbors of type *e3* according to the connections of the input graph. Then, in the second stage, $e3$ entities send their states to the linked entities of type *e1* and *e2*. This process is then repeated a number of iterations *T* to make the states converge to some fixed values.
 
@@ -14,7 +14,7 @@ Thus, *IGNNITION* supports any *GNN* that can be represented as an *MSMP* graph.
 In order to further illustrate this abstraction, we shall focus on *RouteNet*, which is a
 representative *GNN* model applied to networking. *RouteNet* was proposed as a solution to efficiently model performance in networks. To do this, in the original paper the authors formulate a complex mathematical model with a hypergraph that includes two types of entities: *(i)* the links of the input topology, and *(ii)* the end-to-end paths formed by the routing configuration. However, with *MSMP* graphs *RouteNet* can be easily defined by a two-stage message passing scheme including the two entities involved and how they exchange their states (as shown in the figure below).
 
-![RouteNet MSMP definition](./Images/msmp_routenet.png)
+![RouteNet MSMP definition](Images/msmp_routenet.png)
 
 In particular, in this *GNN* each *link* first shares its state with all its related paths (i.e., the *paths* that traverse the link). Afterward, each path sends its state to its related *links* (i.e., the *links* that form the *path*). Note that in this two-stage message passing, the input graph of the *GNN* does not have a direct mapping to the network topology itself, but instead graph nodes are the different entities included in the MSMP graph (i.e., links and paths), and edges are the relationships between these elements. Thus, messages are not necessarily sent physically over the network. They are just logical objects that represent the exchange of hidden states between links and paths.
 
@@ -33,7 +33,7 @@ Let us now go a little bit in more detail into each of these sections.
 When designing a GNN, we might find situations in which not all the nodes in the graph behave /represent the same object. For this, we might need to consider different behaviours depending on the type of node in question.
 For this, we shall refer to an entity as a type of node in the graph.
 
-![MSMP definition](./Images/entities.png)
+![MSMP definition](Images/entities.png)
 
 From this example, we can observe that two entities must be created. Consequently, our model_description file must include a definition for each of them. Let us briefly describe how this can be done.
 
@@ -72,18 +72,18 @@ For this, we must define the following functions:
 ##### Message function
 This message function is defined for each of the source entities to the given destination entity. The message function will define how the source nodes will form the message that they will send to their corresponding destination nodes. Below we provide a visualization for this process through an arbitrary graph of 3 different nodes.
 
-![MSMP definition](./Images/message.png)
+![MSMP definition](Images/message.png)
 
 
 ##### Aggregation function
 Once we have defined the message function for each of the source entities (in this case, for the source entity *a* and for the entity *b* respectively), we need to define the aggregation function. The aggregation function defines how each of the destination nodes will take all the messages received from both entity *a* and *b*, and produce one single input. For this, *IGNNITION*, as seen before, allows a pipe-line of operations which incrementaly allow users to define potentially very complex strategys for this aggregation function. Below we show an illustration of this process, for simplicity, with an aggregation function consisting of a single operation which sums over all the messages into a single final input.
 
-![MSMP definition](./Images/aggregation.png)
+![MSMP definition](Images/aggregation.png)
 
 ##### Update function
 Finally, we reach the point in which each of the destination nodes has produced an aggregated input of all the messages received. It just remains to create the corresponding update function of the destination entity that describes how it will use this information to update its current hidden state. Following the same squema used before, the illustration below exemplifies graphically this process.
 
-![MSMP definition](./Images/update.png)
+![MSMP definition](Images/update.png)
 
 #### Using stages to define chronological orderings?
 So far, we have talked about how we can create a single message-passing. One must note, however, that a complex GNN may contain many of this single message-passings. For this we need to be able to properly order them chronologically.
@@ -94,12 +94,12 @@ To illustrate this, let us suppose we have created three single message-passings
 
 This can be done by creating two different stages. We then assign the first two single message-passings to the first stage (first time-step) and then the third single message-passing to the second stage (second time-step).
 
-![stages definition](./Images/general_description_stages.png)
+![stages definition](Images/general_description_stages.png)
 
 #### Defining the message-passing phase
 First of all, we must define the number of iterations (num_iterations). This indicates the number of times that all the given stages will perform all their single message-passings. Afterwards, we can proceed to define a list of *stages*. For sake of simplicity, let us only define one, as two define more, we must just include more elements in the list of *stages*.
 
-To define a *stage*, the user must define all the *stage_message_passings*, these being all the *single message-passings* that must be executed during these time step (all of them simultaniously). Note that for each of them we define the three functions mentioned before (message function, aggregation function and update function). Visit [keywords](./model_description.md#keyword-definition) to get more information about the exact keywords that you can use in these sections.
+To define a *stage*, the user must define all the *stage_message_passings*, these being all the *single message-passings* that must be executed during these time step (all of them simultaniously). Note that for each of them we define the three functions mentioned before (message function, aggregation function and update function). Visit [keywords](model_description.md#keyword-definition) to get more information about the exact keywords that you can use in these sections.
 
 ```yaml
 message_passing:
@@ -163,7 +163,7 @@ In this example, we are linking the name *readout_model* to a neural network wit
 
 
 ### Putting it into practice
-So far, this section has covered in a very general way how to define a *GNN*. To fully get your hands on this topic, we recommend you to check our [quick tutorial](./quick_tutorial.md) where we put all these concepts into practice to solve the specific problem of finding the *shortest-path* of a graph.
+So far, this section has covered in a very general way how to define a *GNN*. To fully get your hands on this topic, we recommend you to check our [quick tutorial](quick_tutorial.md) where we put all these concepts into practice to solve the specific problem of finding the *shortest-path* of a graph.
 
 ## Keyword definition
 In this section we will focus in more depth on what are the keywords available to design each of the sections that themselves define the GNN, and how to use them. More specifically, we will cover the keywords for each of the following sections. 

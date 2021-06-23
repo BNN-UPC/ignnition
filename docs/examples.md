@@ -12,7 +12,7 @@ Below you can find the list of examples implemented so far by *IGNNITION*. Stay 
 
 ## 1. Shortest-path
 ### Brief description
-The first illustrative example that we present is a *GNN* that aims to solve the well-known *Shortest-Path* problem, which architecture is considerably simpler than any of the other proposals that we present below -and thus is a good starting point-. To learn more about this model, check [quick tutorial](./quick_tutorial.md) where we explain in depth the target problem, as well as the architecture of the resulting *GNN*.
+The first illustrative example that we present is a *GNN* that aims to solve the well-known *Shortest-Path* problem, which architecture is considerably simpler than any of the other proposals that we present below -and thus is a good starting point-. To learn more about this model, check [quick tutorial](quick_tutorial.md) where we explain in depth the target problem, as well as the architecture of the resulting *GNN*.
 
 
 ## 2. Graph Query Neural Networks
@@ -35,7 +35,7 @@ two use-cases with accuracies larger than 95 %. We also show that specific prope
 
 ### MSMP Graph
 Below we provide a visualization of the corresponding MSMP graph. In this representation we can observe the two different entities, this being the interfaces (INTER) and the routers (ROUTER). Then, as mentioned before, these exchange messages in two different stages.
-![MSMP definition](./Images/msmp_gqnn.png)
+![MSMP definition](Images/msmp_gqnn.png)
 
 ### Try Graph Query Neural Network
 To execute this example, please download the source files at [Graph Query Neural Network](https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Graph_query_networks).
@@ -56,7 +56,7 @@ Network modeling is a key enabler to achieve efficient network operation in futu
 
 ### MSMP Graph
 Below we provide a visualization of the corresponding MSMP graph for this use-case. In this representation we can observe the two different entities, these being the *links* and the *paths*. Then we can observe the message passing that they perform into two separete stages.
-![MSMP definition](./Images/msmp_routenet.png)
+![MSMP definition](Images/msmp_routenet.png)
 
 ### Try RouteNet
 For this example, we provide the corresponding implementation of the *model_description.json* file and all the related files needed for the execution in [Routenet](https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Routenet).
@@ -79,7 +79,7 @@ Recently, a Graph Neural Network (GNN) model called RouteNet was proposed as an 
 
 ### MSMP Graph
 Below we provide a visualization of the corresponding MSMP graph for this use-case. In this representation we can observe the three different entities, this being the links, the paths and the nodes. Then we can observe the message passing that they perform into two separete stages.
-![MSMP definition](./Images/msmp_q_size.png)
+![MSMP definition](Images/msmp_q_size.png)
 
 ### Try Q-size
 For this example, we provide the corresponding implementation of the *model_description.json* file in [Q-size](https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Q-size).

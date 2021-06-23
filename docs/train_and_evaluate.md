@@ -17,7 +17,7 @@ For this, IGNNITION incorporates a debugging system which is based on producing 
 
     model.computational_graph()
 
-This will create a directory named "computational_graph", in the corresponding path indicated in the "train_options.yml" file. We further extend on how to visualize or interpret the output of this operation in [debugging assistant](./debugging_assistant.md). 
+This will create a directory named "computational_graph", in the corresponding path indicated in the "train_options.yml" file. We further extend on how to visualize or interpret the output of this operation in [debugging assistant](debugging_assistant.md). 
 
 ### Train and validation
 The main goal of *IGNNITION* is precisely to be able to train a GNN model easily. For this, the user must only make the following call:
@@ -25,7 +25,7 @@ The main goal of *IGNNITION* is precisely to be able to train a GNN model easily
     model.train_and_validate()
 
 This calll proceeds to train the *GNN* specified in the *model_description.yaml* file. Additionally, a process of validation will be performed throughout the training phase, so as to provide better insight on the model performance.
-The behaviour during the training phase is controlled by the *train_options.yaml* file, specified in section [2. Configuration file]().
+The behaviour during the training phase is controlled by the *train_options.yaml* file, specified in section [2. Configuration file](#2-configuration-file).
 
 Furthermore, this operations will create (if it doesn't exist already) a directory called "CheckPoints" in the specified path. In this directory, a new directory will be created corresponding to the experiment runned (indexed by date). In it, the corresponding checkpoints will be stored, as well as the "events.out.tfevents.XXX" file, which contains the tensorboard information of the training metrics specified. Similarly as before, the user can visualize this information by running
 
@@ -34,7 +34,7 @@ Furthermore, this operations will create (if it doesn't exist already) a directo
 Then, by visiting *localhost:6006*, the user can analyse the different statistics produced during the training phase to evaluate the model (e.g., loss, mean absolute error, mean relative error, R2...)
 
 ### One-step training
-Finally, we incorporated another function that is specially interesting in the context of *Reinforcement Learning*. This function allows to do training only on a batch of data passed by parameter to the function. This allows the incorporation of *IGNNITION* in real-world *Deep Reinforcement Learning (DRL)* applications that make use of the incredible power of GNNs to develop cutting-edge solutions. For this, we must only make the call shown below, passing an array of samples, each of which follows the same structure defined in [Generate your dataset](./generate_your_dataset.md).
+Finally, we incorporated another function that is specially interesting in the context of *Reinforcement Learning*. This function allows to do training only on a batch of data passed by parameter to the function. This allows the incorporation of *IGNNITION* in real-world *Deep Reinforcement Learning (DRL)* applications that make use of the incredible power of GNNs to develop cutting-edge solutions. For this, we must only make the call shown below, passing an array of samples, each of which follows the same structure defined in [Generate your dataset](generate_your_dataset.md).
 
     model.one_step_training(training_batch)
 
@@ -49,7 +49,7 @@ For this, clearly, the user will have to indicate the path where the *trained mo
 
     load_model_path: <PATH>
 
-More information regarding these fields can be found in section [2. Configuration file](). Moreover, to run this functionality, the user must only make the following call, which will return the result of the aforementioned metrics.
+More information regarding these fields can be found in section [2. Configuration file](#2-configuration-file). Moreover, to run this functionality, the user must only make the following call, which will return the result of the aforementioned metrics.
 
     model.evaluate()
 
@@ -60,7 +60,7 @@ More information regarding these fields can be found in section [2. Configuratio
 
     load_model_path: <PATH>
 
-In this fields, we can specify the dataset that we aim to predict, and the location of the checkpoint of the model that we need to restore, to later be used for the predicting phase. See more details on how to fill this fields in [2. Configuration file]().
+In this fields, we can specify the dataset that we aim to predict, and the location of the checkpoint of the model that we need to restore, to later be used for the predicting phase. See more details on how to fill this fields in [2. Configuration file](#2-configuration-file).
 
 Then, *IGNNITION* will compute the corresponding prediction of each of the samples of the prediction dataset. Moreover, to run this functionality, the user must only make the following call, which will return all the computed predictions.
 

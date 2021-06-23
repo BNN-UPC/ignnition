@@ -1,7 +1,7 @@
 # Generate your dataset
 
 ## Format of the dataset
-In order to properly feed the dataset to *IGNNITION*, the dataset must be in *json* format. For this, the user must generate *json* files --potentially many-- with the help of the well-known library *Networkx*, each of which can optionally be compressed into a *.tar.gz* file. Furthermore, *IGNNITION* requires that the user manually separetes the training from the evalutation set into two different directories, the paths of which must be specified in the *training_options.yml* file in their corresponding filds (check [train and evaluate](./train_and_evaluate.md)).
+In order to properly feed the dataset to *IGNNITION*, the dataset must be in *json* format. For this, the user must generate *json* files --potentially many-- with the help of the well-known library *Networkx*, each of which can optionally be compressed into a *.tar.gz* file. Furthermore, *IGNNITION* requires that the user manually separetes the training from the evalutation set into two different directories, the paths of which must be specified in the *training_options.yml* file in their corresponding filds (check [train and evaluate](train_and_evaluate.md)).
 
 We would like to highlight that the dataset can contain potentially many *json* files as well as many *tar.gz* files, each of which compressing one single *json* file. The only restriction in this regard is that the *json* files are valid and follow the scheme that we present below.
 
@@ -9,7 +9,7 @@ We would like to highlight that the dataset can contain potentially many *json* 
 ## What should the dataset include?
 In order to generate the dataset to be fed to *IGNNITION*, the user must generate the corresponding graphs with the help of the well-known library *networkx*. Moreover, this library allows that, after each of the corresponding graphs is created, it can easily be serialized as a json file. When designing the different graphs, however, one must remember that most of the fields require references of values, which enables our model description to be totaly agnostic to the actual dataset. The reason is that in execution time, *IGNNITION* will gather the corresponding values that each of this references point to. Ultimately, this design principle, thus, requires users to make only minor changes in the model to adapt it to a completely different dataset. 
 
-This principle, however, imposes an important constraint that all the references used in the model descprition file match the ones used in the dataset. Below we provide a brief description of how a user can ensure that this constraint is satisfied. Nevertheless, *IGNNITION* incorporates an error-checking system (further explained in [debugging assistant](./debugging_assistant.md)]), which assists users in the debugging of such aspects. 
+This principle, however, imposes an important constraint that all the references used in the model descprition file match the ones used in the dataset. Below we provide a brief description of how a user can ensure that this constraint is satisfied. Nevertheless, *IGNNITION* incorporates an error-checking system (further explained in [debugging assistant](debugging_assistant.md)]), which assists users in the debugging of such aspects. 
 
 ## How to generate a sample?
 We now review how we can generate a general sample which should give the user a good intuition to potentially build more complex examples.
@@ -102,4 +102,4 @@ This is an optional step, but which we recommend since it can help to considerab
 ```
 
 ## Practical example
-So far we have covered how a general dataset can be generated. Nevertheless, we are sure everything will be much more clear after checking how an specific dataset is generated. To do so, take a look at [quick tutorial](./quick_tutorial.md) where we cover in detail how to create a dataset to solve the problem of the *Shortest-path*.
+So far we have covered how a general dataset can be generated. Nevertheless, we are sure everything will be much more clear after checking how an specific dataset is generated. To do so, take a look at [quick tutorial](quick_tutorial.md) where we cover in detail how to create a dataset to solve the problem of the *Shortest-path*.

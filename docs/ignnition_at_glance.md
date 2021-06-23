@@ -14,7 +14,7 @@ Designing a *GNN* can be a very challanging, specially in complex problems where
 ### No coding is needed
 *IGNNITION* is intended to be an extremely simple tool so that it is accessible to non-ML experts. In the image below we can observe how the user must only define the model description file using a declarative language (YAML) as well as to provide the dataset. Then, with three simple lines of code, the user can call the core engine of *IGNNITION* that will run the desired functionality and ultimately produce the trained GNN.
 
-![workflow](./Images/workflow.png)
+![workflow](Images/workflow.png)
 
 The image below shows a an example of how the *IGNNITION* framework can be called from a python script to start the training of a GNN.
 
@@ -42,5 +42,5 @@ Despite the fact that *IGNNITION* allows its users to isolate intirely from the 
 
 
 ## Next step:
-*IGNNITION* is intended to be useful for both unexperienced and expert users in the field of *GNNs*. Nevertheless, we recommend unexperienced user to refer to section [GNN background](./what_are_gnns.md) which provides a basic intuition that can help you speed-up the design of your first GNN! For those with already some experiese, we recommend proceeding with the [installation guide](./installation.md) to start using *IGNNITION*.
+*IGNNITION* is intended to be useful for both unexperienced and expert users in the field of *GNNs*. Nevertheless, we recommend unexperienced user to refer to section [GNN background](what_are_gnns.md) which provides a basic intuition that can help you speed-up the design of your first GNN! For those with already some experiese, we recommend proceeding with the [installation guide](installation.md) to start using *IGNNITION*.
 

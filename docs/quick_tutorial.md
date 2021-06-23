@@ -1,7 +1,7 @@
 # Quick step-by-step tutorial
-First of all, if you have not intstalled *IGNNITION* yet, please go to the [installation guide](./installation.md) to quickly install it with PyPI.
+First of all, if you have not intstalled *IGNNITION* yet, please go to the [installation guide](installation.md) to quickly install it with PyPI.
 
-In this tutorial we will learn how to solve the shortest path using a Message Passing Neural Network (MPNN). For sake of simplicity, we will present a very simple architecture, which of course could be improved. Before starting, if you are not familiar with this type of NN, we strongly recommend first reading the section [What is a GNN](./what_are_gnns.md#what-is-a-gnn) where we explain in detail the different phases that a MPNN has. To do so, we are going to cover four main steps:<br><br>
+In this tutorial we will learn how to solve the shortest path using a Message Passing Neural Network (MPNN). For sake of simplicity, we will present a very simple architecture, which of course could be improved. Before starting, if you are not familiar with this type of NN, we strongly recommend first reading the section [What is a GNN](what_are_gnns.md#what-is-a-gnn) where we explain in detail the different phases that a MPNN has. To do so, we are going to cover four main steps:<br><br>
 1. [Understanding the problem](#understanding-the-problem)<br>
 2. [Building the Dataset](#building-the-dataset)<br>
 3. [Designing and implementing the GNN model's architecture](#designing-and-implementing-the-gnn-models-architecture)<br>
@@ -11,7 +11,7 @@ In this tutorial we will learn how to solve the shortest path using a Message Pa
 ## Understanding the problem
 In graph theory, the shortest path problem is the problem of finding a path between two vertices (or nodes) in a graph such that the sum of the weights of its constituent edges is minimized. As an example, in the following graph, the shortest path between N<sub>1</sub> and N<sub>3</sub> is: N<sub>1</sub>, N<sub>5</sub>, N<sub>3</sub>.  
 
-![GraphExample](./Images/Step_By_Step_Tutorial/Example_graph.png)
+![GraphExample](Images/Step_By_Step_Tutorial/Example_graph.png)
 
 Since shortest paths can be understood as sequences of nodes, and therefore, sequences can have different lengths we are going to transform this problem to a binary classification one. In this case, we are going to classify the nodes depending on whether a node is in the shortest path or not. Following the example stated before, the nodes should be classified as:
 
@@ -66,7 +66,7 @@ In this case we only have one feature per node. Note however that the field *inp
 
 An important aspect to consider to design a *GNN* is the state dimension, which can be understood as an hyperparameter that needs to be tunned. Since the problem we are facing is a simple one, a state size of *16* is more than enough.
 
-For a more detailed explanation on how to build the entities object and what parameters accept or not, we suggest on reading the section [Entity definition](./generate_your_gnn.md#1-entity-definition).
+For a more detailed explanation on how to build the entities object and what parameters accept or not, we suggest on reading the section [Entity definition](generate_your_gnn.md#1-entity-definition).
 
 ### MPNN architecture
 At this point, we must define the core part of the *MPNN* algorithm, which is the neural message-passing phase. In this phase, different messages are send between nodes that are used to update the hidden state of each node. These hidden states will be finally used as input to the readout phase to generate the final input.
@@ -118,7 +118,7 @@ message_passing:
 
 This lines simply tell the model that the operation used to create the model is a NN that is identified with the name message_function and takes as input the source hidden state of the model and the weights that we defined for each of the edges in the dataset. Again, we write *$weights* to indicate that this is a feature that can be found in the dataset.
 
-Again, we refer the user to [keywords](./keywords.md), where we provide full detail of each of the available keywords. Additionally, for a more summarized explanation of their use check [cheat sheet](./cheat_sheet.md).
+Again, we refer the user to [keywords](model_description.md#keyword-definition), where we provide full detail of each of the available keywords.
 
 ### Update phase
 Once all the messages are sent, the different nodes need to collect all the message that they received and use a function to aggregate them and transform them to something that the update function is able to understand. In this case, and for the sake of simplicity, we are going to use a *min* aggregator that will simply use the minimum among all the messages to use as input of the update function. To define the aggregation function we need to use the following line:
@@ -128,7 +128,7 @@ aggregation:
   - type: min
 ```
 
-Again, note that more complex aggregation functions can be defined using the framework. Find in the section [cheat sheet](./cheat_sheet.md) a more detailed guide on this.
+Again, note that more complex aggregation functions can be defined using the framework.
 
 Once we have defined the aggregation function, it is time to define how the hidden state of each node are updated. Usually the Update function takes as input the hidden state of the node and the output of the aggregation function. In this case, we are going to define as update function a Recurrent Neural Network that takes as initial state the current hidden state of the node and updates it using the output of the aggregation function. As we did in the previous section, we first need to define how the update function is defined using:
 
@@ -180,7 +180,7 @@ In it, we simply need to define the input that will take the readout function, w
 ## Training and evaluation
 In [main](https://github.com/knowledgedefinednetworking/ignnition/blob/ignnition-nightly/examples/Shortest_Path/main.py), we provide the file that we used for the execution of this model.
 
-In it, we simply create the model by indicating the *model_path*, this being where the file *training_options.yaml* file is located. In this case, the *main.py* file is already located there. Then we simply call the *train_and_validate()* function of the model, which starts the training. For more details regarding how to call the functionalities of our model, check [train and evaluate](./train_and_evaluate.md).
+In it, we simply create the model by indicating the *model_path*, this being where the file *training_options.yaml* file is located. In this case, the *main.py* file is already located there. Then we simply call the *train_and_validate()* function of the model, which starts the training. For more details regarding how to call the functionalities of our model, check [train and evaluate](train_and_evaluate.md).
 
 After doing so, we obtain a new directory *checkpoint* in the *output_path* provided in the *training_options.yaml* file. There we can see that a new directory has been created for this experiment(indexed by execution date). Inside this directory, we find the directory *ckpt* with the checkpoints saved every epoch of the training and the directory *logs*, with the Tensorboard visualizations.
 
@@ -205,4 +205,4 @@ Place yourself within the scope of our experiment's directory, and execute the f
 tensorboard --logdir ./
 ```
 
-Then, again, visit [link](http://localhost:6006/) where you will observe the resulting computational graph. If you want more information regarding the interpretation of this graph, please visit [debugging assistant](./debugging_assistant.md#visualization-of-shortest-path).
+Then, again, visit [link](http://localhost:6006/) where you will observe the resulting computational graph. If you want more information regarding the interpretation of this graph, please visit [debugging assistant](debugging_assistant.md#visualization-of-shortest-path).
