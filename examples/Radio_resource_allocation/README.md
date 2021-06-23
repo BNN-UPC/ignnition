@@ -20,7 +20,7 @@ which consists of:
   edge information (pair to pair channel losses) and aggregating messages using element-wise
   maximum.
 - Feed-forward neural network to update pairs's hidden states.
-- Pass-throug layer which does not modify each pair's hidden stats.
+- Pass-through layer which does not modify each pair's hidden stats.
 
 The model is trained in an self-supervised way with a custom loss function which maximizes the
 weighted sum rate of the network, by using the predicted power value together with the channel
