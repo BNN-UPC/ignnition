@@ -30,10 +30,12 @@ jobs:
       run: |
         sphinx-build -b dirhtml docs/ docs/_build/html
     - name: Upload docs
-      uses: SamKirkland/FTP-Deploy-Action@4.1.0
-      with:
-        server: ignnition.net
-        port: 13000
-        username: ${{ secrets.SCP_USERNAME }}
-        password: ${{ secrets.SCP_PASSWORD }}
-        local-dir: docs/_build/html/
+      uses: SamKirkland/FTP-Deploy-Action@2.0.0
+      env:
+        FTP_SERVER: ignnition.net
+        FTP_USERNAME: ${{ secrets.SCP_USERNAME }}
+        FTP_PASSWORD: ${{ secrets.SCP_PASSWORD }}
+        PORT: 13000
+        LOCAL_DIR: docs/_build/html/
+        METHOD: sftp
+        ARGS: --delete --transfer-all
