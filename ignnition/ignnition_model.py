@@ -197,7 +197,6 @@ class Ignnition_model:
             getattr(self.module, 'denormalization')
             if hasattr(self.module, 'denormalization') else None
         )
-
         for name in metric_names:
             if hasattr(tf.keras.metrics, name):
                 metric = getattr(tf.keras.metrics, name)()

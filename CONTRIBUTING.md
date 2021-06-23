@@ -1,6 +1,7 @@
 # Contributing to Ignnition
 
-Thank you for your interest in contributing to Ignnition! If you wish to contribute, please adhere to our branching system.
+Thank you for your interest in contributing to Ignnition! If you wish to contribute, please abide by our branching 
+system.
 
 ## Managing branches in Ignnition
 
@@ -16,7 +17,7 @@ There are three different kinds of development branches:
 
 - **hf-(name)**: This branch contains hotfixes (i.e. fixes deemed urgent enough to be included directly into the main 
 branch without having to wait to the end of the development cycle). These branches should start from the **main** 
-branch and its Pull Request (PR) should be directed at the **main** branch. The hotfix version should be increased whenever one of these 
+branch and its Pull Request (PR) should be directed at the **main** branch. The hotfix version should be increased whenever one of these
 branches is created.
   
 - **bf-(name)**: This branch contains bugfixes (i.e. fixes not deemed urgent enough to be included directly into the 
