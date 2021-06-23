@@ -23,7 +23,10 @@ import datetime
 import warnings
 import glob
 import tarfile
+import copy
 import json
+from importlib import import_module
+from pathlib import Path
 from tensorflow.keras.losses import *
 from tensorflow.keras.optimizers import *
 from tensorflow.keras.optimizers.schedules import *
@@ -63,11 +66,11 @@ class Ignnition_model:
     __process_path(self, path)
         This method takes as input a path and, considering the location of the model directory, converts all the relative path to absolute paths starting from such model_directory
 
-    __loss_function(self, labels, predictions)
-       Function that calls executes the loss function object from the keras libarary if specified. O/w it looks for a custom loss function specified in the module file.
+    __get_loss(self)
+        Obtain model loss either instantiating a tf.keras.losses.Loss object or a custom loss objective function specified in the module file.
 
-    __get_keras_metrics(self)
-        Creates all the keras metrics corresponding to tf.keras objects, or it creates objects based on custom function specified in the module path.
+    __get_metrics(self)
+        Obtain model metrics either instantiating tf.keras.metrics.Metric objects or returning custom metric functions specified in the module file.
 
     __get_compiled_model(self, model_info)
         Compiles the tf model with all the corresponding options
@@ -136,9 +139,13 @@ class Ignnition_model:
 
         # add the file with any additional function, if any
         if 'additional_functions_file' in self.CONFIG:
-            additional_path = self.__process_path(self.CONFIG['additional_functions_file'])
-            sys.path.insert(1, os.path.join(additional_path, os.pardir))
-            self.module = __import__(os.path.basename(additional_path)[0:-3])
+            additional_path = Path(self.__process_path(self.CONFIG['additional_functions_file']))
+            if not additional_path.exists():
+                print_failure(f"Additional functions file in {additional_path} does not exists.")
+            sys.path.insert(1, str(additional_path.resolve().parent))
+            self.module = import_module(additional_path.stem)
+        else:
+            self.module = None
 
         self.model_info = self.__create_model()
         self.generator = Generator()
@@ -152,60 +159,66 @@ class Ignnition_model:
         """
         return os.path.normpath(os.path.join(self.model_dir, path))
 
-    def __loss_function(self, labels, predictions):
-        """
-        Parameters
-        ----------
-        labels:    tensor
-           Input label
-        predictions:    tensor
-           Predictions of the GNN model
-        """
+    def __get_loss(self):
+        """Get loss instance or function for the model."""
 
-        loss_func_name = self.CONFIG['loss']
-        try:
-            loss_function = getattr(tf.keras.losses, loss_func_name)()
-            regularization_loss = sum(self.gnn_model.losses)
-            loss = loss_function(labels, predictions)
-            total_loss = loss + regularization_loss
-
-        except:  # go to the main file and find the function by this name
-            loss_function = getattr(self.module, loss_func_name)
-            total_loss = tf.py_function(func=loss_function, inp=[predictions, labels, self.gnn_model], Tout=tf.float32)
-
-        return total_loss
+        loss_name = self.CONFIG['loss']
+        if hasattr(tf.keras.losses, loss_name):
+            return getattr(tf.keras.losses, loss_name)()
+        elif hasattr(self.module, loss_name):
+            return getattr(self.module, loss_name)
+        else:
+            print_failure(
+                "Loss name is neither a Tensorflow Keras Loss nor an objective function in the "
+                "additional functions file."
+            )
 
     def __denormalized_metric(self, metric, metric_name, denorm_func):
         def denorm_metric(y_true, y_pred):
             output_name = self.model_info.get_output_info()
-            denorm_y_true = tf.py_function(func=denorm_func, inp=[y_true, output_name], Tout=tf.float32)
-            denorm_y_pred = tf.py_function(func=denorm_func, inp=[y_pred, output_name], Tout=tf.float32)
-            return metric(denorm_y_true, denorm_y_pred)
+            denorm_y_true = []
+            denorm_y_pred = []
+            for o in output_name:
+                denorm_y_true.append(tf.py_function(func=denorm_func, inp=[y_true, o], Tout=tf.float32))
+                denorm_y_pred.append(tf.py_function(func=denorm_func, inp=[y_pred, o], Tout=tf.float32))
+
+            return metric(tf.concat(denorm_y_true, axis=0), tf.concat(denorm_y_pred, axis=0))
 
         denorm_metric.__name__ = 'denorm_{}'.format(metric_name)
 
         return denorm_metric
 
-    def __get_keras_metrics(self):
+    def __get_metrics(self):
+        """Get metrics instances or functions for the model."""
         metric_names = self.CONFIG['metrics']
         metrics = []
-
-        try:
-            denorm_func = getattr(self.module, 'denormalization')
-        except:
-            denorm_func = None
+        output_name = self.model_info.get_output_info()
+        denorm_func = (
+            getattr(self.module, 'denormalization')
+            if hasattr(self.module, 'denormalization') else None
+        )
 
         for name in metric_names:
             if hasattr(tf.keras.metrics, name):
                 metric = getattr(tf.keras.metrics, name)()
                 metrics.append(metric)
                 if denorm_func is not None:
-                    metrics.append(self.__denormalized_metric(metric, metric.name, denorm_func))
+                    if len(output_name) == 1:
+                        metrics.append(self.__denormalized_metric(metric, metric.name, denorm_func))
+                    else:
+                        # TODO: ADD WARNING NORMALIZATION/DENORMALIZATION IS NOT SUPPORTED
+                        # WHEN ADDING MORE THAN ONE OUTPUT LABEL
+                        pass
             elif hasattr(self.module, name):
                 metric = getattr(self.module, name)
                 metrics.append(metric)
                 if denorm_func is not None:
-                    metrics.append(self.__denormalized_metric(metric, name, denorm_func))
+                    if len(output_name) == 1:
+                        metrics.append(self.__denormalized_metric(metric, name, denorm_func))
+                    else:
+                        # TODO: ADD WARNING NORMALIZATION/DENORMALIZATION IS NOT SUPPORTED
+                        # WHEN ADDING MORE THAN ONE OUTPUT LABEL
+                        pass
 
         return metrics
 
@@ -240,9 +253,9 @@ class Ignnition_model:
 
         # create an instance of the optimizer class indicated by the user. Accepts any loss function from keras documentation
         optimizer = o(**optimizer_params)
-        gnn_model.compile(loss=self.__loss_function,
+        gnn_model.compile(loss=self.__get_loss(),
                           optimizer=optimizer,
-                          metrics=self.__get_keras_metrics(),
+                          metrics=self.__get_metrics(),
                           run_eagerly=False)
         return gnn_model
 
@@ -335,10 +348,18 @@ class Ignnition_model:
 
             # output
             if y is not None:
-                try:
-                    y = tf.py_function(func=norm_func, inp=[y, output_name], Tout=tf.float32)
-                except:
-                    print_failure('The normalization function computing the output label' + output_name + ' failed.')
+                # if len(output_name) == 1:
+                pos = 0
+                out_list = []
+                for o in output_name:
+                    # try:
+                    out_list.append(
+                        tf.py_function(func=norm_func, inp=[y[pos:pos + x['__ignnition_{}_len'.format(o)]], o],
+                                       Tout=tf.float32))
+                    pos += x['__ignnition_{}_len'.format(o)]
+                    # except:
+                    #    print_failure('The normalization function computing the output label' + o + ' failed.')
+                y = tf.concat(out_list, axis=0)
                 return x, y
             return x
 
@@ -403,9 +424,12 @@ class Ignnition_model:
 
             for i in interleave_sources:
                 types['indices_' + i[0] + '_to_' + i[1]] = tf.int64
-                shapes['indices_' + i[0] + '_to_' + i[1]] = tf.TensorShape([None])
+                shapes['indices_' + i[0] + '_to_' + i[1]] = tf.TensorShape(None)
 
             if training:  # if we do training, we also expect the labels
+                for o in output_names:
+                    types['__ignnition_{}_len'.format(o)] = tf.int64
+                    shapes['__ignnition_{}_len'.format(o)] = tf.TensorShape(None)
                 if data_samples is None:
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_dataset(filenames, entity_names, feature_names,
@@ -473,7 +497,7 @@ class Ignnition_model:
             if iterator:
                 ds = iter(ds)
 
-        return ds
+            return ds
 
     # -------------------------------------
     def __create_model(self):

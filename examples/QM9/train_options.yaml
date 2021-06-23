@@ -1,8 +1,8 @@
 # PATHS
 additional_functions_file: ./main.py
 output_path: ./
-train_dataset: data/train
-validation_dataset: data/validation
+train_dataset: ./data/train
+validation_dataset: ./data/validation
 
 # OPTIMIZATION OPTIONS
 loss: MeanSquaredError

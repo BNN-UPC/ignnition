@@ -396,7 +396,7 @@
                     {
                         "description": "Type of operation",
                         "type": "string",
-                        "enum" : ["pooling", "product", "neural_network", "extend_tensor", "extend_adjacencies"]
+                        "enum" : ["pooling", "product", "neural_network", "extend_tensor", "extend_adjacencies", "concat"]
                     },
                     "type_pooling":
                     {

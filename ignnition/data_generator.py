@@ -106,9 +106,12 @@ class Generator:
         # load the model
         G = json_graph.node_link_graph(sample)
 
-        # transform the undirected graphs to directed (to ensure proper working during the MP)
-        if not nx.is_directed(G):
-            G = G.to_directed()
+        # Only directed graphs are supported. Error checking message if the graph is undirected
+        if not G.is_directed():
+            print_failure("IGNNITION received as input an undirected graph, even though it only supports (at the moment) directed graphs. Please consider reformating your code accordingly. You can double the edges between two nodes (e.g., edge 1-2 can be transformed into 1->2 and 2->1) to simulate the same behaviour.")
+
+        if G.is_multigraph():
+            print_failure("IGNNITION received as input a multigraph, while these are not yet supported. This means, that for every pair of nodes, only one edge with the same source and destination can exist (e.g., you cannot have two edges 1->2 and 1->2. Notice that 1->2 and 2->1 does not incur in this problem.")
 
         entity_counter = {}
         mapping = {}
@@ -197,7 +200,7 @@ class Generator:
 
             # for now, check that the name is unique for every src-dst. Problem: One node connected to another but the reverse to other nodes??
             if len(entity_names) > 2:
-                print(entity_names)
+                #print(entity_names)
                 entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
                 print_failure(
                     "The edge feature " + a + " was defined in connecting two different source-destination entities(" + entities_string + "). Make sure that an edge feature is unique for a given pair of entities (types of nodes).")
@@ -237,7 +240,7 @@ class Generator:
         if self.training:
             # collect the output (if there is more than one, concatenate them on axis=1
             # limitation: all the outputs must be of the same type (same number of elements)
-            first = True
+            final_output = []
             for output in self.output_names:
                 try:
                     aux = list(nx.get_node_attributes(D_G, output).values())
@@ -256,17 +259,16 @@ class Generator:
                     aux = np.expand_dims(aux, -1)
 
                 # try to concatenate them together. If error, it means that the two labels are incompatible
-                try:
-                    if first:
-                        final_output = aux
-                        first = False
-                    else:
-                        final_output = np.concatenate((final_output, aux), axis=1)
-                except:
-                    print_failure(
-                        "More than one output label was defined by they don't seem to be compatible. "
-                        "Check that all of them are either node or global labels. "
-                        "If they are node labels, they should refer to the same entity nodes.")
+                #try:
+                final_output.extend(aux)
+                data['__ignnition_{}_len'.format(output)] = len(aux)
+                """print("final_output")
+                print(final_output)"""
+                #except:
+                #    print_failure(
+                #        "More than one output label was defined by they don't seem to be compatible. "
+                #        "Check that all of them are either node or global labels. "
+                #        "If they are node labels, they should refer to the same entity nodes.")
 
         # find the adjacencies
         edges_list = list(D_G.edges())
@@ -468,7 +470,7 @@ class Generator:
             except KeyboardInterrupt:
                 sys.exit()
 
-            except Exception as inf:
-                print_failure("\n There was an unexpected error: \n" + str(
-                    inf) + "\n Please make sure that all the names used in the file: " + sample_file +
-                              ' are defined in your dataset')
+            #except Exception as inf:
+            #    print_failure("\n There was an unexpected error: \n" + str(
+            #        inf) + "\n Please make sure that all the names used in the file: " + sample_file +
+            #                  ' are defined in your dataset')

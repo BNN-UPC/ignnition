@@ -66,7 +66,7 @@ In this case we only have one feature per node. Note however that the field *inp
 
 An important aspect to consider to design a *GNN* is the state dimension, which can be understood as an hyperparameter that needs to be tunned. Since the problem we are facing is a simple one, a state size of *16* is more than enough.
 
-For a more detailed explanation on how to build the entities object and what parameters accept or not, we suggest on reading the section [Entity definition](./model_description.md#1-entity-definition).
+For a more detailed explanation on how to build the entities object and what parameters accept or not, we suggest on reading the section [Entity definition](./generate_your_gnn.md#1-entity-definition).
 
 ### MPNN architecture
 At this point, we must define the core part of the *MPNN* algorithm, which is the neural message-passing phase. In this phase, different messages are send between nodes that are used to update the hidden state of each node. These hidden states will be finally used as input to the readout phase to generate the final input.
