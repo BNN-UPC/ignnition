@@ -4,7 +4,7 @@ First of all, if you have not intstalled *IGNNITION* yet, please go to the [inst
 In this tutorial we will learn how to solve the shortest path using a Message Passing Neural Network (MPNN). For sake of simplicity, we will present a very simple architecture, which of course could be improved. Before starting, if you are not familiar with this type of NN, we strongly recommend first reading the section [What is a GNN](what_are_gnns.md#what-is-a-gnn) where we explain in detail the different phases that a MPNN has. To do so, we are going to cover four main steps:<br><br>
 1. [Understanding the problem](#understanding-the-problem)<br>
 2. [Building the Dataset](#building-the-dataset)<br>
-3. [Designing and implementing the GNN model's architecture](#designing-and-implementing-the-gnn-models-architecture)<br>
+3. [Designing and implementing the GNN](#designing-and-implementing-the-gnn)<br>
 4. [Training and evaluation](#training-and-evaluation)<br>
 5. [Debugging](#debugging)
 
@@ -39,7 +39,7 @@ If you want to create a new dataset for this specific tutorial, we provide a Pyt
 
 In this script, you will notice that for each of the samples forming the dataset we generate a *NetworkX* graph. In this graph, we initialize each of the vertices as well as the edges connecting them. Then, we create the *node* features which in this case would simply be *src-tgt*, indicating whether a node is the source or the destination of the shortest path we are looking for. Additionally, each node has an attribute *entity* indicating its entity name (for this examples, all the vertices of the graph are of type *node*), and the node's label. Finally we create a parameter *weight* for each eadge of the graph which defines the distance for every two connected *nodes*. Note that these will be the distances that we will try to minimize.
 
-## Designing and implementing the GNN model's architecture
+## Designing and implementing the GNN
 In order to design the GNN model based on a Message-Passing strcuture, we need to basically focus on four main steps:
 
 1. How the different nodes are initialized<br>
