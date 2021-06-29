@@ -4,12 +4,12 @@ In order to speed up even further the process of designing a *GNN*, we provide a
 Additionally, we provide implementations of several reference papers that include different typologies of GNN. Our hope is that, given this implementations, most of the custom GNN can be produced just by making some minor changes, which should help avoid any potential designing issue. Also, in each of the respective directories of the use-cases presented, we also provide a file containing a single sample of the dataset to help the user to better understand the required structure of the dataset.
 
 Below you can find the list of examples implemented so far by *IGNNITION*. Stay tuned as we plan to include many more examples soon:<br>
-1. [Shortest-path](#1-shortest-path)<br>
-2. [Graph Query Neural Networks](#2-graph-query-neural-networks)<br>
-3. [RouteNet](#3-routenet)<br>
-4. [Q-size](#4-q-size)
-5. [QM9](#5-qm9)
-6. [Radio Resource Allocation](#6-qm9)
+1. [Shortest-path](#shortest-path)<br>
+2. [Graph Query Neural Networks](#graph-query-neural-networks)<br>
+3. [RouteNet](#routenet)<br>
+4. [Q-size](#q-size)
+5. [QM9](#qm9)
+6. [Radio Resource Allocation](#radio-resource-allocation)
 
 ## 1. Shortest-path
 ### Brief description
@@ -44,8 +44,7 @@ In this directory you will find all the necessary material regarding *Graph Quer
 
 ## 3. RouteNet
 ### Brief description:
-This GNN model was proposed in paper [RouteNet: Leveraging Graph Neural Networks for
-network modeling and optimization in SDN](https://arxiv.org/pdf/1910.01508.pdf). This proposal approaches the problem of modeling optical networks for the prediction of its performance metrics. For this, it introduces the *link* and the *path* entity, which are used for the message passing divided into two different stagese:
+This GNN model was proposed in paper [Unveiling the potential of Graph Neural Networks for network modeling and optimization in SDN](https://arxiv.org/abs/1901.08113). This proposal approaches the problem of modeling optical networks for the prediction of its performance metrics. For this, it introduces the *link* and the *path* entity, which are used for the message passing divided into two different stagese:
 
 **Stage 1:** links -> paths
 
@@ -136,7 +135,10 @@ which consists of:
 - Feed-forward neural network to update pairs's hidden states.
 - Pass-through layer which does not modify each pair's hidden stats.
 
-The model is trained in an self-supervised way with a custom loss function which maximizes the
+### Try Radio Resource Allocation
+The files describing the model description and training parameters for the example can be found in the [framework's repository](https://github.com/knowledgedefinednetworking/ignnition/tree/main/examples/Radio_resource_allocation), along with a minimal subset of the dataset for direct execution. In this regard, we recommend reading the provided README file in this directory, which will guide you through this process.
+
+Moreover, notice that by default we use the model is trained in an self-supervised way with a custom loss function which maximizes the
 weighted sum rate of the network, by using the predicted power value together with the channel
 losses with other pairs and the power of the additive noise. For more details, check the paper's
 discussion in [Shen, Y., Shi, Y., Zhang, J., & Letaief, K. B. (2020)](https://ieeexplore.ieee.org/abstract/document/9252917).
