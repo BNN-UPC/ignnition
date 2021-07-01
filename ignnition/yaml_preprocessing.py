@@ -22,8 +22,6 @@
 import yaml
 from jsonschema import validate
 import copy
-import sys
-import json
 from ignnition.mp_classes import *
 from functools import reduce
 import importlib
