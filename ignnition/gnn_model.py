@@ -20,7 +20,6 @@
 
 
 import tensorflow as tf
-from keras import backend as K
 from ignnition.mp_classes import *
 from functools import reduce
 from ignnition.utils import *
