@@ -18,19 +18,12 @@
 
 # -*- coding: utf-8 -*-
 
-import tensorflow as tf
 import datetime
 import warnings
 import glob
 import tarfile
-import copy
-import json
 from importlib import import_module
 from pathlib import Path
-from tensorflow.keras.losses import *
-from tensorflow.keras.optimizers import *
-from tensorflow.keras.optimizers.schedules import *
-import os
 from ignnition.gnn_model import Gnn_model
 from ignnition.yaml_preprocessing import Yaml_preprocessing
 from ignnition.data_generator import Generator
@@ -38,7 +31,6 @@ from ignnition.utils import *
 from ignnition.custom_callbacks import *
 import sys
 import yaml
-import collections
 import networkx as nx
 from networkx.readwrite import json_graph
 from itertools import chain
@@ -798,7 +790,7 @@ class Ignnition_model:
         sample = sample_it.get_next()
         # Call only one tf.function when tracing.
         _ = self.gnn_model(sample, training=False)
-
+        print(path)
         with writer.as_default():
             tf.summary.trace_export(
                 name="computational_graph_" + str(datetime.datetime.now()),

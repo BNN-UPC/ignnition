@@ -19,15 +19,10 @@
 # -*- coding: utf-8 -*-
 
 import glob
-import json
-import sys
 import tarfile
 import numpy as np
 import math
 import random
-import tensorflow as tf
-import json
-import warnings
 import functools
 from ignnition.utils import *
 

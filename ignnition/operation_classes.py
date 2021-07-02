@@ -2,7 +2,7 @@ import tensorflow as tf
 import tensorflow.keras.activations
 import sys
 from ignnition.utils import *
-from ignnition.model_classes import *
+
 
 
 class Operation():
@@ -347,6 +347,7 @@ class Pooling_operation(Operation):
         elif self.type_pooling == 'max':
             result = tf.reduce_max(pooling_input, 0)
             result = tf.reshape(result, [-1] + [tf.shape(result)[0]])
+
         return result
 
 

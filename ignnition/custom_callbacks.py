@@ -1,6 +1,4 @@
-import json
 import tensorflow as tf
-import sys
 import os
 from collections import OrderedDict
 
