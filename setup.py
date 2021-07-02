@@ -34,7 +34,7 @@ setup(
     'Development Status :: 4 - Beta',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
     'Intended Audience :: Developers',      # Define that your audience are developers
     'Topic :: Software Development :: Build Tools',
-    'License :: OSI Approved :: Apache license 2.0',   # Again, pick a license
+    'License :: OSI Approved :: Apache Software License',   # Again, pick a license
     'Programming Language :: Python :: 3.7',
   ],
 )
