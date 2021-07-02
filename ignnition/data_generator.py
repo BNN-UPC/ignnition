@@ -126,7 +126,7 @@ class Generator:
 
             if 'entity' not in attributes:
                 print_failure(
-                    "Error in the dataset file located in '" + file + ". The node named'" + node_name + "' was not assigned an entity.")
+                    "Error in the dataset file located in '" + file + ". The node named'" + str(node_name) + "' was not assigned an entity.")
 
             entity_name = attributes['entity']
             new_node_name = entity_name + '_{}'
