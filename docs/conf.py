@@ -48,7 +48,8 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'myst_parser'
+    'myst_parser',
+    'sphinx_multiversion'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -71,6 +72,14 @@ html_theme_options = {
     'display_version': True,
     "collapse_navigation": False
 }
+
+html_sidebars = {
+    '**': ['versions.html']
+}
+
+smv_tag_whitelist = r'^.*$'                   # Include all tags
+smv_branch_whitelist = r'^(main)$'
+smv_released_pattern = r'^tags/.*$'           # Tags only
 
 html_context = {
     "display_github": True,  # Integrate Github
