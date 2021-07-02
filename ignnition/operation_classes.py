@@ -1,9 +1,8 @@
 import tensorflow as tf
 import tensorflow.keras.activations
-from keras import backend as K
 import sys
 from ignnition.utils import *
-from ignnition.model_classes import *
+
 
 
 class Operation():
@@ -167,6 +166,11 @@ class Operation():
             else:
                 new_input = get_global_var_or_input(calculations, i, f_)
 
+            # ensure that this tensor is 2-D
+            new_input = tf.reshape(new_input, [-1] + [tf.shape(new_input)[-1]])
+
+
+
             # accumulate the results
             if first:
                 first = False
@@ -174,7 +178,6 @@ class Operation():
             else:
                 new_input = tf.cast(new_input, dtype=tf.float32)
                 input_nn = tf.concat([input_nn, new_input], axis=1)
-
         return input_nn
 
 
@@ -335,15 +338,15 @@ class Pooling_operation(Operation):
 
         if self.type_pooling == 'sum':
             result = tf.reduce_sum(pooling_input, 0)
-            result = tf.reshape(result, [-1] + [result.shape.as_list()[0]])
+            result = tf.reshape(result, [-1] + [tf.shape(result)[0]])
 
         elif self.type_pooling == 'mean':
             result = tf.reduce_mean(pooling_input, 0)
-            result = tf.reshape(result, [-1] + [result.shape.as_list()[0]])
+            result = tf.reshape(result, [-1] + [tf.shape(result)[0]])
 
         elif self.type_pooling == 'max':
             result = tf.reduce_max(pooling_input, 0)
-            result = tf.reshape(result, [-1] + [result.shape.as_list()[0]])
+            result = tf.reshape(result, [-1] + [tf.shape(result)[0]])
 
         return result
 
@@ -415,9 +418,7 @@ class Feed_forward_operation(Operation):
         dst_msgs: tensor
             Tensor with the input messages for each of the edges (destination)
         """
-
         input_nn = self.compute_all_input_msg(calculations, f_, src_msgs, dst_msgs)
-
         input_size = model.input_shape[-1]
         input_nn = tf.ensure_shape(input_nn, [None, input_size])
         return model(input_nn)

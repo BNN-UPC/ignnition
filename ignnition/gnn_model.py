@@ -20,7 +20,6 @@
 
 
 import tensorflow as tf
-from keras import backend as K
 from ignnition.mp_classes import *
 from functools import reduce
 from ignnition.utils import *
@@ -322,9 +321,15 @@ class Gnn_model(tf.keras.Model):
                                                 src_idx, dst_idx, seq = f_.get('src_' + src_name + '_to_' + dst_name), \
                                                                         f_.get('dst_' + src_name + '_to_' + dst_name), \
                                                                         f_.get('seq_' + src_name + '_to_' + dst_name)
+
+                                                # Transform the dimensions of the indices to the appropriate 2d size
                                                 src_idx = tf.squeeze(src_idx)
                                                 dst_idx = tf.squeeze(dst_idx)
                                                 seq = tf.squeeze(seq)
+                                                src_idx = tf.reshape(src_idx, [tf.cast(tf.size(src_idx), dtype=tf.int64)])
+                                                dst_idx = tf.reshape(dst_idx, [tf.cast(tf.size(dst_idx), dtype=tf.int64)])
+                                                seq = tf.reshape(seq, [tf.cast(tf.size(seq), dtype=tf.int64)])
+
 
                                                 with tf.name_scope(src_name + '_to_' + dst_name) as _:
                                                     src_states = get_global_variable(self.calculations, str(src_name))
@@ -376,6 +381,7 @@ class Gnn_model(tf.keras.Model):
                                                         # PREPARE FOR THE AGGREGATION
                                                         with tf.name_scope(
                                                                 'combine_messages_' + src_name + '_to_' + dst_name) as _:
+
                                                             ids = tf.stack([dst_idx, seq], axis=1)
 
                                                             lens = tf.math.unsorted_segment_sum(tf.ones_like(dst_idx),

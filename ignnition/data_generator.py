@@ -19,15 +19,10 @@
 # -*- coding: utf-8 -*-
 
 import glob
-import json
-import sys
 import tarfile
 import numpy as np
 import math
 import random
-import tensorflow as tf
-import json
-import warnings
 import functools
 from ignnition.utils import *
 
@@ -126,7 +121,7 @@ class Generator:
 
             if 'entity' not in attributes:
                 print_failure(
-                    "Error in the dataset file located in '" + file + ". The node named'" + node_name + "' was not assigned an entity.")
+                    "Error in the dataset file located in '" + file + ". The node named'" + str(node_name) + "' was not assigned an entity.")
 
             entity_name = attributes['entity']
             new_node_name = entity_name + '_{}'
@@ -289,7 +284,6 @@ class Generator:
             dst_num = int(dst_node.split('_')[-1])
             src_entity = D_G.nodes[src_node]['entity']
             dst_entity = D_G.nodes[dst_node]['entity']
-
             if dst_node not in processed_neighbours:
                 processed_neighbours[dst_node] = 0
 
@@ -299,6 +293,7 @@ class Generator:
                 data['seq_' + src_entity + '_to_' + dst_entity].append(processed_neighbours[dst_node])
 
                 processed_neighbours[dst_node] += 1  # this is useful to check which sequence number to use
+
 
         # check that the dataset contains all the adjacencies needed
         if not self.warnings_shown:
