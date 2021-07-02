@@ -20,7 +20,7 @@ setup(
   name='ignnition',         # How you named your package folder (MyLib)
   packages=['ignnition'],   # Choose the same as "name"
   version=version,      # Start with a small number and increase it with every change you make
-  license='MIT',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
+  license='Apache license 2.0',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
   description='Library for fast prototyping of GNN',   # Give a short description about your library
   long_description=long_description,
   long_description_content_type="text/markdown",
@@ -31,10 +31,10 @@ setup(
   keywords=['Machine Learning', 'Graph Neural Networks', 'Networking', 'Artificial Intelligence'],   # Keywords that define your package best
   install_requires=requirements,
   classifiers=[
-    'Development Status :: 4 - Beta',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
+    'Development Status :: 5 - Production/Stable',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
     'Intended Audience :: Developers',      # Define that your audience are developers
     'Topic :: Software Development :: Build Tools',
-    'License :: OSI Approved :: MIT License',   # Again, pick a license
-    'Programming Language :: Python :: 3.8',
+    'License :: OSI Approved :: Apache license 2.0',   # Again, pick a license
+    'Programming Language :: Python :: 3.7',
   ],
 )
