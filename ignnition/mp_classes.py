@@ -18,13 +18,12 @@
 
 # -*- coding: utf-8 -*-
 
-
 import tensorflow as tf
 import tensorflow.keras.activations
 import sys
 from ignnition.utils import *
 from ignnition.operation_classes import *
-from ignnition.aggregation_classes import *
+
 
 
 class Entity:

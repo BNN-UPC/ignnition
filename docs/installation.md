@@ -1,5 +1,5 @@
 # Install IGNNITION
-To install *IGNNTION*, we provide the user with two possibilities. Note that both of them require to be working with a ***Python* version 3.5 or greater**.
+To install *IGNNTION*, we provide the user with two possibilities. Please, ensure you use **Python 3.7**. Otherwise, we do not guarantee the correct installation of dependencies.
 
 ## Pip
 The first one, which we strongly recommend, is based on the use of the library *PyPI*. In this case, only single command is required, which we show below. This command will automatically install if needed all the dependencies, and then install *IGNNITION*.
