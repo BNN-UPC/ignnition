@@ -166,6 +166,11 @@ class Operation():
             else:
                 new_input = get_global_var_or_input(calculations, i, f_)
 
+            # ensure that this tensor is 2-D
+            new_input = tf.reshape(new_input, [-1] + [tf.shape(new_input)[-1]])
+
+
+
             # accumulate the results
             if first:
                 first = False
@@ -173,7 +178,6 @@ class Operation():
             else:
                 new_input = tf.cast(new_input, dtype=tf.float32)
                 input_nn = tf.concat([input_nn, new_input], axis=1)
-
         return input_nn
 
 
@@ -413,9 +417,7 @@ class Feed_forward_operation(Operation):
         dst_msgs: tensor
             Tensor with the input messages for each of the edges (destination)
         """
-
         input_nn = self.compute_all_input_msg(calculations, f_, src_msgs, dst_msgs)
-
         input_size = model.input_shape[-1]
         input_nn = tf.ensure_shape(input_nn, [None, input_size])
         return model(input_nn)

@@ -289,7 +289,6 @@ class Generator:
             dst_num = int(dst_node.split('_')[-1])
             src_entity = D_G.nodes[src_node]['entity']
             dst_entity = D_G.nodes[dst_node]['entity']
-
             if dst_node not in processed_neighbours:
                 processed_neighbours[dst_node] = 0
 
@@ -299,6 +298,7 @@ class Generator:
                 data['seq_' + src_entity + '_to_' + dst_entity].append(processed_neighbours[dst_node])
 
                 processed_neighbours[dst_node] += 1  # this is useful to check which sequence number to use
+
 
         # check that the dataset contains all the adjacencies needed
         if not self.warnings_shown:
