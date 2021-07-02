@@ -19,9 +19,7 @@
 # -*- coding: utf-8 -*-
 
 
-from ignnition.mp_classes import *
-from functools import reduce
-from ignnition.utils import *
+import tensorflow as tf
 
 
 class Gnn_model(tf.keras.Model):

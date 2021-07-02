@@ -1,4 +1,8 @@
-from ignnition.model_classes import *
+import tensorflow as tf
+import tensorflow.keras.activations
+import sys
+from ignnition.utils import *
+
 
 
 class Operation():
@@ -330,15 +334,15 @@ class Pooling_operation(Operation):
 
         if self.type_pooling == 'sum':
             result = tf.reduce_sum(pooling_input, 0)
-            result = tf.reshape(result, [-1] + [result.shape.as_list()[0]])
+            result = tf.reshape(result, [-1] + [tf.shape(result)[0]])
 
         elif self.type_pooling == 'mean':
             result = tf.reduce_mean(pooling_input, 0)
-            result = tf.reshape(result, [-1] + [result.shape.as_list()[0]])
+            result = tf.reshape(result, [-1] + [tf.shape(result)[0]])
 
         elif self.type_pooling == 'max':
             result = tf.reduce_max(pooling_input, 0)
-            result = tf.reshape(result, [-1] + [result.shape.as_list()[0]])
+            result = tf.reshape(result, [-1] + [tf.shape(result)[0]])
 
         return result
 
