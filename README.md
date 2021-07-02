@@ -26,7 +26,8 @@ IGNNITION produces an optimized implementation of your GNN without writing a sin
 
 ## Quick Start
 ### Installation
-###### Recommended: Python 3.8+
+###### Recommended: Python 3.7
+Please, ensure you use Python 3.7. Otherwise, we do not guarantee the correct installation of dependencies.
 
 You can install *IGNNITION* with the following command using *PyPI*.
 ```
