@@ -31,7 +31,7 @@ setup(
   keywords=['Machine Learning', 'Graph Neural Networks', 'Networking', 'Artificial Intelligence'],   # Keywords that define your package best
   install_requires=requirements,
   classifiers=[
-    'Development Status :: 5 - Production/Stable',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
+    'Development Status :: 4 - Beta',      # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable" as the current state of your package
     'Intended Audience :: Developers',      # Define that your audience are developers
     'Topic :: Software Development :: Build Tools',
     'License :: OSI Approved :: Apache license 2.0',   # Again, pick a license
