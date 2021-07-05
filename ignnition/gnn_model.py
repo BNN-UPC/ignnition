@@ -23,7 +23,7 @@ import tensorflow as tf
 from ignnition.mp_classes import *
 from functools import reduce
 from ignnition.utils import *
-
+from ignnition.aggregation_classes import *
 
 class Gnn_model(tf.keras.Model):
     """
