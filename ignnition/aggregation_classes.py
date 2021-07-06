@@ -2,7 +2,8 @@ import tensorflow as tf
 import tensorflow.keras.activations
 import sys
 from ignnition.utils import *
-
+import tensorflow.keras.backend as K
+from ignnition.operation_classes import *
 
 class Aggregation:
     """

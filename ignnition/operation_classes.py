@@ -5,6 +5,7 @@ from ignnition.utils import *
 
 
 
+
 class Operation():
     """
     Class that represents a general operation
