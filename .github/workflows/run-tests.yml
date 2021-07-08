@@ -21,10 +21,18 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements.txt
           pip install .
-      - name: Run tests
+      - name: Run graph query networks tests
         run: |
           python tests/graph_query_networks_tests.py
+      - name: Run QM9 tests
+        run: |
           python tests/qm9_tests.py
+      - name: Run radio resource allocation tests
+        run: |
           python tests/radio_resource_tests.py
+      - name: Run Routenet tests
+        run: |
           python tests/routenet_tests.py
+      - name: Run shortest path tests
+        run: |
           python tests/shortest_path_tests.py
