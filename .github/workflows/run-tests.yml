@@ -24,3 +24,7 @@ jobs:
       - name: Run tests
         run: |
           python tests/graph_query_networks_tests.py
+          python tests/qm9_tests.py
+          python tests/radio_resource_tests.py
+          python tests/routenet_tests.py
+          python tests/shortest_path_tests.py
