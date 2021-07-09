@@ -274,7 +274,7 @@ class FeedForwardModel:
             arch_dict = model['architecture']
 
             for layer in arch_dict:
-                type_layer = layer['type_layer']  # layer_type of layer
+                type_layer = layer['type_layer']  # type of layer
 
                 # if this is a RNN, we need to do reshaping of the model
                 if self.__is_recurrent(type_layer):

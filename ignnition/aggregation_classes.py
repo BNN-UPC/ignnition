@@ -27,7 +27,8 @@ class Aggregation:
 
 class SumAggr(Aggregation):
     """
-    A subclass that represents the Sum aggreagtion operation (which sums all the input messages together for each of the destination nodes).
+    A subclass that represents the Sum aggreagtion operation (which sums all the input messages together for each of
+    the destination nodes).
 
     Methods:
     ----------

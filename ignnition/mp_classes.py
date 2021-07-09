@@ -83,7 +83,7 @@ class Entity:
                 all_outputs.add(op.get('output_name'))
 
             # create the new operation
-            type_update = op.get('layer_type')
+            type_update = op.get('type')
             if type_update == 'neural_network':
                 hs_operations.append(FeedForwardOperation(op, model_role='hs_creation'))
 
@@ -142,6 +142,7 @@ class MessagePassing:
         """
 
         self.destination_entity = m.get('destination_entity')
+        print(m)
         self.source_entities = [MpSourceEntity(s) for s in m.get('source_entities')]
 
         self.aggregations, self.aggregations_global_type = self.create_aggregations(m.get('aggregation'))
@@ -270,8 +271,9 @@ class MpSourceEntity:
 
         result = []
         counter = 0
+
         for op in operations:
-            op_type = op.get('op_type')
+            op_type = op.get('type')
             if op_type == 'neural_network':
                 result.append(FeedForwardOperation(op, model_role='message_creation_' + str(counter)))
 

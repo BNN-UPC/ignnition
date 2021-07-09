@@ -56,7 +56,7 @@ class GnnModel(tf.keras.Model):
                         var_name = entity.name + "_hs_creation_" + str(counter)
                         input_dim = op.find_total_input_dim(self.dimensions, self.calculations)
 
-                        model, output_shape = op.model.construct_tf_model(var_name, input_dim)
+                        model, output_shape = op.model.construct_tf_model(input_dim=input_dim)
                         save_global_variable(self.calculations, var_name, model)
 
                         # Need to keep track of the output dimension of this one, in case we need it for a new model
@@ -88,7 +88,7 @@ class GnnModel(tf.keras.Model):
                                         input_dim = operation.obtain_total_input_dim_message(self.dimensions,
                                                                                              self.calculations,
                                                                                              dst_name, src)
-                                        model, output_shape = operation.model.construct_tf_model(var_name, input_dim)
+                                        model, output_shape = operation.model.construct_tf_model(input_dim=input_dim)
 
                                         save_global_variable(self.calculations, var_name, model)
 
@@ -129,8 +129,7 @@ class GnnModel(tf.keras.Model):
                                 message_dimensionality = F_src + F_dst
 
                                 var_name = 'edge_attention_' + src_name + '_to_' + dst_name
-                                model, _ = aggregation.get_model().construct_tf_model(var_name=var_name,
-                                                                                      input_dim=message_dimensionality)
+                                model, _ = aggregation.get_model().construct_tf_model(input_dim=message_dimensionality)
                                 save_global_variable(self.calculations, var_name, model)
 
                             elif aggregation.type == 'convolution':
@@ -147,7 +146,7 @@ class GnnModel(tf.keras.Model):
                                 var_name = 'aggr_nn'
                                 input_dim = aggregation.find_total_input_dim(self.dimensions, self.calculations)
 
-                                model, output_shape = aggregation.model.construct_tf_model(var_name, input_dim)
+                                model, output_shape = aggregation.model.construct_tf_model(input_dim=input_dim)
 
                                 save_global_variable(self.calculations, var_name, model)
 
@@ -170,11 +169,10 @@ class GnnModel(tf.keras.Model):
                             try:
                                 recurrent_instance = recurrent_cell.get_tensorflow_object(self.dimensions.get(dst_name))
                                 save_global_variable(self.calculations, dst_name + '_update', recurrent_instance)
-                            except:
+                            except Exception:
                                 print_failure('The definition of the recurrent cell in message passing to '
                                               + message.destination_entity + ' is not correctly defined. Check keras '
                                               'documentation to make sure all the parameters are correct.')
-
 
                         # ----------------------------------
                         # create the feed-forward upddate models
@@ -203,7 +201,8 @@ class GnnModel(tf.keras.Model):
 
                                 input_dim = message_dimensionality + dst_dim
 
-                                model, _ = model.construct_tf_model(var_name, input_dim, dst_dim, dst_name=dst_name)
+                                model, _ = model.construct_tf_model(input_dim=input_dim, dst_dim=dst_dim,
+                                                                    dst_name=dst_name)
                                 save_global_variable(self.calculations, var_name, model)
 
             # --------------------------------
@@ -215,7 +214,7 @@ class GnnModel(tf.keras.Model):
                 if operation.type == 'neural_network':
                     with tf.name_scope("readout_architecture"):
                         input_dim = operation.find_total_input_dim(self.dimensions, self.calculations)
-                        model, _ = operation.model.construct_tf_model('readout_model' + str(counter), input_dim,
+                        model, _ = operation.model.construct_tf_model(input_dim=input_dim,
                                                                       is_readout=True)
                         save_global_variable(self.calculations, 'readout_model_' + str(counter), model)
 
@@ -649,7 +648,7 @@ class GnnModel(tf.keras.Model):
                         if operation.type == 'neural_network':
                             var_name = 'readout_model_' + str(counter)
                             readout_nn = get_global_variable(self.calculations, var_name)
-                            result = operation.apply_nn(readout_nn, self.calculations, f_, readout=True)
+                            result = operation.apply_nn(readout_nn, self.calculations, f_)
 
                         elif operation.type == "pooling":
                             # obtain the input of the pooling operation

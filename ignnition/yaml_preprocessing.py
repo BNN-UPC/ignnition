@@ -26,8 +26,9 @@ from functools import reduce
 import yaml
 from jsonschema import validate
 
-from ignnition.mp_classes import Interleave_aggr, Entity, Pooling_operation, Product_operation, \
-    FeedForwardOperation, Extend_adjacencies, Concat, MessagePassing
+from ignnition.mp_classes import Interleave_aggr, Entity, MessagePassing
+from ignnition.operation_classes import PoolingOperation, ProductOperation, ExtendAdjacencies, Concat, \
+    FeedForwardOperation
 from ignnition.utils import print_failure, print_info
 
 
@@ -225,7 +226,7 @@ class YamlPreprocessing:
                     messages = src.get('message', None)
                     if messages is not None:
                         for op in messages:  # for every operation
-                            if op.get('layer_type') == 'neural_network':
+                            if op.get('type') == 'neural_network':
                                 called_nn_names.append(op.get('nn_name'))
                                 input_names += op.get('input')
 
@@ -242,7 +243,7 @@ class YamlPreprocessing:
                         output_names.append(aggr.get('output_name'))
 
         readout_op = data.get('readout')
-        called_nn_names += [op.get('nn_name') for op in readout_op if op.get('layer_type') == 'neural_network']
+        called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == 'neural_network']
 
         if 'output_label' not in readout_op[-1]:
             print_failure('The last operation of the readout MUST contain the definition of the output_label')
@@ -322,7 +323,7 @@ class YamlPreprocessing:
         # add the message_creation nn architecture
         operations = entity.get('initial_state')
         for op in operations:
-            if op.get('layer_type') == 'neural_network':
+            if op.get('type') == 'neural_network':
                 info = copy.deepcopy(self.nn_architectures[op['nn_name']])
                 del op['nn_name']
                 op['architecture'] = info.get('nn_architecture')
@@ -335,14 +336,14 @@ class YamlPreprocessing:
         m:    dict
            Add the information of the nn architecture
         """
-
+        print("AQUI?")
         # add the message_creation nn architecture
         sources = m.get('source_entities')
         for s in sources:
             messages = s.get('message', None)
             if messages is not None:
                 for op in messages:
-                    if op.get('aggr_type') == 'neural_network':
+                    if op.get('type') == 'neural_network':
                         info = copy.deepcopy(self.nn_architectures[op['nn_name']])
                         del op['nn_name']
                         op['architecture'] = info.get('nn_architecture')
@@ -350,7 +351,7 @@ class YamlPreprocessing:
         # add the aggregation nn architectures
         aggregations = m.get('aggregation')
         for aggr in aggregations:
-            aggr_type = aggr.get('aggr_type')
+            aggr_type = aggr.get('type')
             if aggr_type == 'edge_attention' or aggr_type == 'neural_network':
                 info = copy.deepcopy(self.nn_architectures[aggr['nn_name']])
                 del aggr['nn_name']
@@ -358,7 +359,7 @@ class YamlPreprocessing:
 
         # add the update nn architecture
         if 'update' in m:
-            if m['update']['aggr_type'] == 'neural_network':
+            if m['update']['type'] == 'neural_network':
                 info = copy.deepcopy(self.nn_architectures[m['update']['nn_name']])
                 del m['update']['nn_name']
                 m['update']['architecture'] = info['nn_architecture']
@@ -389,7 +390,6 @@ class YamlPreprocessing:
         info = copy.deepcopy(self.nn_architectures.get(name))
         del output['nn_name']
         output['architecture'] = info['nn_architecture']
-
         return output
 
     def __get_readout_op(self, output_operations):
@@ -402,18 +402,18 @@ class YamlPreprocessing:
 
         result = []
         for op in output_operations:
-            op_type = op.get('op_type')
+            op_type = op.get('type')
             if op_type == 'pooling':
-                result.append(Pooling_operation(op))
+                result.append(PoolingOperation(op))
 
             elif op_type == 'product':
-                result.append(Product_operation(op))
+                result.append(ProductOperation(op))
 
             elif op_type == 'neural_network':
                 result.append(FeedForwardOperation(self.__add_readout_architecture(op), model_role='readout'))
 
             elif op_type == 'extend_adjacencies':
-                result.append(Extend_adjacencies(op))
+                result.append(ExtendAdjacencies(op))
 
             elif op_type == 'concat':
                 result.append(Concat(op))

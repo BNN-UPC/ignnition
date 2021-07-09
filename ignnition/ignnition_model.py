@@ -239,15 +239,15 @@ class IgnnitionModel:
 
         # dynamically define the optimizer
         optimizer_params = self.CONFIG['optimizer']
-        op_type = optimizer_params['layer_type']
-        del optimizer_params['layer_type']
+        op_type = optimizer_params['type']
+        del optimizer_params['type']
 
         # dynamically define the adaptative learning rate if needed (schedule)
         if 'learning_rate' in optimizer_params and isinstance(optimizer_params['learning_rate'], dict):
             schedule = optimizer_params['learning_rate']
-            type = schedule['layer_type']
-            del schedule['layer_type']  # so that only the parameters remain
-            s = getattr(tf.keras.optimizers.schedules, type)
+            sched_type = schedule['type']
+            del schedule['type']  # so that only the parameters remain
+            s = getattr(tf.keras.optimizers.schedules, sched_type)
 
             # create an instance of the schedule class indicated by the user. Accepts any schedule
             # from keras documentation

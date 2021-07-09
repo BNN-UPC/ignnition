@@ -2,7 +2,6 @@ import sys
 
 import tensorflow as tf
 
-from ignnition.mp_classes import FeedForwardOperation
 from ignnition.model_classes import FeedForwardModel, Recurrent_Update_Cell
 from ignnition.utils import print_failure
 from ignnition.utils import get_global_var_or_input
@@ -44,7 +43,7 @@ class Operation:
             Dictionary with the data defining this general operation
         """
 
-        self.type = op.get('layer_type')
+        self.type = op.get('type')
         self.output_name = op.get('output_name', None)
 
         self.output_label = op.get('output_label', None)
