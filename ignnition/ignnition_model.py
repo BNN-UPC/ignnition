@@ -703,7 +703,7 @@ class IgnnitionModel:
         dev_string = "Your model is running on "
         items = list(devices.items())
         for i in range(len(items)):
-            dev_string += str(items[i][0]) + " " + str(items[i][1])
+            dev_string += str(items[i][1]) + " " + str(items[i][0])
             if i != (len(items) - 1):
                 dev_string += " and "
             else:
