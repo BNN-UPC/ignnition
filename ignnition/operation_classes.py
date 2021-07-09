@@ -486,7 +486,7 @@ class ExtendAdjacencies(Operation):
             Dictionary with the data defining this product operation
         """
 
-        super(ExtendAdjacencies, self).__init__({'layer_type': op['layer_type'], 'input': op['input']})
+        super(ExtendAdjacencies, self).__init__({'type': op['type'], 'input': op['input']})
         self.adj_list = op['adj_list']
         self.output_name = [op.get('output_name_src'), op.get('output_name_dst')]
 

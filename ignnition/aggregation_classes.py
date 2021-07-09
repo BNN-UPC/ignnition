@@ -21,7 +21,7 @@ class Aggregation:
         aggr_def:    dict
             Data corresponding to the general aggregation definition
         """
-        self.type = aggr_def.get('layer_type')
+        self.type = aggr_def.get('type')
         self.output_name = aggr_def.get('output_name', None)
 
 
@@ -322,7 +322,7 @@ class EdgeAttentionAggr(Aggregation):
         """
 
         super(EdgeAttentionAggr, self).__init__(op)
-        del op['layer_type']
+        del op['type']
         self.aggr_model = FeedForwardOperation(op, model_role='edge_attention')
 
     def get_model(self):
@@ -433,7 +433,7 @@ class ConvAggr(Aggregation):
         return activation_func(normalized_val)
 
 
-class Interleave_aggr(Aggregation):
+class InterleaveAggr(Aggregation):
     """
     A subclass that represents the Interleave aggregation operation
 
@@ -459,7 +459,7 @@ class Interleave_aggr(Aggregation):
             Data corresponding to the interleave aggregation definition
         """
 
-        super(Interleave_aggr, self).__init__(aggr_def)
+        super(InterleaveAggr, self).__init__(aggr_def)
         self.combination_definition = aggr_def.get('interleave_definition')
 
     def calculate_input(self, src_input, indices):

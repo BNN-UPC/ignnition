@@ -18,12 +18,16 @@
 
 # -*- coding: utf-8 -*-
 
+import re
 import datetime
 import warnings
 import glob
 import tarfile
 from importlib import import_module
 from pathlib import Path
+import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from ignnition.gnn_model import GnnModel
 from ignnition.yaml_preprocessing import YamlPreprocessing
@@ -671,7 +675,6 @@ class IgnnitionModel:
             else:
                 self.__create_gnn(samples=training_samples)
 
-        print()
         print_header(
             'Starting the training and validation process...\n----------------------------------'
             '-----------------------------------------\n')
@@ -690,7 +693,24 @@ class IgnnitionModel:
         os.mkdir(output_path)
 
         strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
-        print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
+        devices = {}
+        for elem in strategy.extended.worker_devices:
+            dev = re.search(':(.*):', elem.split('/')[-1]).group(1)
+            if dev not in devices:
+                devices[dev] = 1
+            else:
+                devices[dev] += 1
+        dev_string = "Your model is running on "
+        items = list(devices.items())
+        for i in range(len(items)):
+            dev_string += str(items[i][0]) + " " + str(items[i][1])
+            if i != (len(items) - 1):
+                dev_string += " and "
+            else:
+                dev_string += ".\n"
+
+        print_info(dev_string)
+
         train_dataset = self.__input_fn_generator(filenames_train,
                                                   shuffle=str_to_bool(
                                                       self.CONFIG['shuffle_training_set']),
@@ -790,7 +810,6 @@ class IgnnitionModel:
         if not hasattr(self, 'gnn_model'):
             self.__create_gnn(path=train_path)
 
-        print()
         print_header(
             'Generating the computational graph... \n----------------------------------------------------'
             '-----------------------\n')
@@ -809,7 +828,7 @@ class IgnnitionModel:
         sample = sample_it.get_next()
         # Call only one tf.function when tracing.
         _ = self.gnn_model(sample, training=False)
-        print(path)
+
         with writer.as_default():
             tf.summary.trace_export(
                 name="computational_graph_" + str(datetime.datetime.now()),

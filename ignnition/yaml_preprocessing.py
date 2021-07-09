@@ -26,7 +26,7 @@ from functools import reduce
 import yaml
 from jsonschema import validate
 
-from ignnition.mp_classes import Interleave_aggr, Entity, MessagePassing
+from ignnition.mp_classes import InterleaveAggr, Entity, MessagePassing
 from ignnition.operation_classes import PoolingOperation, ProductOperation, ExtendAdjacencies, Concat, \
     FeedForwardOperation
 from ignnition.utils import print_failure, print_info
@@ -236,7 +236,7 @@ class YamlPreprocessing:
                 # check the aggregation functions
                 aggregations = mp.get('aggregation')
                 for aggr in aggregations:
-                    if aggr.get('layer_type') == 'neural_network':
+                    if aggr.get('type') == 'neural_network':
                         input_names += aggr.get('input')
 
                     if 'output_name' in aggr:
@@ -336,7 +336,7 @@ class YamlPreprocessing:
         m:    dict
            Add the information of the nn architecture
         """
-        print("AQUI?")
+
         # add the message_creation nn architecture
         sources = m.get('source_entities')
         for s in sources:
@@ -444,7 +444,7 @@ class YamlPreprocessing:
 
     def get_interleave_sources(self):
         aux = [[[src.name, mp.destination_entity] for src in mp.source_entities] for stage_name, mps in
-               self.mp_instances for mp in mps if isinstance(mp.aggregations, Interleave_aggr)]
+               self.mp_instances for mp in mps if isinstance(mp.aggregations, InterleaveAggr)]
         return reduce(lambda accum, a: accum + a, aux, [])
 
     def get_mp_iterations(self):
@@ -452,7 +452,7 @@ class YamlPreprocessing:
 
     def get_interleave_tensors(self):
         return [[mp.aggregations.combination_definition, mp.destination_entity] for stage_name, mps in self.mp_instances
-                for mp in mps if isinstance(mp.aggregations, Interleave_aggr)]
+                for mp in mps if isinstance(mp.aggregations, InterleaveAggr)]
 
     def get_mp_instances(self):
         return self.mp_instances

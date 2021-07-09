@@ -23,7 +23,7 @@ from functools import reduce
 import tensorflow as tf
 
 from ignnition.operation_classes import RNNOperation
-from ignnition.aggregation_classes import ConcatAggr, Interleave_aggr
+from ignnition.aggregation_classes import ConcatAggr, InterleaveAggr
 from ignnition.utils import save_global_variable, print_failure, get_global_variable, get_global_var_or_input
 
 
@@ -429,7 +429,7 @@ class GnnModel(tf.keras.Model):
                                                                             # same. Simply create bigger messages
                                                                             final_len += lens
 
-                                                            elif isinstance(aggr, Interleave_aggr):
+                                                            elif isinstance(aggr, InterleaveAggr):
                                                                 with tf.name_scope('add_' + src_name) as _:
                                                                     indices_source = f_.get(
                                                                         "indices_" + src_name + '_to_' + dst_name)

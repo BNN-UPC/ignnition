@@ -17,7 +17,7 @@
 """
 
 # -*- coding: utf-8 -*-
-from ignnition.aggregation_classes import Interleave_aggr, ConcatAggr, SumAggr, MeanAggr, MinAggr, MaxAggr, \
+from ignnition.aggregation_classes import InterleaveAggr, ConcatAggr, SumAggr, MeanAggr, MinAggr, MaxAggr, \
     StdAggr, AttentionAggr, EdgeAttentionAggr, ConvAggr
 from ignnition.operation_classes import FeedForwardOperation, BuildState, ProductOperation, RNNOperation
 from ignnition.utils import print_failure
@@ -142,11 +142,10 @@ class MessagePassing:
         """
 
         self.destination_entity = m.get('destination_entity')
-        print(m)
         self.source_entities = [MpSourceEntity(s) for s in m.get('source_entities')]
 
         self.aggregations, self.aggregations_global_type = self.create_aggregations(m.get('aggregation'))
-        self.update = self.create_update(m.get('update', {'layer_type': 'direct_assignment'}))
+        self.update = self.create_update(m.get('update', {'type': 'direct_assignment'}))
 
     def create_update(self, u):
         """
@@ -156,7 +155,7 @@ class MessagePassing:
             Dictionary with the required attributes for the update
         """
 
-        type_update = u.get('layer_type')
+        type_update = u.get('type')
         if type_update == 'direct_assignment':
             return None
 
@@ -179,38 +178,38 @@ class MessagePassing:
         single_embedding = None
         multiple_embedding = None
         for attr in attrs:
-            type = attr.get('layer_type')
-            if type == 'interleave':
-                aggregations.append(Interleave_aggr(attr))
+            attr_type = attr.get('type')
+            if attr_type == 'interleave':
+                aggregations.append(InterleaveAggr(attr))
                 multiple_embedding = True
-            elif type == 'neural_network':
+            elif attr_type == 'neural_network':
                 aggregations.append(FeedForwardOperation(attr, model_role='aggregation'))
                 single_embedding = True
-            elif type == 'concat':
+            elif attr_type == 'concat':
                 aggregations.append(ConcatAggr(attr))
                 multiple_embedding = True
-            elif type == 'sum':
+            elif attr_type == 'sum':
                 aggregations.append(SumAggr(attr))
                 single_embedding = True
-            elif type == 'mean':
+            elif attr_type == 'mean':
                 aggregations.append(MeanAggr(attr))
                 single_embedding = True
-            elif type == 'min':
+            elif attr_type == 'min':
                 aggregations.append(MinAggr(attr))
                 single_embedding = True
-            elif type == 'max':
+            elif attr_type == 'max':
                 aggregations.append(MaxAggr(attr))
                 single_embedding = True
-            elif type == 'std':
+            elif attr_type == 'std':
                 aggregations.append(StdAggr(attr))
                 single_embedding = True
-            elif type == 'attention':
+            elif attr_type == 'attention':
                 aggregations.append(AttentionAggr(attr))
                 single_embedding = True
-            elif type == 'edge_attention':
+            elif attr_type == 'edge_attention':
                 aggregations.append(EdgeAttentionAggr(attr))
                 single_embedding = True
-            elif type == 'convolution':
+            elif attr_type == 'convolution':
                 aggregations.append(ConvAggr(attr))
                 single_embedding = True
             else:  # this is for the ordered aggregation
