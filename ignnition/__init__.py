@@ -1,5 +1,5 @@
 from ignnition._version import __version__
-from ignnition.ignnition_model import Ignnition_model
+from ignnition.ignnition_model import IgnnitionModel
 
 
 def create_model(model_dir):
@@ -11,4 +11,4 @@ def create_model(model_dir):
     model_dir : str
         Path to the directory where the model_description, global_variables and train_options.yaml are found
     """
-    return Ignnition_model(model_dir)
+    return IgnnitionModel(model_dir)

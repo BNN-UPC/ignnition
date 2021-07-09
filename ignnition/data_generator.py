@@ -1,4 +1,4 @@
-'''
+"""
  *
  * Copyright (C) 2020 Universitat Politècnica de Catalunya.
  *
@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,25 +14,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
-'''
+"""
 
 # -*- coding: utf-8 -*-
 
+import sys
 import glob
 import tarfile
-import numpy as np
 import math
 import random
 import functools
-from ignnition.utils import *
+import json
 
+import numpy as np
 import networkx as nx
+
+from ignnition.utils import print_failure, print_info
+
 from networkx.readwrite import json_graph
 
 
 class Generator:
     """
-    This class implements the Generator in charge of feeding the data to the main GNN module. This class will take as input the original datasets of the user or the passed array and compute a series of transformation and precalculations. Finally it serves it to the GNN module.
+    This class implements the Generator in charge of feeding the data to the main GNN module. This class will take as
+    input the original datasets of the user or the passed array and compute a series of transformation and
+    precalculations. Finally it serves it to the GNN module.
 
     Attributes
     ----------
@@ -42,7 +48,8 @@ class Generator:
     Methods:
     ----------
     stream_read_json(self, f)
-       Creates a generator of samples from the given dataset or sample array. All these are read as a stream of data to avoid full alocation on memory.
+       Creates a generator of samples from the given dataset or sample array. All these are read as a stream of data
+       to avoid full alocation on memory.
 
     __process_sample(self, sample, file=None)
         Given an input sample, it processes it and pre-computes several aspects to be later served to the GNN module.
@@ -62,7 +69,7 @@ class Generator:
         """
         Parameters
         ----------
-        f:    dict
+        f:
             Input data
         """
         # check that it is a valid array of objects
@@ -103,10 +110,16 @@ class Generator:
 
         # Only directed graphs are supported. Error checking message if the graph is undirected
         if not G.is_directed():
-            print_failure("IGNNITION received as input an undirected graph, even though it only supports (at the moment) directed graphs. Please consider reformating your code accordingly. You can double the edges between two nodes (e.g., edge 1-2 can be transformed into 1->2 and 2->1) to simulate the same behaviour.")
+            print_failure("IGNNITION received as input an undirected graph, even though it only supports "
+                          "(at the moment) directed graphs. Please consider reformating your code accordingly. "
+                          "You can double the edges between two nodes (e.g., edge 1-2 can be transformed into 1->2 "
+                          "and 2->1) to simulate the same behaviour.")
 
         if G.is_multigraph():
-            print_failure("IGNNITION received as input a multigraph, while these are not yet supported. This means, that for every pair of nodes, only one edge with the same source and destination can exist (e.g., you cannot have two edges 1->2 and 1->2. Notice that 1->2 and 2->1 does not incur in this problem.")
+            print_failure("IGNNITION received as input a multigraph, while these are not yet supported. This means, "
+                          "that for every pair of nodes, only one edge with the same source and destination can exist "
+                          "(e.g., you cannot have two edges 1->2 and 1->2. Notice that 1->2 and 2->1 does not incur "
+                          "in this problem.")
 
         entity_counter = {}
         mapping = {}
@@ -121,7 +134,8 @@ class Generator:
 
             if 'entity' not in attributes:
                 print_failure(
-                    "Error in the dataset file located in '" + file + ". The node named'" + str(node_name) + "' was not assigned an entity.")
+                    "Error in the dataset file located in '" + file + ". The node named'" + str(node_name)
+                    + "' was not assigned an entity.")
 
             entity_name = attributes['entity']
             new_node_name = entity_name + '_{}'
@@ -134,7 +148,7 @@ class Generator:
         for name in self.entity_names:
             data['num_' + name] = entity_counter[name]
 
-        # rename the name of the nodes to a mapping that also indicates its entity type
+        # rename the name of the nodes to a mapping that also indicates its entity layer_type
         D_G = nx.relabel_nodes(G, mapping)
 
         # load the features (all the features are set to be lists. So we always return a list of lists)
@@ -142,11 +156,13 @@ class Generator:
             try:
                 features_dict = nx.get_node_attributes(D_G, f)
                 feature_vals = np.array(list(features_dict.values()))
-                entity_names = set([name.split('_')[0] for name in features_dict.keys()])   #indicates the (unique) names of the entities that have that feature
+                entity_names = set([name.split('_')[0] for name in features_dict.keys()])   #indicates the (unique)
+                # names of the entities that have that feature
 
                 if len(entity_names) > 1:
                     entities_string = functools.reduce(lambda x,y: str(x) + ',' + str(y), entity_names )
-                    print_failure("The feature " + f + " was defined in several entities(" + entities_string + "). The feature names should be unique for each type of node.")
+                    print_failure("The feature " + f + " was defined in several entities(" + entities_string +
+                                  "). The feature names should be unique for each layer_type of node.")
 
                 # it should always be a 2d array
                 if len(np.shape(feature_vals)) == 1:
@@ -173,12 +189,14 @@ class Generator:
             # 1) try to see if this name has been defined as a node attribute
             node_dict = nx.get_node_attributes(D_G, a)
             node_attr = np.array(list(node_dict.values()))
-            entity_names = set([name.split('_')[0] for name in node_dict.keys()])  # indicates the (unique) names of the entities that have that feature
+            entity_names = set([name.split('_')[0] for name in node_dict.keys()])  # indicates the (unique) names
+            # of the entities that have that feature
 
             if len(entity_names) > 1:
                 entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
                 print_failure(
-                    "The feature " + a + " was defined in several entities(" + entities_string + "). The feature names should be unique for each type of node.")
+                    "The feature " + a + " was defined in several entities(" + entities_string +
+                    "). The feature names should be unique for each layer_type of node.")
 
             # it should always be a 2d array
             if len(np.shape(node_attr)) == 1:
@@ -187,18 +205,22 @@ class Generator:
             # 2) try to see if this name has been defined as an edge feature
             edge_dict = nx.get_edge_attributes(D_G, a)
             edge_attr = np.array(list(edge_dict.values()))
-            entity_names = set([(pair[0].split('_')[0], pair[1].split('_')[0]) for pair in edge_dict.keys()])  # indicates the (unique) names of the entities that have that feature
+            entity_names = set([(pair[0].split('_')[0], pair[1].split('_')[0]) for pair in edge_dict.keys()])  #
+            # indicates the (unique) names of the entities that have that feature
             # obtain the entities, with a small token indicating if it is source or destination
 
-            # Problem: When we transform an undirected graph to directed, we double all the edges. Hence, we still need to differentiate between source and destination entities??
-            # Solution: Allow only directed??
+            # Problem: When we transform an undirected graph to directed, we double all the edges. Hence,
+            # we still need to differentiate between source and destination entities?? Solution: Allow only directed??
 
-            # for now, check that the name is unique for every src-dst. Problem: One node connected to another but the reverse to other nodes??
+            # for now, check that the name is unique for every src-dst. Problem: One node connected to another but
+            # the reverse to other nodes??
             if len(entity_names) > 2:
                 #print(entity_names)
                 entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
                 print_failure(
-                    "The edge feature " + a + " was defined in connecting two different source-destination entities(" + entities_string + "). Make sure that an edge feature is unique for a given pair of entities (types of nodes).")
+                    "The edge feature " + a + " was defined in connecting two different source-destination entities(" +
+                    entities_string + "). Make sure that an edge feature is unique for a given pair of entities "
+                                      "(types of nodes).")
 
 
             # it should always be a 2d array
@@ -211,11 +233,14 @@ class Generator:
 
             # Check that this name has not been defined both as node features and as edge_features
             if node_attr.size != 0 and edge_attr.size != 0 and len(graph_attr) != 0:
-                print_failure("The feature " + a + " was defined both as node feature, edge feature and graph feature. Please use unique names in this case.")
+                print_failure("The feature " + a + "was defined both as node feature, edge feature and graph feature. "
+                                                   "Please use unique names in this case.")
             elif node_attr.size != 0 and edge_attr.size != 0:
-                print_failure("The feature " + a + " was defined both as node feature and as edge feature. Please use unique names in this case.")
+                print_failure("The feature " + a + "was defined both as node feature and as edge feature. Please use "
+                                                   "unique names in this case.")
             elif node_attr.size != 0 and len(graph_attr) != 0:
-                print_failure("The feature " + a + " was defined both as node feature and as graph feature. Please use unique names in this case.")
+                print_failure("The feature " + a + "was defined both as node feature and as graph feature. Please use "
+                                                   "unique names in this case.")
 
 
             # Return the correct value
@@ -234,7 +259,7 @@ class Generator:
 
         if self.training:
             # collect the output (if there is more than one, concatenate them on axis=1
-            # limitation: all the outputs must be of the same type (same number of elements)
+            # limitation: all the outputs must be of the same layer_type (same number of elements)
             final_output = []
             for output in self.output_names:
                 try:
@@ -243,7 +268,7 @@ class Generator:
                         aux = D_G.graph[output]
                         aux = aux if isinstance(aux, list) else [aux]
 
-                except:
+                except Exception:
                     print_failure(
                         f"Error when trying to get output with name: {output}. "
                         "Check the data which corresponds to the output_label in the readout block."
@@ -254,16 +279,8 @@ class Generator:
                     aux = np.expand_dims(aux, -1)
 
                 # try to concatenate them together. If error, it means that the two labels are incompatible
-                #try:
                 final_output.extend(aux)
                 data['__ignnition_{}_len'.format(output)] = len(aux)
-                """print("final_output")
-                print(final_output)"""
-                #except:
-                #    print_failure(
-                #        "More than one output label was defined by they don't seem to be compatible. "
-                #        "Check that all of them are either node or global labels. "
-                #        "If they are node labels, they should refer to the same entity nodes.")
 
         # find the adjacencies
         edges_list = list(D_G.edges())
@@ -302,7 +319,11 @@ class Generator:
                     src_entity = adj_name_item.split('_to_')[0]
                     dst_entity = adj_name_item.split('_to_')[1]
                     print_info(
-                        "WARNING: The GNN definition uses edges between " + src_entity + " and " + dst_entity + " but these were not found in the input graph. The MP defined between these two entities will be ignored.\nIn case the graph ought to contain such edges, one reason for this error is a mistake in defining the graph as directional, when the edges have been defined as undirected. Please check the documentation.")
+                        "WARNING: The GNN definition uses edges between " + src_entity + " and " + dst_entity +
+                        " but these were not found in the input graph. The MP defined between these two entities "
+                        "will be ignored.\nIn case the graph ought to contain such edges, one reason for this error "
+                        "is a mistake in defining the graph as directional, when the edges have been defined as "
+                        "undirected. Please check the documentation.")
                     self.warnings_shown = True
 
         # this collects the sequence for the interleave aggregation (if any)
@@ -423,6 +444,9 @@ class Generator:
             Indicates if we are training, and thus a label is required.
         shuffle:    bool
            Shuffle parameter of the dataset
+
+        Args:
+            adj_names:
         """
 
         self.entity_names = entity_names

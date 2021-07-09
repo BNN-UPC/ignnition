@@ -13,7 +13,7 @@ Then, access through your web browser localhost://6006, which will show the grap
 ### Visualization of Shortest-Path
 In order to further understand the information that this system provides, we will use the very simple example of Shortest-Path, presented in [quick start tutorial](../quick_tutorial/#step-5-debugging).
 
-First of all, once you are in the Tensorboard page, look for a box named *Ignnition_model*. If you expand this box, you should see the following:
+First of all, once you are in the Tensorboard page, look for a box named *IgnnitionModel*. If you expand this box, you should see the following:
 
 ![overview debugging](Images/overview_debugging.png)
 
@@ -27,7 +27,7 @@ First of all, let us focus on the state creation part. To do so, navigate throug
 In this case, you can observe that only one box within the state creation box is shown, since we have only defined one entity. Inside this box, we can see all the operations that define how these states are formed. In this very simple scenario, we only have one *build_state* operation. If more operations were defined, we would observe the corresponding pipeline.
 
 #### Message passing
-Now we may focus on the message passing phase. Again, navigate through the *Ignnition_model* box, where you will find a box for each of the iterations of the MP phase. Click on one indistinctively.
+Now we may focus on the message passing phase. Again, navigate through the *IgnnitionModel* box, where you will find a box for each of the iterations of the MP phase. Click on one indistinctively.
 
 ![single iteration debugging](Images/single_iteration.png)
 
@@ -46,7 +46,7 @@ Finally, let us take a look at the update function where we can see the update p
 ![update debugging](Images/debugging_update.png)
 
 #### Readout
-To finish this section, we can review the structure of the readout function defined to compute the predictions. For this, navigate by clicking over the readout box within the scope of *Ignnition_model*. Then, you will observe a pipeline of all the operations used for the definition of this function (the last one of which computes the final prediction). In this very simple scenario, and for sake of simplicity, we can only see one box as we only defined a *Neural_network* operation.
+To finish this section, we can review the structure of the readout function defined to compute the predictions. For this, navigate by clicking over the readout box within the scope of *IgnnitionModel*. Then, you will observe a pipeline of all the operations used for the definition of this function (the last one of which computes the final prediction). In this very simple scenario, and for sake of simplicity, we can only see one box as we only defined a *Neural_network* operation.
 
 ![readout](Images/readout.png)
 

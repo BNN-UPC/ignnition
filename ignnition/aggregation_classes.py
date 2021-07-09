@@ -1,9 +1,8 @@
 import tensorflow as tf
-import tensorflow.keras.activations
-import sys
-from ignnition.utils import *
 import tensorflow.keras.backend as K
-from ignnition.operation_classes import *
+
+from ignnition.operation_classes import FeedForwardOperation
+
 
 class Aggregation:
     """
@@ -11,24 +10,25 @@ class Aggregation:
 
     Attributes
     ----------
-    dict:    dict
+    aggr_def:    dict
         Dictionary with the information of the aggregation function
     """
 
-    def __init__(self, dict):
+    def __init__(self, aggr_def):
         """
         Parameters
         ----------
-        dict:    dict
+        aggr_def:    dict
             Data corresponding to the general aggregation definition
         """
-        self.type = dict.get('type')
-        self.output_name = dict.get('output_name', None)
+        self.type = aggr_def.get('type')
+        self.output_name = aggr_def.get('output_name', None)
 
 
-class Sum_aggr(Aggregation):
+class SumAggr(Aggregation):
     """
-    A subclass that represents the Sum aggreagtion operation (which sums all the input messages together for each of the destination nodes).
+    A subclass that represents the Sum aggreagtion operation (which sums all the input messages together for each of
+    the destination nodes).
 
     Methods:
     ----------
@@ -36,14 +36,14 @@ class Sum_aggr(Aggregation):
         Returns the sum of all the input messages for each of the destination nodes.
     """
 
-    def __init__(self, dict):
+    def __init__(self, aggr_def):
         """
         Parameters
         ----------
-        dict:    dict
+        aggr_def:    dict
             Data corresponding to the sum aggregation definition
         """
-        super(Sum_aggr, self).__init__(dict)
+        super(SumAggr, self).__init__(aggr_def)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
         """
@@ -61,7 +61,7 @@ class Sum_aggr(Aggregation):
         return src_input
 
 
-class Mean_aggr(Aggregation):
+class MeanAggr(Aggregation):
     """
     A subclass that represents the mean aggregation operation
 
@@ -71,14 +71,14 @@ class Mean_aggr(Aggregation):
         Returns the mean of all the input messages for each of the destination nodes.
     """
 
-    def __init__(self, dict):
+    def __init__(self, aggr_def):
         """
         Parameters
         ----------
-        dict:    dict
+        aggr_def:    dict
             Data corresponding to the mean aggregation definition
         """
-        super(Mean_aggr, self).__init__(dict)
+        super(MeanAggr, self).__init__(aggr_def)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
         """
@@ -96,7 +96,7 @@ class Mean_aggr(Aggregation):
         return neighbours_mean
 
 
-class Max_aggr(Aggregation):
+class MaxAggr(Aggregation):
     """
     A subclass that represents the Max aggregation operation
 
@@ -106,14 +106,14 @@ class Max_aggr(Aggregation):
         Returns the max of all the input messages for each of the destination nodes.
     """
 
-    def __init__(self, dict):
+    def __init__(self, aggr_def):
         """
         Parameters
         ----------
-        dict:    dict
+        aggr_def:    dict
             Data corresponding to the max aggregation definition
         """
-        super(Max_aggr, self).__init__(dict)
+        super(MaxAggr, self).__init__(aggr_def)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
         """
@@ -131,7 +131,7 @@ class Max_aggr(Aggregation):
         return src_input
 
 
-class Min_aggr(Aggregation):
+class MinAggr(Aggregation):
     """
     A subclass that represents the Sum aggreagtion operation
 
@@ -141,14 +141,14 @@ class Min_aggr(Aggregation):
         Returns the min of all the input messages for each of the destination nodes.
     """
 
-    def __init__(self, dict):
+    def __init__(self, aggr_def):
         """
         Parameters
         ----------
-        dict:    dict
+        aggr_def:    dict
             Data corresponding to the min aggregation definition
         """
-        super(Min_aggr, self).__init__(dict)
+        super(MinAggr, self).__init__(aggr_def)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
         """
@@ -167,7 +167,7 @@ class Min_aggr(Aggregation):
 
 
 # toDO: Finish this operation
-class Std_aggr(Aggregation):
+class StdAggr(Aggregation):
     """
     A subclass that represents the Std aggreagtion operation
 
@@ -177,14 +177,14 @@ class Std_aggr(Aggregation):
         Returns the std of all the input messages for each of the destination nodes.
     """
 
-    def __init__(self, dict):
+    def __init__(self, aggr_def):
         """
         Parameters
         ----------
-        dict:    dict
+        aggr_def:    dict
             Data corresponding to the std aggregation definition
         """
-        super(Std_aggr, self).__init__(dict)
+        super(StdAggr, self).__init__(aggr_def)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, num_dst):
         """
@@ -202,7 +202,7 @@ class Std_aggr(Aggregation):
         return src_input
 
 
-class Attention_aggr(Aggregation):
+class AttentionAggr(Aggregation):
     """
     A subclass that represents the attention aggregation operation
 
@@ -214,18 +214,19 @@ class Attention_aggr(Aggregation):
     Methods:
     ----------
     calculate_input(self, comb_src_states, comb_dst_idx, dst_states, comb_seq, num_dst, node_kernel, attn_kernel)
-        Computes the attention mechanism of all the input messages for each destination node. This aggregation corresponds to the one proposed for Graph Attention Networks.
+        Computes the attention mechanism of all the input messages for each destination node. This aggregation
+        corresponds to the one proposed for Graph Attention Networks.
     """
 
-    def __init__(self, dict):
+    def __init__(self, aggr_def):
         """
         Parameters
         ----------
-        dict:    dict
+        aggr_def:    dict
             Data corresponding to the attention aggregation definition
         """
-        super(Attention_aggr, self).__init__(dict)
-        self.weight_initialization = dict.get('weight_initialization', None)
+        super(AttentionAggr, self).__init__(aggr_def)
+        self.weight_initialization = aggr_def.get('weight_initialization', None)
 
     def calculate_input(self, comb_src_states, comb_dst_idx, dst_states, comb_seq, num_dst, node_kernel, attn_kernel):
         """
@@ -293,7 +294,7 @@ class Attention_aggr(Aggregation):
         return src_input
 
 
-class Edge_attention_aggr(Aggregation):
+class EdgeAttentionAggr(Aggregation):
     """
     A subclass that represents the Edge attention aggregation operation
 
@@ -308,7 +309,8 @@ class Edge_attention_aggr(Aggregation):
         Return the aggregation model
 
     calculate_input(self, comb_src_states, comb_dst_idx, num_dst, weights)
-        Computes the edge attention, based on computing a weight for each input message by passing its source and destination hs to a NN.
+        Computes the edge attention, based on computing a weight for each input message by passing its source
+        and destination hs to a NN.
     """
 
     def __init__(self, op):
@@ -319,9 +321,9 @@ class Edge_attention_aggr(Aggregation):
             Dictionary with the user's definition of this operation
         """
 
-        super(Edge_attention_aggr, self).__init__(op)
+        super(EdgeAttentionAggr, self).__init__(op)
         del op['type']
-        self.aggr_model = Feed_forward_operation(op, model_role='edge_attention')
+        self.aggr_model = FeedForwardOperation(op, model_role='edge_attention')
 
     def get_model(self):
         return self.aggr_model.model
@@ -347,7 +349,7 @@ class Edge_attention_aggr(Aggregation):
         return src_input
 
 
-class Conv_aggr(Aggregation):
+class ConvAggr(Aggregation):
     """
     A subclass that represents the Convolution aggregation operation
 
@@ -371,7 +373,7 @@ class Conv_aggr(Aggregation):
         attr:    dict
             Data corresponding to the convolutional aggregation definition
         """
-        super(Conv_aggr, self).__init__(attr)
+        super(ConvAggr, self).__init__(attr)
         self.activation_function = attr.get('activation_function', 'relu')
         self.weight_initialization = attr.get('weight_initialization', None)
 
@@ -399,8 +401,8 @@ class Conv_aggr(Aggregation):
         # comb_src_states = N x F    kernel = F x F
         weighted_input = tf.linalg.matmul(comb_src_states, kernel)
 
-        # normalize each input dividing by sqrt(deg(j)) (only applies if they are from the same entity as the destination node)
-        # ??
+        # normalize each input dividing by sqrt(deg(j)) (only applies if they are from the same entity as
+        # the destination node)??
 
         # each destination sums all its neighbours
         neighbours_sum = tf.math.unsorted_segment_sum(weighted_input, comb_dst_idx, num_dst)
@@ -431,7 +433,7 @@ class Conv_aggr(Aggregation):
         return activation_func(normalized_val)
 
 
-class Interleave_aggr(Aggregation):
+class InterleaveAggr(Aggregation):
     """
     A subclass that represents the Interleave aggregation operation
 
@@ -443,20 +445,22 @@ class Interleave_aggr(Aggregation):
     Methods:
     ----------
     calculate_input(self, src_input, indices)
-        Computes the result of applying the interleave mechanism. This mechanism takes as input a tensor with all the input messages of several sources to a same destination entity type, and creates a custom array of the input messages.
-        With these, for instance, a destination node can receive the a tensor where the pair messages are from an entity type and the odds from the other.
+        Computes the result of applying the interleave mechanism. This mechanism takes as input a tensor with all the
+        input messages of several sources to a same destination entity layer_type, and creates a custom array of the
+        input messages. With these, for instance, a destination node can receive the a tensor where the pair messages
+        are from an entity layer_type and the odds from the other.
     """
 
-    def __init__(self, dict):
+    def __init__(self, aggr_def):
         """
         Parameters
         ----------
-        dict:    dict
+        aggr_def:    dict
             Data corresponding to the interleave aggregation definition
         """
 
-        super(Interleave_aggr, self).__init__(dict)
-        self.combination_definition = dict.get('interleave_definition')
+        super(InterleaveAggr, self).__init__(aggr_def)
+        self.combination_definition = aggr_def.get('interleave_definition')
 
     def calculate_input(self, src_input, indices):
         """
@@ -468,19 +472,21 @@ class Interleave_aggr(Aggregation):
             Indices to reorder for the interleave
         """
 
-        # destinations x max_of_sources_to_dest_concat x dim_source ->  (max_of_sources_to_dest_concat x destinations x dim_source)
+        # destinations x max_of_sources_to_dest_concat x dim_source ->  (max_of_sources_to_dest_concat x
+        # destinations x dim_source)
         src_input = tf.transpose(src_input, perm=[1, 0, 2])
         indices = tf.reshape(indices, [-1, 1])
 
         src_input = tf.scatter_nd(indices, src_input,
                                   tf.shape(src_input, out_type=tf.int64))
 
-        # (max_of_sources_to_dest_concat x destinations x dim_source) -> destinations x max_of_sources_to_dest_concat x dim_source
+        # (max_of_sources_to_dest_concat x destinations x dim_source) -> destinations x max_of_sources_to_dest_concat
+        # x dim_source
         src_input = tf.transpose(src_input, perm=[1, 0, 2])
         return src_input
 
 
-class Concat_aggr(Aggregation):
+class ConcatAggr(Aggregation):
     """
     A subclass that represents the Concat aggregation operation
 
@@ -497,5 +503,5 @@ class Concat_aggr(Aggregation):
         attr:    dict
             Data corresponding to the concat aggregation definition
         """
-        super(Concat_aggr, self).__init__(attr)
+        super(ConcatAggr, self).__init__(attr)
         self.concat_axis = int(attr.get('concat_axis'))

@@ -17,19 +17,25 @@
 '''
 
 # -*- coding: utf-8 -*-
-
+import os
+import importlib
+import copy
+import json
+from functools import reduce
 
 import yaml
 from jsonschema import validate
-import copy
-from ignnition.mp_classes import *
-from functools import reduce
-import importlib
+
+from ignnition.mp_classes import InterleaveAggr, Entity, MessagePassing
+from ignnition.operation_classes import PoolingOperation, ProductOperation, ExtendAdjacencies, Concat, \
+    FeedForwardOperation
+from ignnition.utils import print_failure, print_info
 
 
-class Yaml_preprocessing:
+class YamlPreprocessing:
     """
-    Class that handles all the information from a model_description file and organizes the information as a sequence of the corresponding auxiliary classes.
+    Class that handles all the information from a model_description file and organizes the information as a sequence
+    of the corresponding auxiliary classes.
 
     Attributes
     ----------
@@ -54,7 +60,8 @@ class Yaml_preprocessing:
     add_dimensions(self, dimensions)
         Computes the dimensions of the entities
     __validate_model_description(self, data)
-        Validates the model description file by checking possible errors such as inexistent entity names, nn names or other possible misconfigurations
+        Validates the model description file by checking possible errors such as inexistent entity names, nn names
+        or other possible misconfigurations
     __get_nn_mapping(self, models)
         Maps each of the NN by its name
     __get_entities(self, entities)
@@ -62,7 +69,8 @@ class Yaml_preprocessing:
     __add_nn_architectures_entities(self, entity)
         Adds the NN architecture corresponding to each of the NN references in the HS definition (by name)
     __add_nn_architecture_mp(self, m)
-        Adds the NN architecture corresponding to each of the NN references in the rest of the parts of the model description file (by name)
+        Adds the NN architecture corresponding to each of the NN references in the rest of the parts of the model
+        description file (by name)
     __get_mp_instances(self, inst)
         Computes the MP objects corresponding to the different message passings
     __add_readout_architecture(self, output)
@@ -90,7 +98,8 @@ class Yaml_preprocessing:
     get_adjacency_info(self)
         Returns the information of the adjacencies
     get_additional_input_names(self)
-        Returns the names of any additional tensor that was referenced in the model_description and that doesn't fall in any of the previous categories
+        Returns the names of any additional tensor that was referenced in the model_description and that doesn't
+        fall in any of the previous categories
     """
 
     def __init__(self, model_dir):
@@ -116,8 +125,8 @@ class Yaml_preprocessing:
             self.data = self.__add_global_variables(self.data, global_variables)
 
         else:
-            print_info(
-                "No global_variables.yaml file detected in path: " + global_variables_path + ".\nIf you didn't use it in your model definition, ignore this message.")
+            print_info("No global_variables.yaml file detected in path: " + global_variables_path +
+                       ".\nIf you didn't use it in your model definition, ignore this message.")
 
         self.__validate_model_description(self.data)
 
@@ -179,7 +188,8 @@ class Yaml_preprocessing:
                         self.__add_global_variables(v[i], global_variables)
         return data
 
-    # validate that all the nn_name are correct. Validate that all source and destination entities are correct. Validate that all the inputs in the message function are correct
+    # validate that all the nn_name are correct. Validate that all source and destination entities are correct.
+    # Validate that all the inputs in the message function are correct
     def __validate_model_description(self, data):
         """
         Parameters
@@ -251,19 +261,23 @@ class Yaml_preprocessing:
         for a in src_names:
             if a not in entity_names:
                 print_failure(
-                    'The source entity "' + a + '" was used in a message passing. However, there is no such entity. \n Please check the spelling or define a new entity.')
+                    'The source entity "' + a + '" was used in a message passing. However, there is no such entity. \n '
+                                                'Please check the spelling or define a new entity.')
 
         # check the destination entities
         for d in dst_names:
             if d not in entity_names:
                 print_failure(
-                    'The destination entity "' + d + '" was used in a message passing. However, there is no such entity. \n Please check the spelling or define a new entity.')
+                    'The destination entity "' + d + '" was used in a message passing. However, there is no such '
+                                                     'entity. \n Please check the spelling or define a new entity.')
 
         # check the nn_names
         for name in called_nn_names:
             if name not in nn_names:
                 print_failure(
-                    'The name "' + name + '" is used as a reference to a neural network (nn_name), even though the neural network was not defined. \n Please make sure the name is correctly spelled or define a neural network named ' + name)
+                    'The name "' + name + '" is used as a reference to a neural network (nn_name), even though the '
+                                          'neural network was not defined. \n Please make sure the name is correctly '
+                                          'spelled or define a neural network named ' + name)
 
         # ensure that all the inputs (that are not output of another operation) start with a $
         for i in input_names:
@@ -335,10 +349,10 @@ class Yaml_preprocessing:
                         op['architecture'] = info.get('nn_architecture')
 
         # add the aggregation nn architectures
-        aggrs = m.get('aggregation')
-        for aggr in aggrs:
-            type = aggr.get('type')
-            if type == 'edge_attention' or type == 'neural_network':
+        aggregations = m.get('aggregation')
+        for aggr in aggregations:
+            aggr_type = aggr.get('type')
+            if aggr_type == 'edge_attention' or aggr_type == 'neural_network':
                 info = copy.deepcopy(self.nn_architectures[aggr['nn_name']])
                 del aggr['nn_name']
                 aggr['architecture'] = info.get('nn_architecture')
@@ -361,7 +375,7 @@ class Yaml_preprocessing:
         """
 
         return [['stage_' + str(step_number),
-                 [Message_Passing(self.__add_nn_architecture_mp(m)) for m in stage['stage_message_passings']]] for
+                 [MessagePassing(self.__add_nn_architecture_mp(m)) for m in stage['stage_message_passings']]] for
                 step_number, stage in enumerate(inst)]
 
     def __add_readout_architecture(self, output):
@@ -376,7 +390,6 @@ class Yaml_preprocessing:
         info = copy.deepcopy(self.nn_architectures.get(name))
         del output['nn_name']
         output['architecture'] = info['nn_architecture']
-
         return output
 
     def __get_readout_op(self, output_operations):
@@ -389,20 +402,20 @@ class Yaml_preprocessing:
 
         result = []
         for op in output_operations:
-            type = op.get('type')
-            if type == 'pooling':
-                result.append(Pooling_operation(op))
+            op_type = op.get('type')
+            if op_type == 'pooling':
+                result.append(PoolingOperation(op))
 
-            elif type == 'product':
-                result.append(Product_operation(op))
+            elif op_type == 'product':
+                result.append(ProductOperation(op))
 
-            elif type == 'neural_network':
-                result.append(Feed_forward_operation(self.__add_readout_architecture(op), model_role='readout'))
+            elif op_type == 'neural_network':
+                result.append(FeedForwardOperation(self.__add_readout_architecture(op), model_role='readout'))
 
-            elif type == 'extend_adjacencies':
-                result.append(Extend_adjacencies(op))
+            elif op_type == 'extend_adjacencies':
+                result.append(ExtendAdjacencies(op))
 
-            elif type == 'concat':
+            elif op_type == 'concat':
                 result.append(Concat(op))
 
         return result
@@ -431,7 +444,7 @@ class Yaml_preprocessing:
 
     def get_interleave_sources(self):
         aux = [[[src.name, mp.destination_entity] for src in mp.source_entities] for stage_name, mps in
-               self.mp_instances for mp in mps if isinstance(mp.aggregations, Interleave_aggr)]
+               self.mp_instances for mp in mps if isinstance(mp.aggregations, InterleaveAggr)]
         return reduce(lambda accum, a: accum + a, aux, [])
 
     def get_mp_iterations(self):
@@ -439,7 +452,7 @@ class Yaml_preprocessing:
 
     def get_interleave_tensors(self):
         return [[mp.aggregations.combination_definition, mp.destination_entity] for stage_name, mps in self.mp_instances
-                for mp in mps if isinstance(mp.aggregations, Interleave_aggr)]
+                for mp in mps if isinstance(mp.aggregations, InterleaveAggr)]
 
     def get_mp_instances(self):
         return self.mp_instances

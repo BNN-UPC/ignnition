@@ -1,11 +1,14 @@
-import tensorflow as tf
+
 import os
 from collections import OrderedDict
 
+import tensorflow as tf
 
-class K_best(tf.keras.callbacks.Callback):
+
+class KBest(tf.keras.callbacks.Callback):
     """
-    A subclass of the callback preset class which implements the functionality to keep only the best k checkpoints of the execution (instead of the best one implemented in Tf).
+    A subclass of the callback preset class which implements the functionality to keep only the best k checkpoints of
+    the execution (instead of the best one implemented in Tf).
 
     Attributes
     ----------
@@ -31,11 +34,12 @@ class K_best(tf.keras.callbacks.Callback):
         k: int
             Number of checkpoints to keep
         """
+        super().__init__()
         self.output_path = output_path
         self.files_loss = {}
         self.k = k
 
-    def on_epoch_end(self, epoch, logs={}):
+    def on_epoch_end(self, epoch, logs=None):
         """
         Parameters
         ----------
@@ -45,6 +49,8 @@ class K_best(tf.keras.callbacks.Callback):
             Dictionary with the information of the current epoch
         """
 
+        if logs is None:
+            logs = {}
         if self.k is not None:
             loss = logs["loss"]
             name = "weights." + str("{:02d}".format(self.epoch)) + '-' + str("{:.2f}".format(loss)) + '.hdf5'

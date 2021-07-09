@@ -1,4 +1,4 @@
-'''
+"""
  *
  * Copyright (C) 2020 Universitat Politècnica de Catalunya.
  *
@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,13 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
-'''
+"""
 
 # -*- coding: utf-8 -*-
 
-import sys
+import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 import tensorflow as tf
 import ignnition
+
 
 def normalization(feature, feature_name):
     if feature_name == 'traffic':
@@ -31,6 +35,7 @@ def normalization(feature, feature_name):
         feature = tf.math.log(feature)
     return feature
 
+
 def denormalization(feature, feature_name):
     if feature_name == 'delay':
         feature = tf.math.exp(feature)
@@ -38,11 +43,11 @@ def denormalization(feature, feature_name):
 
 
 def main():
-    model = ignnition.create_model(model_dir= './')
+    model = ignnition.create_model(model_dir='./')
     model.computational_graph()
     model.train_and_validate()
-    #model.predict()
+    # model.predict()
 
 
 if __name__ == "__main__":
-        main ()
+    main()
