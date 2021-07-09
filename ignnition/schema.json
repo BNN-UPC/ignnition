@@ -388,7 +388,7 @@
             "type": "array",
             "items":
             {
-                "description": "Readout model which will make predictions using the hidden states of one entity type",
+                "description": "Readout model which will make predictions using the hidden states of one entity layer_type",
                 "type": "object",
                 "properties":
                 {

@@ -1,19 +1,20 @@
-import tensorflow as tf
-import tensorflow.keras.activations
 import sys
-from ignnition.utils import *
-from ignnition.model_classes import *
+
+import tensorflow as tf
+
+from ignnition.mp_classes import FeedForwardOperation
+from ignnition.model_classes import FeedForwardModel, Recurrent_Update_Cell
+from ignnition.utils import print_failure
+from ignnition.utils import get_global_var_or_input
 
 
-
-
-class Operation():
+class Operation:
     """
     Class that represents a general operation
 
     Attributes:
     ----------
-    type:    str
+    layer_type:    str
         Type of operation (identified by a keyword)
     output_name:    str
         Name to save the output of the operation with (if any)
@@ -27,7 +28,8 @@ class Operation():
     find_total_input_dim(self, dimensions, calculations)
         Computes the total dimension of all the inputs of this operation
     obtain_total_input_dim_message(self, dimensions, calculations, dst_name, src)
-        Computes the total dimension of all the inputs of this operation (includes source and destination keywords which are useful to define an operation for the message creation function)
+        Computes the total dimension of all the inputs of this operation (includes source and destination
+        keywords which are useful to define an operation for the message creation function)
     compute_all_input(self, calculations, f_)
         Given the array of names, it computes the final input of th operation by concatenating them together.
     compute_all_input_msg(self, calculations, f_, src_msgs, dst_msgs)
@@ -42,7 +44,7 @@ class Operation():
             Dictionary with the data defining this general operation
         """
 
-        self.type = op.get('type')
+        self.type = op.get('layer_type')
         self.output_name = op.get('output_name', None)
 
         self.output_label = op.get('output_label', None)
@@ -60,7 +62,9 @@ class Operation():
             for input_item in op.get('input'):
                 if '$source' == input_item or '$destination' == input_item:
                     print_failure(
-                        'The keywords source and destination are reserved keywords. Thus, they cannot name feature from the dataset. Check that you really meant to use $, indicating that its a feature from the dataset')
+                        'The keywords source and destination are reserved keywords. Thus, they cannot name feature '
+                        'from the dataset. Check that you really meant to use $, indicating that its a feature '
+                        'from the dataset')
                 else:
                     self.input.append(input_item.split('$')[-1])  # delete the $ from the inputs (if any)
 
@@ -76,6 +80,7 @@ class Operation():
         if self.input is not None:
             input_nn = self.input
             input_dim = 0
+            dimension = None
             for i in input_nn:
                 if '_initial_state' in i:
                     i = i.split('_initial_state')[0]
@@ -124,7 +129,7 @@ class Operation():
         """
         Parameters
         ----------
-        dimensions:    dict
+        calculations:    dict
            Dictionary with the dimensions of each tensor (indexed by name)
         f_:    dict
            Dictionary with the data of the current sample
@@ -171,8 +176,6 @@ class Operation():
             # ensure that this tensor is 2-D
             new_input = tf.reshape(new_input, [-1] + [tf.shape(new_input)[-1]])
 
-
-
             # accumulate the results
             if first:
                 first = False
@@ -183,9 +186,9 @@ class Operation():
         return input_nn
 
 
-class Build_state(Operation):
+class BuildState(Operation):
     """
-    Subclass of Operation that represents the operation of building the hs of a given entity type
+    Subclass of Operation that represents the operation of building the hs of a given entity layer_type
 
     Attributes:
     ----------
@@ -213,7 +216,7 @@ class Build_state(Operation):
             Maximum dimension of the entity's hs. If this dimension is not met, we pad it with 0s.
         """
 
-        super(Build_state, self).__init__(op)
+        super(BuildState, self).__init__(op)
         self.entity_name = entity_name
         self.entity_dim = entity_dim
 
@@ -240,9 +243,10 @@ class Build_state(Operation):
         return state
 
 
-class Product_operation(Operation):
+class ProductOperation(Operation):
     """
-    Subclass of Operation class that represents the product operation between two tensors (also considers several types of products)
+    Subclass of Operation class that represents the product operation between two tensors (also considers several
+    types of products)
 
     Attributes:
     ----------
@@ -265,7 +269,7 @@ class Product_operation(Operation):
             Dictionary with the data defining this product operation
         """
 
-        super(Product_operation, self).__init__(op)
+        super(ProductOperation, self).__init__(op)
         self.type_product = op.get('type_product')
 
     def calculate(self, product_input1, product_input2):
@@ -300,13 +304,14 @@ class Product_operation(Operation):
 
         except:
             print_failure(
-                'The product operation between ' + product_input1 + ' and ' + product_input2 + ' failed. Check that the dimensions are compatible.')
-            sys.exit(1)
+                'The product operation between ' + product_input1 + ' and ' + product_input2 +
+                ' failed. Check that the dimensions are compatible.')
 
 
-class Pooling_operation(Operation):
+class PoolingOperation(Operation):
     """
-    Subclass of Operation class that represents the pooling operation (which given an array of tensors, it computes a global representation of them).
+    Subclass of Operation class that represents the pooling operation (which given an array of tensors, it computes
+    a global representation of them).
 
     Attributes:
     ----------
@@ -323,11 +328,11 @@ class Pooling_operation(Operation):
         """
         Parameters
         ----------
-        output:    dict
+        operation:    dict
             Dictionary with the readout_model parameters
         """
 
-        super(Pooling_operation, self).__init__(operation)
+        super(PoolingOperation, self).__init__(operation)
         self.type_pooling = operation.get('type_pooling')
 
     def calculate(self, pooling_input):
@@ -353,21 +358,24 @@ class Pooling_operation(Operation):
         return result
 
 
-class Feed_forward_operation(Operation):
+class FeedForwardOperation(Operation):
     """
     Subclass of Operation that represents a NN operation which consists of passing a given input to the specified NN.
 
     Attributes:
     ----------
-    model:    Feed_forward_model obj
+    model:    FeedForwardModel obj
         Object representing the NN.
 
     Methods:
     --------
     apply_nn(self, model, calculations, f_, readout=False)
-        Applies the input of this operation to the specified NN. It computes itself the input of this op given the input sample.
+        Applies the input of this operation to the specified NN. It computes itself the input of this op given the
+        input sample.
     apply_nn_msg(self, model, calculations, f_, src_msgs, dst_msgs)
-        Applies the input of this operation to the specified NN. It computes itself the input of this op given the input sample. It also takes into consideration the source and destination keywords used in the message creation function
+        Applies the input of this operation to the specified NN. It computes itself the input of this op given the
+        input sample. It also takes into consideration the source and destination keywords used in the message creation
+        function
     """
 
     def __init__(self, op, model_role):
@@ -380,23 +388,21 @@ class Feed_forward_operation(Operation):
             Defines the role of this operation (e.g., message_creation). Only useful for variable naming and debugging
         """
 
-        super(Feed_forward_operation, self).__init__(op)
+        super(FeedForwardOperation, self).__init__(op)
 
         # we need somehow to find the number of extra_parameters beforehand
-        self.model = Feed_forward_model({'architecture': op.get('architecture')}, model_role=model_role)
+        self.model = FeedForwardModel({'architecture': op.get('architecture')}, model_role=model_role)
 
-    def apply_nn(self, model, calculations, f_, readout=False):
+    def apply_nn(self, model, calculations, f_):
         """
         Parameters
         ----------
-        model: Feed_forward_model obj
+        model: FeedForwardModel obj
             Object representing the NN.
         calculations:    dict
             Dictionary with the current calculations throughout the execution of the GNN model
         f_:    dict
             Dictionary with the data of the current sample
-        readout: bool
-            Is it a readout object??
         """
 
         input_nn = self.compute_all_input(calculations, f_)
@@ -409,7 +415,7 @@ class Feed_forward_operation(Operation):
         """
         Parameters
         ----------
-        model: Feed_forward_model obj
+        model: FeedForwardModel obj
             Object representing the NN.
         calculations:    dict
             Dictionary with the current calculations throughout the execution of the GNN model
@@ -426,13 +432,13 @@ class Feed_forward_operation(Operation):
         return model(input_nn)
 
 
-class RNN_operation(Operation):
+class RNNOperation(Operation):
     """
     Subclass of Operation that represents a RNN operation which consists of passing a given input to the specified RNN.
 
     Attributes:
     ----------
-    model:    RNN_operation obj
+    model:    RNNOperation obj
         Object representing the NN.
     input: str
         Name of the input to be fed to this RNN.
@@ -446,17 +452,17 @@ class RNN_operation(Operation):
             Dictionary with the data defining this product operation
         """
 
-        super(RNN_operation, self).__init__(op)
+        super(RNNOperation, self).__init__(op)
 
         # we need somehow to find the number of extra_parameters beforehand
         cell_architecture = op['architecture'][0]  # in this case only one layer will be specified.
-        type = cell_architecture['type_layer']
-        self.model = Recurrent_Update_Cell(type=type, parameters=cell_architecture)
+        layer_type = cell_architecture['type_layer']
+        self.model = Recurrent_Update_Cell(layer_type=layer_type, parameters=cell_architecture)
         self.input = op.get('input', None)
 
 
 # TODO: check that it works
-class Extend_adjacencies(Operation):
+class ExtendAdjacencies(Operation):
     """
     Subclass of oPERATION that represents the extend_adjacencies operation
 
@@ -481,7 +487,7 @@ class Extend_adjacencies(Operation):
             Dictionary with the data defining this product operation
         """
 
-        super(Extend_adjacencies, self).__init__({'type': op['type'], 'input': op['input']})
+        super(ExtendAdjacencies, self).__init__({'layer_type': op['layer_type'], 'input': op['input']})
         self.adj_list = op['adj_list']
         self.output_name = [op.get('output_name_src'), op.get('output_name_dst')]
 
@@ -502,22 +508,25 @@ class Extend_adjacencies(Operation):
         # obtain the extended input (by extending it to the number of adjacencies between them)
         try:
             extended_src = tf.gather(src_states, adj_src)
-        except:
-            print_failure('Extending the adjacency list ' + str(
-                self.adj_list) + ' was not possible. Check that the indexes of the source of the adjacency list match the input given.')
+        except Exception:
+            print_failure('Extending the adjacency list ' + str(self.adj_list) +
+                          ' was not possible. Check that the indexes of the source of the adjacency '
+                          'list match the input given.')
 
         try:
             extended_dst = tf.gather(dst_states, adj_dst)
-        except:
-            print_failure('Extending the adjacency list ' + str(
-                self.adj_list) + ' was not possible. Check that the indexes of the destination of the adjacency list match the input given.')
+        except Exception:
+            print_failure('Extending the adjacency list ' + str(self.adj_list) +
+                          ' was not possible. Check that the indexes of the destination of '
+                          'the adjacency list match the input given.')
 
         return extended_src, extended_dst
 
 
 class Concat(Operation):
     """
-    Subclass of Operation class that represents the product operation between two tensors (also considers several types of products)
+    Subclass of Operation class that represents the product operation between two tensors (also considers
+    several types of products)
 
     Attributes:
     ----------
@@ -547,17 +556,14 @@ class Concat(Operation):
         """
         Parameters
         ----------
-        product_input1:    tensor
-           Input 1
-        product_input2:    tensor
-           Input 2
+        inputs:    tensor
         """
 
         try:
             result = tf.concat(inputs, axis=self.axis)
             return result
 
-        except:
+        except Exception:
             print_failure(
                 'The concat operation failed. Check that the dimensions are compatible.')
             sys.exit(1)
