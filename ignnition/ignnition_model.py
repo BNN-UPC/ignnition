@@ -740,7 +740,7 @@ class IgnnitionModel:
                            use_multiprocessing=True,
                            verbose=1)
 
-    def predict(self, prediction_samples=None, verbose=True):
+    def predict(self, prediction_samples=None, verbose=True, num_predictions = None):
         """
         Parameters
         ----------
@@ -786,7 +786,9 @@ class IgnnitionModel:
                 denorm_func = None
 
             # while there are predictions
-            while True:
+            finished = False
+            counter = 0
+            while not finished:
                 pred = self.gnn_model(sample_it.get_next(), training=False)
                 pred = tf.squeeze(pred)
                 output_name = self.model_info.get_output_info()  # for now suppose we only have one output layer_type
@@ -798,6 +800,10 @@ class IgnnitionModel:
                         print_failure('The denormalization function failed')
 
                 all_predictions.append(pred)
+
+                counter += 1
+
+                finished = True if (num_predictions is not None and counter >= num_predictions) else False
 
         except tf.errors.OutOfRangeError:
             pass
