@@ -65,7 +65,7 @@ In some cases, it may be useful to limit *IGNNITION* to compute the predictions 
     model.predict(num_predictions = n)
     
 #### Feeding an array of samples
-The second alternative is based on the idea of passing an array of samples during the Python call to the predict functionality. To this end, the user must still provide a valid path to the checkpoint where the model has been stored --unless this operation is preceeded by a train operation.
+The second alternative is based on the idea of passing an array of samples during the Python call to the predict functionality. This can be very useful, for instance, in *Reinforcement Learning* applications. To do so, the user must still provide a valid path to the checkpoint where the model has been stored --unless this operation is preceeded by a train operation.
     
     load_model_path: <PATH>
 
