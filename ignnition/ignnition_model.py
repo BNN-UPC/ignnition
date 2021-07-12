@@ -516,7 +516,7 @@ class IgnnitionModel:
             "-----------------------------\n")
         return YamlPreprocessing(self.model_dir)  # read json
 
-    def __create_gnn(self, samples=None, path=None, verbose=True):
+    def __create_gnn(self, samples=None, path=None, verbose=True, require_warm_start=False):
         """
         Parameters
         ----------
@@ -537,10 +537,11 @@ class IgnnitionModel:
         self.model_info.add_dimensions(dimensions)
 
         gnn_model = self.__get_compiled_model(self.model_info)
-        # restore a warm-start Checkpoint (if any)
-        self.gnn_model = self.__restore_model(gnn_model, sample=sample)
 
-    def __restore_model(self, gnn_model, sample):
+        # restore a warm-start Checkpoint (if any)
+        self.gnn_model = self.__restore_model(gnn_model, sample=sample, require_warm_start=require_warm_start)
+
+    def __restore_model(self, gnn_model, sample, require_warm_start = False):
         """
         Parameters
         ----------
@@ -555,16 +556,21 @@ class IgnnitionModel:
             print("Restoring from", checkpoint_path)
             # in this case we need to initialize the weights to be able to use a load_model checkpoint
 
-            sample_it = self.__input_fn_generator(training=False,
-                                                  data_samples=[sample])
+            sample_it = self.__input_fn_generator(training=False, data_samples=[sample])
             sample = sample_it.get_next()
             # Call only one tf.function when tracing.
             _ = gnn_model(sample, training=False)
             gnn_model.load_weights(checkpoint_path)
 
-        elif checkpoint_path != '':
-            print_info(
-                "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
+        elif checkpoint_path != '': #an invalid file was specified
+            if not require_warm_start:
+                print_info(
+                    "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
+            else:
+                print_failure(
+                    "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
+        elif require_warm_start and checkpoint_path == '':  #no file was specified
+            print_failure("There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this path, so that model that will compute the predictions can be recovered.")
 
         return gnn_model
 
@@ -762,13 +768,9 @@ class IgnnitionModel:
         # create the GNN model --and load the previous checkpoint-- if it does not exist already
         if not hasattr(self, 'gnn_model'):
             if prediction_samples is None:  # look for the dataset path
-                try:
-                    self.__create_gnn(path=data_path, verbose=verbose)
-                except:
-                    print_failure('Make sure to either pass an array of samples or to define in the train_options.yaml '
-                                  'the path to the prediction dataset')
+                self.__create_gnn(path=data_path, verbose=verbose, require_warm_start=True)
             else:
-                self.__create_gnn(samples=prediction_samples, verbose=verbose)
+                self.__create_gnn(samples=prediction_samples, verbose=verbose, require_warm_start=True)
 
         if verbose:
             print()
