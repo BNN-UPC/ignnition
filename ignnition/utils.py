@@ -64,7 +64,7 @@ def print_info(msg):
        Message to be printed
     """
 
-    tf.print(BColors.FAIL + msg + BColors.ENDC, output_stream=sys.stderr)
+    tf.print(BColors.FAIL + msg + '\n' + BColors.ENDC, output_stream=sys.stderr)
 
 
 def print_header(msg):

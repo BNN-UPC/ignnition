@@ -17,6 +17,11 @@ For this, IGNNITION incorporates a debugging system which is based on producing 
 
     model.computational_graph()
 
+An important consideration is that this functionality requires a valid definition of the train dataset or of the predict dataset. Thus, the user should specify at least one of them in the *train_options.yaml*, just as we show below: 
+
+    # PATHS
+    train_dataset: <PATH TO YOUR DATA>
+    
 This will create a directory named "computational_graph", in the corresponding path indicated in the "train_options.yml" file. We further extend on how to visualize or interpret the output of this operation in [debugging assistant](debugging_assistant.md). 
 
 ### Train and validation

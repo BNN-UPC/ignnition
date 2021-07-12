@@ -806,10 +806,19 @@ class IgnnitionModel:
 
     def computational_graph(self):
         # Check if we can generate the computational graph without a dataset
-        train_path = self.__process_path(self.CONFIG['train_dataset'])
-        if not hasattr(self, 'gnn_model'):
-            self.__create_gnn(path=train_path)
 
+        train_path = self.__process_path(self.CONFIG['train_dataset']) if 'train_dataset' in self.CONFIG else ''
+        pred_path = self.__process_path(self.CONFIG['predict_dataset']) if 'predict_dataset' in self.CONFIG else ''
+        data_path = ''
+        if os.path.isdir(train_path):
+            data_path = train_path
+        elif os.path.isdir(pred_path):
+            data_path = pred_path
+        else:
+            print_failure('In order to build the computational graph of your model, you must specify valid path to the train dataset or the predict dataset in the train_options.yaml file. Please revise that you have specified at least one of them, and that they point to a valid dataset.')
+
+        if not hasattr(self, 'gnn_model'):
+            self.__create_gnn(path=data_path)
         print_header(
             'Generating the computational graph... \n----------------------------------------------------'
             '-----------------------\n')
@@ -824,7 +833,7 @@ class IgnnitionModel:
         tf.summary.trace_on(graph=True, profiler=True)
 
         # evaluate one single input
-        sample_it = self.__input_fn_generator(train_path, training=False, data_samples=None, iterator=True)
+        sample_it = self.__input_fn_generator(data_path, training=False, data_samples=None, iterator=True)
         sample = sample_it.get_next()
         # Call only one tf.function when tracing.
         _ = self.gnn_model(sample, training=False)
