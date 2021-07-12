@@ -806,7 +806,11 @@ class IgnnitionModel:
 
     def computational_graph(self):
         # Check if we can generate the computational graph without a dataset
-        train_path = self.__process_path(self.CONFIG['train_dataset'])
+        try:
+            train_path = self.__process_path(self.CONFIG['train_dataset'])
+        except:
+            print_failure('In order to build the computational graph of your model, you must first specify a valid path for the train dataset in the train_options.yaml file. Please revise that you have done so successfully.')
+
         if not hasattr(self, 'gnn_model'):
             self.__create_gnn(path=train_path)
 
