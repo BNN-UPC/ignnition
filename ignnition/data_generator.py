@@ -151,6 +151,11 @@ class Generator:
         # rename the name of the nodes to a mapping that also indicates its entity layer_type
         D_G = nx.relabel_nodes(G, mapping)
 
+        # discard if the graph is empty
+        if not D_G.edges():
+            print_info("\nA sample was discarded because the graph is empty (has no edges).")
+            raise StopIteration
+
         # load the features (all the features are set to be lists. So we always return a list of lists)
         for f in self.feature_names:
             try:
