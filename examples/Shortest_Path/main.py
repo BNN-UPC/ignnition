@@ -18,16 +18,15 @@
 
 # -*- coding: utf-8 -*-
 
-import sys
-import tensorflow as tf
 import ignnition
 
+
 def main():
-    model = ignnition.create_model(model_dir= './')
+    model = ignnition.create_model(model_dir='./')
     model.computational_graph()
     model.train_and_validate()
-    #model.predict()
+    # model.predict()
 
 
 if __name__ == "__main__":
-        main ()
+    main()

@@ -17,6 +17,11 @@ For this, IGNNITION incorporates a debugging system which is based on producing 
 
     model.computational_graph()
 
+An important consideration is that this functionality requires a valid definition of the train dataset or of the predict dataset. Thus, the user should specify at least one of them in the *train_options.yaml*, just as we show below: 
+
+    # PATHS
+    train_dataset: <PATH TO YOUR DATA>
+    
 This will create a directory named "computational_graph", in the corresponding path indicated in the "train_options.yml" file. We further extend on how to visualize or interpret the output of this operation in [debugging assistant](debugging_assistant.md). 
 
 ### Train and validation
@@ -33,13 +38,6 @@ Furthermore, this operations will create (if it doesn't exist already) a directo
 
 Then, by visiting *localhost:6006*, the user can analyse the different statistics produced during the training phase to evaluate the model (e.g., loss, mean absolute error, mean relative error, R2...)
 
-### One-step training
-Finally, we incorporated another function that is specially interesting in the context of *Reinforcement Learning*. This function allows to do training only on a batch of data passed by parameter to the function. This allows the incorporation of *IGNNITION* in real-world *Deep Reinforcement Learning (DRL)* applications that make use of the incredible power of GNNs to develop cutting-edge solutions. For this, we must only make the call shown below, passing an array of samples, each of which follows the same structure defined in [Generate your dataset](generate_your_dataset.md).
-
-    model.one_step_training(training_batch)
-
-In this case, the *train_options.yaml* file needs not to indicate any training or validation dataset, as the data is directly fed by parameter.
-
 ### Evaluate
 We also incorporated a very useful function which allows the user to evaluate by obtaining performance metrics of a previously trained model. More specifically, the *Evaluate* functionality takes as input the speficied validation dataset --or the array of samples passe. Then, after loading the indicated model, it will make the corresponding predictions for each of the samples, and then will compute the performance metrics of these predictions with respect to the true label found in the dataset.
 
@@ -54,20 +52,36 @@ More information regarding these fields can be found in section [2. Configuratio
     model.evaluate()
 
 ### Predict
-*IGNNITION* also allows to make predictions over a previously pre-trained *GNN*. For this, the user must define 2 special fields in the "train_options.yaml" file, which are:
+*IGNNITION* also allows to make predictions over a previously pre-trained *GNN*. To do so, we provide two different alternative procedures which adapt to most scenarios:
+#### Feeding a dataset
+First of all, IGNNITION provides the possibility of making predictions over a prediction dataset. For this, the user must define 2 special fields in the "train_options.yaml" file, which are:
 
     predict_dataset: <PATH>
 
     load_model_path: <PATH>
 
 In this fields, we can specify the dataset that we aim to predict, and the location of the checkpoint of the model that we need to restore, to later be used for the predicting phase. See more details on how to fill this fields in [2. Configuration file](#2-configuration-file).
-
 Then, *IGNNITION* will compute the corresponding prediction of each of the samples of the prediction dataset. Moreover, to run this functionality, the user must only make the following call, which will return all the computed predictions.
 
     model.predict()
+    
+In some cases, it may be useful to limit *IGNNITION* to compute the predictions over the first *n* samples only. To do so, simply pass this information during the Python call, as follows:
+    
+    model.predict(num_predictions = n)
+    
+#### Feeding an array of samples
+The second alternative is based on the idea of passing an array of samples during the Python call to the predict functionality. This can be very useful, for instance, in *Reinforcement Learning* applications. To do so, the user must still provide a valid path to the checkpoint where the model has been stored --unless this operation is preceeded by a train operation.
+    
+    load_model_path: <PATH>
 
+Afterwards, simply make the following Python call:
+    
+    model.predict(prediction_samples= my_samples)
+    
+In this case, *my_samples* is a simple Python array containing all the samples that we want to obtain predictions of. The syntax of these samples should be the same as in the dataset (see [Build your dataset](./generate_your_dataset.md) for more details).
+A similar procedure as the one presented before can be followed to limit the predictions to the first *n* samples:
 
-
+    model.predict(prediction_samples= my_samples, num_predictions = n)
 
 ## 2. Configuration file
 In this section we review in depth the content of the *train_options.yaml* file, which will contain all the configuration parameters that ultimately define the behaviour of the specific functionality executed by the user. We must note that this file must be written in *YAML* format, which allows a very intuitve definition of all the possible fields in the form of *KEY:  VALUE*.

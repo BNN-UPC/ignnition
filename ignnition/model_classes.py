@@ -1,16 +1,16 @@
 import tensorflow as tf
-import tensorflow.keras.activations
-import sys
-from ignnition.utils import *
+
+from ignnition.utils import print_failure
 
 
-class Custom_layer:
+class CustomLayer:
     """
-    This class implements a custom layer, which represents  tf.keras.layers object with the parameters/attributes specified by the user.
+    This class implements a custom layer, which represents  tf.keras.layers object with the parameters/attributes
+    specified by the user.
 
     Attributes
     ----------
-    type:    str
+    layer_type:    str
         Type of layer to be created (following the tensorflow documentation)
     parameters: dict
         Dictionary with the parameters to be applied to the new layer (following the tf docu).
@@ -18,20 +18,21 @@ class Custom_layer:
     Methods:
     ----------
     __prepocess_parameters(self)
-       Parses several parameters which are in string type to its corresponding type, this being integer, or other tensorflow objects accordingly.
+       Parses several parameters which are in string cell_type to its corresponding cell_type, this being integer, or other
+       tensorflow objects accordingly.
     """
 
-    def __init__(self, type, parameters):
+    def __init__(self, layer_type, parameters):
         """
         Parameters
         ----------
-        type:    str
+        layer_type:    str
             Type of layer to be created (following the tensorflow documentation)
         parameters: dict
             Dictionary with the parameters to be applied to the new layer (following the tf docu).
         """
 
-        self.type = type
+        self.type = layer_type
         if 'type_layer' in parameters:
             del parameters['type_layer']
         self.parameters = parameters
@@ -51,28 +52,32 @@ class Custom_layer:
             elif 'regularizer' in k:
                 try:
                     self.parameters[k] = tf.keras.regularizers.l2(float(self.parameters.get(k)))
-                except:
-                    print_failure("The " + k + " parameter '" + str(self.parameters.get(
-                        k)) + "' in layer of type " + self.type + " is invalid. Please make sure it is a numerical value.")
-
+                except Exception:
+                    print_failure("The " + k + " parameter '" + str(self.parameters.get(k)) +
+                                  "' in layer of layer_type " + self.type +
+                                  " is invalid. Please make sure it is a numerical value.")
 
             elif 'activation' in k:  # already ensures that it was not None
                 try:
                     self.parameters['activation'] = getattr(tf.nn, v)
-                except:
-                    print_failure(
-                        "The activation '" + v + "' is not a valid function from the tf.nn library. Please check the documentation and the spelling of the function.")
+                except Exception:
+                    print_failure("The activation '" + v +
+                                  "' is not a valid function from the tf.nn library. Please check the documentation "
+                                  "and the spelling of the function.")
 
 
-class Recurrent_Update_Cell(Custom_layer):
+class Recurrent_Update_Cell(CustomLayer):
     """
-    Class that represents an RNN model used only for the update. The key difference with the other recurrent possibility is that in the update we need to explicitely pass the initial state, while in other stages of the model we don't need to do so.
+    Class that represents an RNN model used only for the update. The key difference with the other recurrent
+    possibility is that in the update we need to explicitely pass the initial state, while in other stages of
+    the model we don't need to do so.
     Thus, we keep this a single layer instead of incorporating it to a Sequential model.
 
     Methods:
     --------
     get_tensorflow_object(self, destination_dimension
-        Returns a tensorflow object with of this recurrent type with the destination_dimension as the number of units
+        Returns a tensorflow object with of this recurrent layer_type with the destination_dimension as the
+        number of units
 
     perform_unsorted_update(self, model, src_input, old_state)
         Updates the hidden state using the result of applying an input to the model obtained (order doesn't matter)
@@ -82,17 +87,17 @@ class Recurrent_Update_Cell(Custom_layer):
 
     """
 
-    def __init__(self, type, parameters):
+    def __init__(self, layer_type, parameters):
         """
         Parameters
         ----------
-        type:    str
+        layer_type:    str
             Type of layer to be created (following the tensorflow documentation)
         parameters: dict
             Dictionary with the parameters to be applied to the new layer (following the tf docu).
         """
 
-        super(Recurrent_Update_Cell, self).__init__(type=type, parameters=parameters)
+        super(Recurrent_Update_Cell, self).__init__(layer_type=layer_type, parameters=parameters)
 
     def get_tensorflow_object(self, dst_dim):
         """
@@ -105,15 +110,18 @@ class Recurrent_Update_Cell(Custom_layer):
         self.parameters['units'] = dst_dim
         try:
             c_ = getattr(tf.keras.layers, self.type + 'Cell')
-        except:
+        except Exception:
             print_failure(
-                "Error when trying to define a RNN of type '" + self.type + "' since this type does not exist. Check the valid RNN cells that Keras allow to define.")
+                "Error when trying to define a RNN of layer_type '" + self.type +
+                "' since this layer_type does not exist. Check the valid RNN cells that Keras allow to define.")
 
         try:
             layer = c_(**self.parameters)
-        except:
+        except Exception:
             print_failure(
-                "Error when creating the RNN of type '" + self.type + "' since invalid parameters were passed. Check the documentation to check which parameters are acceptable or check the spelling of the parameters' names.")
+                "Error when creating the RNN of layer_type '" + self.type +
+                "' since invalid parameters were passed. Check the documentation to check which "
+                "parameters are acceptable or check the spelling of the parameters' names.")
 
         return layer
 
@@ -121,7 +129,7 @@ class Recurrent_Update_Cell(Custom_layer):
         """
         Parameters
         ----------
-        model:    object
+        model:
             Update model
         src_input:  tensor
             Input for the update operation
@@ -156,7 +164,7 @@ class Recurrent_Update_Cell(Custom_layer):
         return new_state
 
 
-class Feed_forward_Layer(Custom_layer):
+class FeedForwardLayer(CustomLayer):
     """
     Class that represents a layer of a feed_forward neural network
 
@@ -169,33 +177,36 @@ class Feed_forward_Layer(Custom_layer):
         Returns a tensorflow object of the last layer of the model, and sets its previous layer and the number of output units for it to have.
     """
 
-    def __init__(self, type, parameters):
+    def __init__(self, layer_type, parameters):
         """
         Parameters
         ----------
-        type:    str
+        layer_type:    str
             Type of layer to be created (following the tensorflow documentation)
         parameters: dict
             Dictionary with the parameters to be applied to the new layer (following the tf docu).
         """
 
-        super(Feed_forward_Layer, self).__init__(type=type, parameters=parameters)
+        super(FeedForwardLayer, self).__init__(layer_type=layer_type, parameters=parameters)
 
     def get_tensorflow_object(self):
         try:
             c_ = getattr(tf.keras.layers, self.type)
-        except:
+        except Exception:
             print_failure(
-                "The layer of type '" + self.type + "' is not a valid tf.keras layer. Please check the documentation to write the correct way to define this layer. ")
+                "The layer of layer_type '" + self.type +
+                "' is not a valid tf.keras layer. Please check the documentation to "
+                "write the correct way to define this layer. ")
 
         try:
             layer = c_(**self.parameters)
-        except:
+        except Exception:
             parameters_string = ''
             for k, v in self.parameters.items():
                 parameters_string += k + ': ' + v + '\n'
-            print_failure("One of the parameters passed to the layer of type '" + self.type + "' is incorrect. \n " +
-                          "You have defined the following parameters: \n" + parameters_string)
+            print_failure(
+                "One of the parameters passed to the layer of layer_type '" + self.type + "' is incorrect. \n " +
+                "You have defined the following parameters: \n" + parameters_string)
 
         return layer
 
@@ -208,25 +219,28 @@ class Feed_forward_Layer(Custom_layer):
         """
         try:
             c_ = getattr(tf.keras.layers, self.type)
-        except:
+        except Exception:
             print_failure(
-                "The layer of type '" + self.type + "' is not a valid tf.keras layer. Please check the documentation to write the correct way to define this layer. ")
+                "The layer of layer_type '" + self.type +
+                "' is not a valid tf.keras layer. Please check the "
+                "documentation to write the correct way to define this layer. ")
 
         self.parameters['units'] = dst_units  # can we assume that it will always be units??
 
         try:
             layer = c_(**self.parameters)
-        except:
+        except Exception:
             parameters_string = ''
             for k, v in self.parameters.items():
                 parameters_string += k + ': ' + v + '\n'
-            print_failure("One of the parameters passed to the layer of type '" + self.type + "' is incorrect. \n " +
-                          "You have defined the following parameters: \n" + parameters_string)
+            print_failure(
+                "One of the parameters passed to the layer of layer_type '" + self.type + "' is incorrect. \n " +
+                "You have defined the following parameters: \n" + parameters_string)
 
         return layer
 
 
-class Feed_forward_model:
+class FeedForwardModel:
     """
     Class that represents a feed_forward neural network model
 
@@ -237,7 +251,7 @@ class Feed_forward_model:
 
     Methods:
     --------
-    __is_recurrent(self, type)
+    __is_recurrent(self, layer_type)
         Given the definition of a layer, it returns True if this is a recurrent layer (using GRU or LSTM)
     construct_tf_model(self, var_name, input_dim, dst_dim = None, is_readout = False, dst_name = None)
         Returns the corresponding neural network object
@@ -257,40 +271,38 @@ class Feed_forward_model:
         counter = 0
         # create the layers
         if 'architecture' in model:
-            dict = model['architecture']
+            arch_dict = model['architecture']
 
-            for l in dict:
-                type_layer = l['type_layer']  # type of layer
+            for layer in arch_dict:
+                type_layer = layer['type_layer']  # type of layer
 
                 # if this is a RNN, we need to do reshaping of the model
                 if self.__is_recurrent(type_layer):
-                    reshape_layer = Feed_forward_Layer('Reshape', {
+                    reshape_layer = FeedForwardLayer('Reshape', {
                         "target_shape": (1, -1)})  # this should take as size the previous shape
                     self.layers.append(reshape_layer)
 
-                if 'name' not in l:
-                    l['name'] = 'layer_' + str(counter) + '_' + type_layer + '_' + str(model_role)
+                if 'name' not in layer:
+                    layer['name'] = 'layer_' + str(counter) + '_' + type_layer + '_' + str(model_role)
                 # del l['type_layer']  # leave only the parameters of the layer
 
-                layer = Feed_forward_Layer(type_layer, l)
+                layer = FeedForwardLayer(type_layer, layer)
                 self.layers.append(layer)
                 counter += 1
 
-    def __is_recurrent(self, type):
+    def __is_recurrent(self, cell_type):
         """
         Parameters
         ----------
-        type:    str
+        cell_type:    str
             Type of the layer that we are considering
         """
-        return True if (type == 'LSTM' or type == 'GRU') else False
+        return True if (cell_type == 'LSTM' or cell_type == 'GRU') else False
 
-    def construct_tf_model(self, var_name, input_dim, dst_dim=None, is_readout=False, dst_name=None):
+    def construct_tf_model(self, input_dim, dst_dim=None, is_readout=False, dst_name=None):
         """
         Parameters
         ----------
-        var_name:    str
-            Name of the variables
         input_dim:  int
             Dimension of the input of the model
         dst_dim:  int
@@ -302,7 +314,7 @@ class Feed_forward_model:
         """
 
         model = tf.keras.models.Sequential()
-        model.add(tf.keras.Input(shape=(input_dim)))
+        model.add(tf.keras.Input(shape=input_dim))
 
         layer_counter = 1
         n = len(self.layers)
@@ -321,17 +333,20 @@ class Feed_forward_model:
             except:
                 if dst_dim is None:
                     if is_readout:
-                        print_failure('The layer ' + str(
-                            layer_counter) + ' of the readout is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
+                        print_failure('The layer ' + str(layer_counter) +
+                                      ' of the readout is not correctly defined. Check keras documentation '
+                                      'to make sure all the parameters are correct.')
                     else:
-                        print_failure('The layer ' + str(
-                            layer_counter) + ' of the message creation neural network in the message passing to ' + str(
-                            dst_name) + ' is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
+                        print_failure('The layer ' + str(layer_counter) +
+                                      ' of the message creation neural network in the message passing to ' +
+                                      str(dst_name) + ' is not correctly defined. Check keras documentation to '
+                                      'make sure all the parameters are correct.')
 
                 else:
                     print_failure('The layer ' + str(
                         layer_counter) + ' of the update neural network in message passing to ' + str(dst_name) +
-                                  ' is not correctly defined. Check keras documentation to make sure all the parameters are correct.')
+                                  ' is not correctly defined. Check keras documentation to make sure all the '
+                                  'parameters are correct.')
 
             layer_counter += 1
         output_shape = model.output_shape[-1]

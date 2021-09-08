@@ -26,6 +26,18 @@ IGNNITION produces an optimized implementation of your GNN without writing a sin
 
 ## Quick Start
 ### Installation
+###### Recommended: Conda environment
+A [conda](https://conda.io) environment definition is available in `environment.yml`. Using it is recommended, as it
+ensures that an appropriate Python version and the necessary packages are installed. To use it, first install 
+[miniconda](https://docs.conda.io/en/latest/miniconda.html) and then run the following:
+
+```
+conda env create -f environment.yml --name ignnition
+conda activate ignnition
+```
+
+This will create the conda environment with `ignnition` name and will activate it.  
+
 ###### Recommended: Python 3.7
 Please, ensure you use Python 3.7. Otherwise, we do not guarantee the correct installation of dependencies.
 

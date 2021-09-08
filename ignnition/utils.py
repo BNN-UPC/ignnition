@@ -1,4 +1,4 @@
-'''
+"""
  *
  * Copyright (C) 2020 Universitat Politècnica de Catalunya.
  *
@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,17 +14,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
-'''
+"""
 
 # -*- coding: utf-8 -*-
 
-import json
-import tensorflow as tf
 import sys
-import os
+import json
+
+import tensorflow as tf
 
 
-class bcolors:
+class BColors:
     """
     Class which includes the hexadecimal code for a set of colors that are later used for printing messages
     """
@@ -50,8 +50,8 @@ def print_failure(msg):
        Message to be printed
     """
 
-    tf.print(bcolors.FAIL + msg + bcolors.ENDC, output_stream=sys.stderr)
-    os._exit(1)
+    tf.print(BColors.FAIL + msg + BColors.ENDC, output_stream=sys.stderr)
+    sys.exit(1)
 
 
 def print_info(msg):
@@ -64,7 +64,7 @@ def print_info(msg):
        Message to be printed
     """
 
-    tf.print(bcolors.FAIL + msg + bcolors.ENDC, output_stream=sys.stderr)
+    tf.print(BColors.FAIL + msg + '\n' + BColors.ENDC, output_stream=sys.stderr)
 
 
 def print_header(msg):
@@ -77,7 +77,7 @@ def print_header(msg):
        Message to be printed
     """
 
-    tf.print(bcolors.BOLD + msg + bcolors.ENDC, output_stream=sys.stderr)
+    tf.print(BColors.BOLD + msg + BColors.ENDC, output_stream=sys.stderr)
 
 
 def stream_read_json(f):
@@ -86,7 +86,7 @@ def stream_read_json(f):
 
     Parameters
     ----------
-    f:    dict
+    f:
        Data
     """
 
@@ -163,5 +163,5 @@ def get_global_var_or_input(calculations, var_name, f_):
     """
     try:
         return get_global_variable(calculations, var_name)
-    except:
+    except KeyError:
         return f_[var_name]

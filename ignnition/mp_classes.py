@@ -1,4 +1,4 @@
-'''
+"""
  *
  * Copyright (C) 2020 Universitat Politècnica de Catalunya.
  *
@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at:
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *     https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -14,16 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
-'''
+"""
 
 # -*- coding: utf-8 -*-
-
-import tensorflow as tf
-import tensorflow.keras.activations
-import sys
-from ignnition.utils import *
-from ignnition.operation_classes import *
-from ignnition.aggregation_classes import *
+from ignnition.aggregation_classes import InterleaveAggr, ConcatAggr, SumAggr, MeanAggr, MinAggr, MaxAggr, \
+    StdAggr, AttentionAggr, EdgeAttentionAggr, ConvAggr
+from ignnition.operation_classes import FeedForwardOperation, BuildState, ProductOperation, RNNOperation
+from ignnition.utils import print_failure
 
 
 class Entity:
@@ -68,7 +65,8 @@ class Entity:
         Parameters
         ----------
         operations:    dict
-            Dictionary specifing an operation to be performed as part of the pipeline to compute the hidden states of a given entity type nodes.
+            Dictionary specifying an operation to be performed as part of the pipeline to compute the
+            hidden states of a given entity layer_type nodes.
         """
 
         hs_operations = []
@@ -87,10 +85,10 @@ class Entity:
             # create the new operation
             type_update = op.get('type')
             if type_update == 'neural_network':
-                hs_operations.append(Feed_forward_operation(op, model_role='hs_creation'))
+                hs_operations.append(FeedForwardOperation(op, model_role='hs_creation'))
 
             elif type_update == 'build_state':
-                hs_operations.append(Build_state(op, self.name, self.state_dimension))
+                hs_operations.append(BuildState(op, self.name, self.state_dimension))
 
         # remove all the references in the inputs that refer to a previous output
         final_inputs = list(all_inputs.difference(all_outputs))
@@ -108,7 +106,7 @@ class Entity:
         return [f.name for f in self.features]
 
 
-class Message_Passing:
+class MessagePassing:
     """
     Class that represents the message passing to a single destination entity (with its possible source entities)
 
@@ -117,7 +115,7 @@ class Message_Passing:
     destination_entity:     str
         Name of the destination entity
     source_entities:      [array]
-        Array of Mp_source_entity object that define a single message passing (between one entity to a destination entity)
+        Array of MpSourceEntity object that define a single message passing (between one entity to a destination entity)
     aggregations:     [array]
         Array of aggregation operations that define the aggregation function
     update:     object
@@ -125,7 +123,7 @@ class Message_Passing:
 
     Methods:
     --------
-    create_update(self,dict)
+    create_update(self,aggr_def)
         Create a model to update the hidden state of the destination entity
 
     create_aggregations(self, attrs)
@@ -144,7 +142,7 @@ class Message_Passing:
         """
 
         self.destination_entity = m.get('destination_entity')
-        self.source_entities = [Mp_source_entity(s) for s in m.get('source_entities')]
+        self.source_entities = [MpSourceEntity(s) for s in m.get('source_entities')]
 
         self.aggregations, self.aggregations_global_type = self.create_aggregations(m.get('aggregation'))
         self.update = self.create_update(m.get('update', {'type': 'direct_assignment'}))
@@ -165,9 +163,9 @@ class Message_Passing:
         else:
             first_layer_type = u['architecture'][0]['type_layer']
             if first_layer_type == 'GRU' or first_layer_type == 'LSTM':
-                return RNN_operation(u)
+                return RNNOperation(u)
             else:
-                return Feed_forward_operation(u, model_role='update')
+                return FeedForwardOperation(u, model_role='update')
 
     def create_aggregations(self, attrs):
         """
@@ -180,46 +178,46 @@ class Message_Passing:
         single_embedding = None
         multiple_embedding = None
         for attr in attrs:
-            type = attr.get('type')
-            if type == 'interleave':
-                aggregations.append(Interleave_aggr(attr))
+            attr_type = attr.get('type')
+            if attr_type == 'interleave':
+                aggregations.append(InterleaveAggr(attr))
                 multiple_embedding = True
-            elif type == 'neural_network':
-                aggregations.append(Feed_forward_operation(attr, model_role='aggregation'))
+            elif attr_type == 'neural_network':
+                aggregations.append(FeedForwardOperation(attr, model_role='aggregation'))
                 single_embedding = True
-            elif type == 'concat':
-                aggregations.append(Concat_aggr(attr))
+            elif attr_type == 'concat':
+                aggregations.append(ConcatAggr(attr))
                 multiple_embedding = True
-            elif type == 'sum':
-                aggregations.append(Sum_aggr(attr))
+            elif attr_type == 'sum':
+                aggregations.append(SumAggr(attr))
                 single_embedding = True
-            elif type == 'mean':
-                aggregations.append(Mean_aggr(attr))
+            elif attr_type == 'mean':
+                aggregations.append(MeanAggr(attr))
                 single_embedding = True
-            elif type == 'min':
-                aggregations.append(Min_aggr(attr))
+            elif attr_type == 'min':
+                aggregations.append(MinAggr(attr))
                 single_embedding = True
-            elif type == 'max':
-                aggregations.append(Max_aggr(attr))
+            elif attr_type == 'max':
+                aggregations.append(MaxAggr(attr))
                 single_embedding = True
-            elif type == 'std':
-                aggregations.append(Std_aggr(attr))
+            elif attr_type == 'std':
+                aggregations.append(StdAggr(attr))
                 single_embedding = True
-            elif type == 'attention':
-                aggregations.append(Attention_aggr(attr))
+            elif attr_type == 'attention':
+                aggregations.append(AttentionAggr(attr))
                 single_embedding = True
-            elif type == 'edge_attention':
-                aggregations.append(Edge_attention_aggr(attr))
+            elif attr_type == 'edge_attention':
+                aggregations.append(EdgeAttentionAggr(attr))
                 single_embedding = True
-            elif type == 'convolution':
-                aggregations.append(Conv_aggr(attr))
+            elif attr_type == 'convolution':
+                aggregations.append(ConvAggr(attr))
                 single_embedding = True
             else:  # this is for the ordered aggregation
                 multiple_embedding = True
 
         if single_embedding and multiple_embedding:
-            print_failure(
-                "You cannot combine aggregations which return a sequence of tensors, and aggregations that return a single embedding")
+            print_failure("You cannot combine aggregations which return a sequence of tensors, "
+                          "and aggregations that return a single embedding")
 
         elif single_embedding:
             return aggregations, 0
@@ -231,7 +229,7 @@ class Message_Passing:
         return [src.get_instance_info(self.destination_entity) for src in self.source_entities]
 
 
-class Mp_source_entity:
+class MpSourceEntity:
     """
     Class that represents the information of a source entity for the message passing phase
 
@@ -266,22 +264,23 @@ class Mp_source_entity:
         """
         Parameters
         ----------
-        operations:    array
+        operations:
             Array of operation dictionaries
         """
 
         result = []
         counter = 0
-        for op in operations:
-            type = op.get('type')
-            if type == 'neural_network':
-                result.append(Feed_forward_operation(op, model_role='message_creation_' + str(counter)))
 
-            elif type == 'direct_assignment':
+        for op in operations:
+            op_type = op.get('type')
+            if op_type == 'neural_network':
+                result.append(FeedForwardOperation(op, model_role='message_creation_' + str(counter)))
+
+            elif op_type == 'direct_assignment':
                 result.append(None)
 
-            elif type == 'product':
-                result.append(Product_operation(op))
+            elif op_type == 'product':
+                result.append(ProductOperation(op))
             counter += 1
         return result
 

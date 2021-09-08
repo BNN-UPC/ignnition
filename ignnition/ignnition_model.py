@@ -18,14 +18,19 @@
 
 # -*- coding: utf-8 -*-
 
+import re
 import datetime
 import warnings
 import glob
 import tarfile
 from importlib import import_module
 from pathlib import Path
-from ignnition.gnn_model import Gnn_model
-from ignnition.yaml_preprocessing import Yaml_preprocessing
+import os
+
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+from ignnition.gnn_model import GnnModel
+from ignnition.yaml_preprocessing import YamlPreprocessing
 from ignnition.data_generator import Generator
 from ignnition.utils import *
 from ignnition.custom_callbacks import *
@@ -36,9 +41,11 @@ from networkx.readwrite import json_graph
 from itertools import chain
 
 
-class Ignnition_model:
+class IgnnitionModel:
     """
-    This class implements the main interface to execute the framework. It includes the main functionalities of the training, which can be called by the user. Additionally, it incorporates all the necessary functionalities to create/restore a model.
+    This class implements the main interface to execute the framework. It includes the main functionalities of the
+    training, which can be called by the user. Additionally, it incorporates all the necessary functionalities to
+    create/restore a model.
 
     Attributes
     ----------
@@ -56,13 +63,16 @@ class Ignnition_model:
     Methods:
     ----------
     __process_path(self, path)
-        This method takes as input a path and, considering the location of the model directory, converts all the relative path to absolute paths starting from such model_directory
+        This method takes as input a path and, considering the location of the model directory, converts all the
+        relative path to absolute paths starting from such model_directory
 
     __get_loss(self)
-        Obtain model loss either instantiating a tf.keras.losses.Loss object or a custom loss objective function specified in the module file.
+        Obtain model loss either instantiating a tf.keras.losses.Loss object or a custom loss objective function
+        specified in the module file.
 
     __get_metrics(self)
-        Obtain model metrics either instantiating tf.keras.metrics.Metric objects or returning custom metric functions specified in the module file.
+        Obtain model metrics either instantiating tf.keras.metrics.Metric objects or returning custom metric functions
+        specified in the module file.
 
     __get_compiled_model(self, model_info)
         Compiles the tf model with all the corresponding options
@@ -74,13 +84,15 @@ class Ignnition_model:
         Performs batch normalization on the data (e.g., normalizes all the batch by its max, min..)
 
     __global_normalization(self, x, feature_list, output_name, y=None)
-        Performs a global normalization operation which must be specified in the module path (all the samples are normalized according to the same criteria).
+        Performs a global normalization operation which must be specified in the module path (all the samples are
+        normalized according to the same criteria).
 
     __input_fn_generator(self, filenames=None, shuffle=False, training=True,data_samples=None, iterator=False)
         Method that creates the dataset which is served by the generator that we created before.
 
     __create_model(self)
-        Method that creates the yaml_preprocessing object that processed the model_description file and creates the subsequent classes to organize the info.
+        Method that creates the yaml_preprocessing object that processed the model_description file and creates the
+        subsequent classes to organize the info.
 
     __create_gnn(self,samples=None, path=None, verbose=True)
         Creates the GNN object itself.
@@ -89,22 +101,27 @@ class Ignnition_model:
         Restores the weights from a GNN that is saved in the given path to the current GNN model.
 
     find_dataset_dimensions(self, path=None, samples=None)
-        Looks for the first training samples and processes it to extract the dimensions of all the input tensors (necessary to create the GNN model)s
+        Looks for the first training samples and processes it to extract the dimensions of all the input tensors
+        (necessary to create the GNN model)s
 
     train_and_validate(self, training_samples=None, eval_samples=None)
-        Public operation that is called by the user to initiate a training and validation operation of the current GNN model.
+        Public operation that is called by the user to initiate a training and validation operation of the current
+        GNN model.
 
     predict(self, prediction_samples=None, verbose=True)
-        Public operation that is callable by the user to initiate a predict operatio of a given array of data/dataset using the current GNN model.
+        Public operation that is callable by the user to initiate a predict operatio of a given array of data/dataset
+        using the current GNN model.
 
     computational_graph(self)
-        Public method callable by the user to create a computation graph of the desired model which can be then used for debugging purposes.
+        Public method callable by the user to create a computation graph of the desired model which can be then used
+        for debugging purposes.
 
     evaluate(self, evaluation_samples = None, verbose=True)
         Public method callable by the user that executes an evaluation functionality given some metrics.
 
     batch_training(self, input_samples)
-        Public method callable by the user, useful in RL context, to execute a training of a single batch of data. No verbosite is set.
+        Public method callable by the user, useful in RL context, to execute a training of a single batch of data.
+        No verbosite is set.
     """
 
     def __init__(self, model_dir):
@@ -123,7 +140,7 @@ class Ignnition_model:
         with open(train_options_path, 'r') as stream:
             try:
                 self.CONFIG = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
+            except yaml.YAMLError:
                 print("The training options file was not found in " + train_options_path)
 
         tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -218,11 +235,11 @@ class Ignnition_model:
         """
         Parameters
         ----------
-        model_info:    Yaml_preprocessing object
+        model_info:    YamlPreprocessing object
             Object in charge of handling the information in the model_description.yaml file
         """
 
-        gnn_model = Gnn_model(model_info)
+        gnn_model = GnnModel(model_info)
 
         # dynamically define the optimizer
         optimizer_params = self.CONFIG['optimizer']
@@ -232,17 +249,19 @@ class Ignnition_model:
         # dynamically define the adaptative learning rate if needed (schedule)
         if 'learning_rate' in optimizer_params and isinstance(optimizer_params['learning_rate'], dict):
             schedule = optimizer_params['learning_rate']
-            type = schedule['type']
+            sched_type = schedule['type']
             del schedule['type']  # so that only the parameters remain
-            s = getattr(tf.keras.optimizers.schedules, type)
+            s = getattr(tf.keras.optimizers.schedules, sched_type)
 
-            # create an instance of the schedule class indicated by the user. Accepts any schedule from keras documentation
+            # create an instance of the schedule class indicated by the user. Accepts any schedule
+            # from keras documentation
             optimizer_params['learning_rate'] = s(**schedule)
 
         # create the optimizer
         o = getattr(tf.keras.optimizers, op_type)
 
-        # create an instance of the optimizer class indicated by the user. Accepts any loss function from keras documentation
+        # create an instance of the optimizer class indicated by the user. Accepts any loss function
+        # from keras documentation
         optimizer = o(**optimizer_params)
         gnn_model.compile(loss=self.__get_loss(),
                           optimizer=optimizer,
@@ -265,9 +284,9 @@ class Ignnition_model:
                                                histogram_freq=1),
                 tf.keras.callbacks.ModelCheckpoint(filepath=output_path + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
                                                    save_freq='epoch', monitor='loss'),
-                K_best(output_path=output_path + '/logs', k=self.CONFIG.get('k_best', None))]
+                KBest(output_path=output_path + '/logs', k=self.CONFIG.get('k_best', None))]
 
-    # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch seperately
+    # here we pass a mini-batch. We want to be able to perform a normalization over each mini-batch separately
     def __batch_normalization(self, x, feature_list, norm_type, y=None):
         """
         Parameters
@@ -278,7 +297,7 @@ class Ignnition_model:
         feature_list:    tensor
            List of names with the names of the features in x
         norm_type: string
-            Defines the type of batch normalization to be used
+            Defines the layer_type of batch normalization to be used
         y:    tensor
            Tensor with the label information
         """
@@ -292,9 +311,9 @@ class Ignnition_model:
                 variance = tf.math.reduce_std(x.get(f_name))
                 x[f_name] = (x.get(f_name) - mean) / variance
 
-            elif norm_type == 'max':
-                max = tf.math.reduce_max(x.get(f_name))
-                x[f_name] = x.get(f_name) / max
+            elif norm_type == 'max_val':
+                max_val = tf.math.reduce_max(x.get(f_name))
+                x[f_name] = x.get(f_name) / max_val
         # output
         if y is not None:
             output_normalization = 'mean'
@@ -303,9 +322,9 @@ class Ignnition_model:
                 variance = tf.math.reduce_std(y)
                 y = (y - mean) / variance
 
-            elif output_normalization == 'max':
-                max = tf.math.reduce_max(y)
-                y = y / max
+            elif output_normalization == 'max_val':
+                max_val = tf.math.reduce_max(y)
+                y = y / max_val
 
             return x, y
         return x
@@ -318,7 +337,7 @@ class Ignnition_model:
             Tensor with the feature information
         feature_list:    tensor
             List of names with the names of the features in x
-        output_names:    tensor
+        output_name:    tensor
             List of names with the name of the output labels in y
         y:    tensor
             Tensor with the label information
@@ -447,8 +466,8 @@ class Ignnition_model:
                                                                      output_names, adj_names,
                                                                      interleave_list, unique_additional_input, training,
                                                                      shuffle),
-                        output_types=(types),
-                        output_shapes=(shapes))
+                        output_types=types,
+                        output_shapes=shapes)
 
                 else:
                     data_samples = [json.dumps(t) for t in data_samples]
@@ -457,8 +476,8 @@ class Ignnition_model:
                                                                    output_names, adj_names,
                                                                    interleave_list,
                                                                    unique_additional_input, training, shuffle),
-                        output_types=(types),
-                        output_shapes=(shapes))
+                        output_types=types,
+                        output_shapes=shapes)
 
             with tf.name_scope('normalization') as _:
                 batch_norm = self.CONFIG.get('batch_normalization', None)
@@ -493,16 +512,17 @@ class Ignnition_model:
     # -------------------------------------
     def __create_model(self):
         print_header(
-            "\nProcessing the described model...\n---------------------------------------------------------------------------\n")
-        return Yaml_preprocessing(self.model_dir)  # read json
+            "\nProcessing the described model...\n----------------------------------------------"
+            "-----------------------------\n")
+        return YamlPreprocessing(self.model_dir)  # read json
 
-    def __create_gnn(self, samples=None, path=None, verbose=True):
+    def __create_gnn(self, samples=None, path=None, verbose=True, require_warm_start=False):
         """
         Parameters
         ----------
         samples:    [array]
             Array of samples to be used as input (if any)
-        path:    bool
+        path:
             Path to find the input data (applicable only if using dataset input)
         verbose:    bool
             Indicates if we want verbosity in the prints of the terminal
@@ -510,16 +530,18 @@ class Ignnition_model:
 
         if verbose:
             print_header(
-                "Creating the GNN model...\n---------------------------------------------------------------------------\n")
+                "Creating the GNN model...\n--------------------------------------------------------"
+                "-------------------\n")
 
         dimensions, sample = self.find_dataset_dimensions(samples=samples, path=path)
         self.model_info.add_dimensions(dimensions)
 
         gnn_model = self.__get_compiled_model(self.model_info)
-        # restore a warm-start Checkpoint (if any)
-        self.gnn_model = self.__restore_model(gnn_model, sample=sample)
 
-    def __restore_model(self, gnn_model, sample):
+        # restore a warm-start Checkpoint (if any)
+        self.gnn_model = self.__restore_model(gnn_model, sample=sample, require_warm_start=require_warm_start)
+
+    def __restore_model(self, gnn_model, sample, require_warm_start = False):
         """
         Parameters
         ----------
@@ -534,16 +556,21 @@ class Ignnition_model:
             print("Restoring from", checkpoint_path)
             # in this case we need to initialize the weights to be able to use a load_model checkpoint
 
-            sample_it = self.__input_fn_generator(training=False,
-                                                  data_samples=[sample])
+            sample_it = self.__input_fn_generator(training=False, data_samples=[sample])
             sample = sample_it.get_next()
             # Call only one tf.function when tracing.
             _ = gnn_model(sample, training=False)
             gnn_model.load_weights(checkpoint_path)
 
-        elif checkpoint_path != '':
-            print_info(
-                "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
+        elif checkpoint_path != '': #an invalid file was specified
+            if not require_warm_start:
+                print_info(
+                    "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
+            else:
+                print_failure(
+                    "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
+        elif require_warm_start and checkpoint_path == '':  #no file was specified
+            print_failure("There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this path, so that model that will compute the predictions can be recovered.")
 
         return gnn_model
 
@@ -654,9 +681,9 @@ class Ignnition_model:
             else:
                 self.__create_gnn(samples=training_samples)
 
-        print()
         print_header(
-            'Starting the training and validation process...\n---------------------------------------------------------------------------\n')
+            'Starting the training and validation process...\n----------------------------------'
+            '-----------------------------------------\n')
 
         filenames_train = self.__process_path(self.CONFIG['train_dataset'])
         filenames_val = self.__process_path(self.CONFIG['validation_dataset'])
@@ -672,7 +699,24 @@ class Ignnition_model:
         os.mkdir(output_path)
 
         strategy = tf.distribute.MirroredStrategy()  # change this not to use GPU
-        print('Number of devices: {}'.format(strategy.num_replicas_in_sync))
+        devices = {}
+        for elem in strategy.extended.worker_devices:
+            dev = re.search(':(.*):', elem.split('/')[-1]).group(1)
+            if dev not in devices:
+                devices[dev] = 1
+            else:
+                devices[dev] += 1
+        dev_string = "Your model is running on "
+        items = list(devices.items())
+        for i in range(len(items)):
+            dev_string += str(items[i][1]) + " " + str(items[i][0])
+            if i != (len(items) - 1):
+                dev_string += " and "
+            else:
+                dev_string += ".\n"
+
+        print_info(dev_string)
+
         train_dataset = self.__input_fn_generator(filenames_train,
                                                   shuffle=str_to_bool(
                                                       self.CONFIG['shuffle_training_set']),
@@ -702,7 +746,7 @@ class Ignnition_model:
                            use_multiprocessing=True,
                            verbose=1)
 
-    def predict(self, prediction_samples=None, verbose=True):
+    def predict(self, prediction_samples=None, verbose=True, num_predictions = None):
         """
         Parameters
         ----------
@@ -718,19 +762,15 @@ class Ignnition_model:
             try:
                 data_path = self.__process_path(self.CONFIG['predict_dataset'])
             except:
-                print_failure(
-                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the predict dataset')
+                print_failure('Make sure to either pass an array of samples or to define in the train_options.yaml '
+                              'the path to the predict dataset')
 
         # create the GNN model --and load the previous checkpoint-- if it does not exist already
         if not hasattr(self, 'gnn_model'):
             if prediction_samples is None:  # look for the dataset path
-                try:
-                    self.__create_gnn(path=data_path, verbose=verbose)
-                except:
-                    print_failure(
-                        'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the prediction dataset')
+                self.__create_gnn(path=data_path, verbose=verbose, require_warm_start=True)
             else:
-                self.__create_gnn(samples=prediction_samples, verbose=verbose)
+                self.__create_gnn(samples=prediction_samples, verbose=verbose, require_warm_start=True)
 
         if verbose:
             print()
@@ -748,10 +788,12 @@ class Ignnition_model:
                 denorm_func = None
 
             # while there are predictions
-            while True:
+            finished = False
+            counter = 0
+            while not finished:
                 pred = self.gnn_model(sample_it.get_next(), training=False)
                 pred = tf.squeeze(pred)
-                output_name = self.model_info.get_output_info()  # for now suppose we only have one output type
+                output_name = self.model_info.get_output_info()  # for now suppose we only have one output layer_type
 
                 if denorm_func is not None:
                     try:
@@ -761,6 +803,10 @@ class Ignnition_model:
 
                 all_predictions.append(pred)
 
+                counter += 1
+
+                finished = True if (num_predictions is not None and counter >= num_predictions) else False
+
         except tf.errors.OutOfRangeError:
             pass
 
@@ -768,13 +814,22 @@ class Ignnition_model:
 
     def computational_graph(self):
         # Check if we can generate the computational graph without a dataset
-        train_path = self.__process_path(self.CONFIG['train_dataset'])
-        if not hasattr(self, 'gnn_model'):
-            self.__create_gnn(path=train_path)
 
-        print()
+        train_path = self.__process_path(self.CONFIG['train_dataset']) if 'train_dataset' in self.CONFIG else ''
+        pred_path = self.__process_path(self.CONFIG['predict_dataset']) if 'predict_dataset' in self.CONFIG else ''
+        data_path = ''
+        if os.path.isdir(train_path):
+            data_path = train_path
+        elif os.path.isdir(pred_path):
+            data_path = pred_path
+        else:
+            print_failure('In order to build the computational graph of your model, you must specify valid path to the train dataset or the predict dataset in the train_options.yaml file. Please revise that you have specified at least one of them, and that they point to a valid dataset.')
+
+        if not hasattr(self, 'gnn_model'):
+            self.__create_gnn(path=data_path)
         print_header(
-            'Generating the computational graph... \n---------------------------------------------------------------------------\n')
+            'Generating the computational graph... \n----------------------------------------------------'
+            '-----------------------\n')
 
         path = self.__process_path(self.CONFIG['output_path'])
 
@@ -786,11 +841,11 @@ class Ignnition_model:
         tf.summary.trace_on(graph=True, profiler=True)
 
         # evaluate one single input
-        sample_it = self.__input_fn_generator(train_path, training=False, data_samples=None, iterator=True)
+        sample_it = self.__input_fn_generator(data_path, training=False, data_samples=None, iterator=True)
         sample = sample_it.get_next()
         # Call only one tf.function when tracing.
         _ = self.gnn_model(sample, training=False)
-        print(path)
+
         with writer.as_default():
             tf.summary.trace_export(
                 name="computational_graph_" + str(datetime.datetime.now()),
@@ -814,7 +869,8 @@ class Ignnition_model:
                 data_path = self.__process_path(self.CONFIG['validation_dataset'])
             except:
                 print_failure(
-                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path to the validation dataset')
+                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path '
+                    'to the validation dataset')
 
         # Generate the model if it doesn't exist
         if not hasattr(self, 'gnn_model'):
@@ -850,7 +906,7 @@ class Ignnition_model:
                 features, label = sample_it.get_next()
                 pred = self.gnn_model(features, training=False)
                 pred = tf.squeeze(pred)
-                output_name = self.model_info.get_output_info()  # for now suppose we only have one output type
+                output_name = self.model_info.get_output_info()  # for now suppose we only have one output layer_type
                 if denorm_func is not None:
                     try:
                         pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
