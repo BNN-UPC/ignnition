@@ -669,7 +669,15 @@ class DatanetAPI:
 
         """
         g = None
+
+        # Check if directory exists
+        if not os.path.isdir(self.data_folder):
+            print("PATH_ERROR: The directory "+self.data_folder+" doesn't exist. Make sure the path points to the proper location.")
+            return 
+
         for root, dirs, files in os.walk(self.data_folder):
+            # We don't want to iterate over tfrecords subdirectory
+            dirs.remove('tfrecords')
             #if (len(dirs)!=0):
             #    continue
 
