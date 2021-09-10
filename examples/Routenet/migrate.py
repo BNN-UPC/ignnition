@@ -19,7 +19,7 @@ import tensorflow as tf
 import random
 import networkx as nx
 from datanetAPI import DatanetAPI
-import matplotlib.pyplot as plt
+import argparse
 from networkx.readwrite import json_graph
 import json
 import tarfile
@@ -72,10 +72,16 @@ def network_to_hypergraph(network_graph, routing_matrix, traffic_matrix, perform
     return D_G
 
 
-def migrate_dataset(input_path, output_path, max_per_file):
+def migrate_dataset(input_path, output_path, max_per_file, split):
     gen = generator(input_path)
     data = []
-    file_ctr = 0
+    file_ctr_train = 0
+    file_ctr_eval = 0
+
+    tmp_dir = output_path+"/.tmp/"
+    os.system("rm -rf %s" % (tmp_dir))
+    os.makedirs(tmp_dir)
+
     counter = 0
     while True:
         try:
@@ -84,55 +90,85 @@ def migrate_dataset(input_path, output_path, max_per_file):
             data.append(parser_graph)
             if counter == max_per_file:
                 a = np.random.rand()
-                path = output_path + 'data/'
-                if a < 0.2:
+                path = output_path 
+                if a < split:
                     path += 'eval/'
-                else:
-                    path += 'train/'
-
-                with open('data.json', 'w') as json_file:
+                    with open(tmp_dir+'data.json', 'w') as json_file:
                         json.dump(data, json_file)
 
-                tar = tarfile.open(path + "/sample_" + str(file_ctr) + ".tar.gz", "w:gz")
-                tar.add('data.json')
-                tar.close()
-                os.remove('data.json')
+                    tar = tarfile.open(path + "sample_" + str(file_ctr_eval) + ".tar.gz", "w:gz")
+                    tar.add(tmp_dir+'data.json')
+                    tar.close()
+                    os.remove(tmp_dir+'data.json')
+                    file_ctr_eval += 1
+                else:
+                    path += 'train/'
+                    with open(tmp_dir+'data.json', 'w') as json_file:
+                        json.dump(data, json_file)
+
+                    tar = tarfile.open(path + "sample_" + str(file_ctr_train) + ".tar.gz", "w:gz")
+                    tar.add(tmp_dir+'data.json')
+                    tar.close()
+                    os.remove(tmp_dir+'data.json')
+
+                    file_ctr_train += 1
 
                 data = []
                 counter = 0
-                file_ctr += 1
             else:
                 counter +=1
 
-            #visualize the plot
-            #plt.subplot(121)
-            #nx.draw(G, with_labels=True, font_weight='bold')
-            #plt.show()
-
-        #when finished, save all the remaining ones
+        # when finished, save all the remaining ones in the last file
         except:
             a = np.random.rand()
-            path = output_path + 'data/'
-            if a < 0.2:
+            path = output_path
+            if a < split:
                 path += 'eval/'
+                with open(tmp_dir+'data.json', 'w') as json_file:
+                    json.dump(data, json_file)
+
+                tar = tarfile.open(path + "sample_" + str(file_ctr_eval) + ".tar.gz", "w:gz")
+                tar.add(tmp_dir+'data.json')
+                tar.close()
+                os.remove(tmp_dir+'data.json')
             else:
                 path += 'train/'
+                with open(tmp_dir+'data.json', 'w') as json_file:
+                    json.dump(data, json_file)
 
-            with open(path + 'data.json', 'w') as json_file:
-                json.dump(data, json_file)
-
-            tar = tarfile.open(path + "/sample_" + str(file_ctr) + ".tar.gz", "w:gz")
-            tar.add(path + 'data.json')
-            tar.close()
-            os.remove(path + 'data.json')
-
-
-def main():
-    migrate_dataset(sys.argv[1], output_path=sys.argv[2], max_per_file=int(sys.argv[3]))
+                tar = tarfile.open(path + "sample_" + str(file_ctr_train) + ".tar.gz", "w:gz")
+                tar.add(tmp_dir+'data.json')
+                tar.close()
+                os.remove(tmp_dir+'data.json')
+            os.system("rm -rf %s" % (tmp_dir))
+            break
 
 if __name__ == "__main__":
-    if (len(sys.argv) != 4):
-        print(
-            "Error: You should pass three argument. The path to the downloaded dataset, the output path, and the maximum of samples per file")
-        sys.exit()
-    main()
+    # python migrate.py -d ../../../nsfnetbw/ -o ./datansfnet/ -n 100 -s 0.8
+    # Parse logs and get best model
+    parser = argparse.ArgumentParser(description='Parse file and create plots')
+
+    parser.add_argument('-d', help='Origin data directory', type=str, required=True, nargs='+')
+    parser.add_argument('-o', help='Output data directory', type=str, required=True, nargs='+')
+    parser.add_argument('-n', help='Number of samples per file', type=int, required=True, nargs='+')
+    parser.add_argument('-s', help='Percentage split of files used for TRAINING. 1-percentage will be added to EVALUATION set.', type=float, required=True, nargs='+')
+    args = parser.parse_args()
+
+    origin_dir = args.d[0]
+    output_dir = args.o[0]
+    split = 1-float(args.s[0])
+    num_samples_file = args.n[0]
+
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+    
+    if os.path.exists(output_dir+'/eval'):
+        os.system("rm -rf %s" % (output_dir))
+    
+    if os.path.exists(output_dir+'/train'):
+        os.system("rm -rf %s" % (output_dir))
+
+    os.makedirs(output_dir+'/eval')
+    os.makedirs(output_dir+'/train')
+
+    migrate_dataset(origin_dir, output_dir, num_samples_file, split)
