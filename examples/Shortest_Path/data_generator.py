@@ -55,6 +55,9 @@ if not os.path.exists(root_dir + "/train"):
     os.makedirs(root_dir + "/train")
 if not os.path.exists(root_dir + "/validation"):
     os.makedirs(root_dir + "/validation")
+if not os.path.exists(root_dir + "/test"):
+    os.makedirs(root_dir + "/test")
 
 generate_dataset("./data/train/data.json", 1000)
 generate_dataset("./data/validation/data.json", 100)
+generate_dataset("./data/test/data.json", 100)
