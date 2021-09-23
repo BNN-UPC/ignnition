@@ -19,21 +19,27 @@ In the previous section we presented the process to train RouteNet with the mini
 ### 1) Download the raw data
 First of all, you must download one dataset (i.e., NSFNET (2GB), GEANT (6GB) or synth50(28.7GB), and untar them.
 ```python
-    wget "http://knowledgedefinednetworking.org/data/datasets_v0/nsfnet.tar.gz"
-    wget "http://knowledgedefinednetworking.org/data/datasets_v0/geant2.tar.gz"
-    wget "http://knowledgedefinednetworking.org/data/datasets_v0/synth50.tar.gz"
-    tar -xvzf nsfnet.tar.gz 
-    tar -xvzf geant2.tar.gz 
-    tar -xvzf synth50.tar.gz
+    wget "https://knowledgedefinednetworking.org/data/datasets_v1/nsfnetbw.tar.gz"
+    wget "https://knowledgedefinednetworking.org/data/datasets_v1/geant2bw.tar.gz"
+    wget "https://knowledgedefinednetworking.org/data/datasets_v1/gbnbw.tar.gz"
+    wget "https://knowledgedefinednetworking.org/data/datasets_v1/germany50bw.tar.gz"
+    tar -xvzf nsfnetbw.tar.gz 
+    tar -xvzf geant2bw.tar.gz 
+    tar -xvzf gbnbw.tar.gz 
+    tar -xvzf germany50bw.tar.gz
 ```
 
 ### 2) Migrate the dataset to the adequate format
-Once you have download and untared the dataset, place yourself at the scope of the directory of the provided main.py file, and  execute:
+Once you have downloaded and untared the dataset, place yourself at the scope of the directory of the provided main.py file, and  execute:
 ```python
-    python migrate.py -d <PATH TO DATASET> -o <PATH TO OUTPUT> -n <NUM_SAMPLES_PER_FILE>
+    python migrate.py -d <PATH TO DATASET> -o <PATH TO OUTPUT> -n <NUM_SAMPLES_PER_FILE> -s <PERCENTAGE_TRAINING>
 ```
-To execute this file, you need to pass three arguments as parameters. First of all, the path to the untared dataset. Then the path to the directory where the new dataset will be stored. Finally, the number of samples that each of the files in the new dataset can contain. For example, passing a 100 ensures that you end up with a directory with multiple files, each of which has at most 100 samples.
-It is important to consider that this process can take several minutes to finish.
+For Example:
+```python
+    python migrate.py -d ../../../nsfnetbw/ -o ./nsfnetMigrated/ -n 100 -s 0.8
+```
+To execute this file, you need to pass four arguments as parameters. First of all, the path to the untared dataset. Then the path to the directory where the new dataset will be stored. The third parameter is number of samples that each of the files in the new dataset can contain. For example, passing a 100 ensures that you end up with a directory with multiple files, each of which has at most 100 samples. Finally, the last parameter is which percentage of files are going to be used for training
+It is important to consider that the migration process can take several minutes to finish.
 
 ### 3) Training
 Go to the *train_options.yaml* file and ensure that the *train_dataset* path points to your new dataset.
@@ -41,4 +47,3 @@ Finally, execute:
 ```python
     python main.py
 ```
-    
