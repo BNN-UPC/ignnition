@@ -94,7 +94,7 @@ def migrate_dataset(input_path, output_path, max_per_file, split):
                 if a < split:
                     path += 'eval/'
                     with open(tmp_dir+'data.json', 'w') as json_file:
-                        json.dump(data, json_file, ensure_ascii=False).encode('utf8')
+                        json.dump(data, json_file)
 
                     tar = tarfile.open(path + "sample_" + str(file_ctr_eval) + ".tar.gz", "w:gz")
                     tar.add(tmp_dir+'data.json', arcname="data.json")
@@ -104,7 +104,7 @@ def migrate_dataset(input_path, output_path, max_per_file, split):
                 else:
                     path += 'train/'
                     with open(tmp_dir+'data.json', 'w') as json_file:
-                        json.dump(data, json_file, ensure_ascii=False).encode('utf8')
+                        json.dump(data, json_file)
 
                     tar = tarfile.open(path + "sample_" + str(file_ctr_train) + ".tar.gz", "w:gz")
                     tar.add(tmp_dir+'data.json', arcname="data.json")
@@ -125,7 +125,7 @@ def migrate_dataset(input_path, output_path, max_per_file, split):
             if a < split:
                 path += 'eval/'
                 with open(tmp_dir+'data.json', 'w') as json_file:
-                    json.dump(data, json_file, ensure_ascii=False).encode('utf8')
+                    json.dump(data, json_file)
 
                 tar = tarfile.open(path + "sample_" + str(file_ctr_eval) + ".tar.gz", "w:gz")
                 tar.add(tmp_dir+'data.json', arcname="data.json")
@@ -134,7 +134,7 @@ def migrate_dataset(input_path, output_path, max_per_file, split):
             else:
                 path += 'train/'
                 with open(tmp_dir+'data.json', 'w') as json_file:
-                    json.dump(data, json_file, ensure_ascii=False).encode('utf8')
+                    json.dump(data, json_file)
 
                 tar = tarfile.open(path + "sample_" + str(file_ctr_train) + ".tar.gz", "w:gz")
                 tar.add(tmp_dir+'data.json', arcname="data.json")
