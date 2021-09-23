@@ -584,6 +584,7 @@ class IgnnitionModel:
         samples: [array]
             Array of samples to be used as input (if any)
         """
+        tar_file = False
 
         if samples is not None:
             sample = samples[0]  # take the first one to find the dimensions
@@ -601,15 +602,21 @@ class IgnnitionModel:
                     tar = tarfile.open(sample_path, 'r:gz')  # read the tar files
                     member = tar.getmembers()[0]
                     file_samples = tar.extractfile(member)
+                    tar_file = True
                 except:
                     print_failure('The tar file ' + sample_path + ' could not be opened')
 
             # if it is already a json file
             else:
-                file_samples = open(sample_path, 'r')
+                file_samples = open(sample_path, 'r', encoding="utf-8")
 
             try:
-                ch1 = file_samples.read(1)
+                # If it's a tar file, decode using utf-8
+                if tar_file:
+                    ch1 = file_samples.read(1).decode("utf-8")
+                else:
+                    ch1 = file_samples.read(1)
+                
                 if ch1 != '[':
                     print_failure(
                         "Error because the dataset files must be an array of json objects, and not single json objects")
