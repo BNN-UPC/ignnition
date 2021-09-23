@@ -14,8 +14,8 @@ metrics: [BinaryAccuracy, Precision, Recall]
 
 # TRAINING OPTIONS
 batch_size: 1
-epochs: 300
-epoch_size: 100
+epochs: 60
+epoch_size: 200
 shuffle_training_set: True
 shuffle_validation_set: False
 val_samples: 100
