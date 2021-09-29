@@ -77,6 +77,7 @@ def migrate_dataset(input_path, output_path, max_per_file, split):
     data = []
     file_ctr_train = 0
     file_ctr_eval = 0
+    topology = input_path.split('/')[3]
 
     tmp_dir = output_path+"tmp/"
     os.system("rm -rf %s" % (tmp_dir))
@@ -96,7 +97,7 @@ def migrate_dataset(input_path, output_path, max_per_file, split):
                     with open(tmp_dir+'data.json', 'w') as json_file:
                         json.dump(data, json_file)
 
-                    tar = tarfile.open(path + "sample_" + str(file_ctr_eval) + ".tar.gz", "w:gz")
+                    tar = tarfile.open(path + topology + "sample_" + str(file_ctr_eval) + ".tar.gz", "w:gz")
                     tar.add(tmp_dir+'data.json', arcname="data.json")
                     tar.close()
                     os.remove(tmp_dir+'data.json')
@@ -106,7 +107,7 @@ def migrate_dataset(input_path, output_path, max_per_file, split):
                     with open(tmp_dir+'data.json', 'w') as json_file:
                         json.dump(data, json_file)
 
-                    tar = tarfile.open(path + "sample_" + str(file_ctr_train) + ".tar.gz", "w:gz")
+                    tar = tarfile.open(path + topology + "sample_" + str(file_ctr_train) + ".tar.gz", "w:gz")
                     tar.add(tmp_dir+'data.json', arcname="data.json")
                     tar.close()
                     os.remove(tmp_dir+'data.json')
@@ -127,7 +128,7 @@ def migrate_dataset(input_path, output_path, max_per_file, split):
                 with open(tmp_dir+'data.json', 'w') as json_file:
                     json.dump(data, json_file)
 
-                tar = tarfile.open(path + "sample_" + str(file_ctr_eval) + ".tar.gz", "w:gz")
+                tar = tarfile.open(path + topology + "sample_" + str(file_ctr_eval) + ".tar.gz", "w:gz")
                 tar.add(tmp_dir+'data.json', arcname="data.json")
                 tar.close()
                 os.remove(tmp_dir+'data.json')
@@ -136,7 +137,7 @@ def migrate_dataset(input_path, output_path, max_per_file, split):
                 with open(tmp_dir+'data.json', 'w') as json_file:
                     json.dump(data, json_file)
 
-                tar = tarfile.open(path + "sample_" + str(file_ctr_train) + ".tar.gz", "w:gz")
+                tar = tarfile.open(path + topology + "sample_" + str(file_ctr_train) + ".tar.gz", "w:gz")
                 tar.add(tmp_dir+'data.json', arcname="data.json")
                 tar.close()
                 os.remove(tmp_dir+'data.json')
