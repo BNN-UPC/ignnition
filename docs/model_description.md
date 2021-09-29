@@ -227,16 +227,16 @@ num_iterations: 8
 **Accepted values:** Array of [Stage objects](#stage, each of which represents a time-step of the algorithm.
 
 
-### Stage:
+##### Stage:
 To define a stage, we must define all the single message passings that take place during that stage (a given time-step of the algorithm). This is to define all the single message-passing which define how potentially many entities send messages to a destination entity.
 
-#### Parameter: stage_message_passings
+###### Parameter: stage_message_passings
 **Description:** Contains the single message-passings (the process of one entity nodes sending messages to another one), which we assign to this stage (time-step of the algorithm)
 
 **Accepted values:** Array of [Single message-passing objects](#single-message-passing).
 
 
-### Single message-passing:
+####### Single message-passing:
 This object defines how the nodes of potentially many entity types send messages simultaniously to the nodes of a given destination entity. To do so, we must define the following parameters:<br>
 
 - [Parameter: destination](#parameter-destination)<br>
