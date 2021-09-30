@@ -41,6 +41,10 @@ def denormalization(feature, feature_name):
         feature = tf.math.exp(feature)
     return feature
 
+def evaluation_metric(label, prediction):
+    # Change to proper shapes and compute re
+    label = tf.reshape(label, (1, len(label)))
+    return tf.math.reduce_mean((label-prediction)/label)
 
 def main():
     model = ignnition.create_model(model_dir='./')
