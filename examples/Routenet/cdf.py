@@ -31,24 +31,30 @@ def main():
     with open('GBN.pkl', 'rb') as f:
         gbn = pickle.load(f)
     
-    # with open('GEANT2.pkl', 'rb') as f:
-    #     geant2 = pickle.load(f)
+    with open('Geant2.pkl', 'rb') as f:
+        geant2 = pickle.load(f)
+
+    gbn = gbn[:1000]
+    geant2 = geant2[:1000]
 
     fig, ax = plt.subplots()
     n = np.arange(1,len(gbn)+1) / np.float(len(gbn))
     Xs = np.sort(gbn)
     ax.step(Xs,n, c='darkorange', linestyle='--', label="GBN", linewidth=3) 
+    n = np.arange(1,len(gbn)+1) / np.float(len(geant2))
+    Xs = np.sort(geant2)
+    ax.step(Xs,n, c='green', linestyle='-.', label="GEANT2", linewidth=3) 
 
-    plt.rcParams.update({'font.size': 16})
+    plt.rcParams.update({'font.size': 14})
     plt.rcParams['pdf.fonttype'] = 42
     plt.ylim((0, 1.005))
-    plt.xlim((-0.1, 0.25))
-    plt.xticks(np.arange(-0.1, 0.25, 0.05))
+    plt.xlim((-0.2, 0.25))
+    plt.xticks(np.arange(-0.2, 0.25, 0.05))
     plt.ylabel('CDF', fontsize=17)
     plt.xlabel("Mean Relative Error", fontsize=20)
     plt.legend(prop={'size': 16, 'weight': 'bold'}, loc='lower right')
     plt.grid(color='gray')
-    lgd = plt.legend(loc="lower left", bbox_to_anchor=(0.1, 0.8), ncol=2)
+    lgd = plt.legend(loc="lower left", bbox_to_anchor=(0.0, 0.8), ncol=1)
     plt.tight_layout()
     #plt.show()
     plt.savefig('CDF_GEANT_GBN.pdf', bbox_extra_artists=(lgd,), bbox_inches='tight')
