@@ -60,8 +60,12 @@ neural_networks:
     units: readout_units
     kernel_regularizer: r_l2
     activation: selu
+  - type_layer: Dropout
+    rate: 0.5
   - type_layer: Dense
     units: readout_units
+  - type_layer: Dropout
+    rate: 0.5
   - type_layer: Dense
     units: output_units
     kernel_regularizer: r_l2_2

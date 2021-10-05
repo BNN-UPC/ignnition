@@ -28,9 +28,9 @@ import ignnition
 
 def normalization(feature, feature_name):
     if feature_name == 'traffic':
-        feature = (feature - 170) / 130
+        feature = (feature - 373.762) / 229.503
     elif feature_name == 'capacity':
-        feature = (feature - 25000) / 40000
+        feature = (feature - 22576.877) / 14802.988
     elif feature_name == 'delay':
         feature = tf.math.log(feature)
     return feature
