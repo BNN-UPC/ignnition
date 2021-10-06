@@ -858,7 +858,8 @@ If concat_axis = 2, we weill get a new message
 .. code-block:: yaml
 
    aggregation:
-       - type: interleave
+       - type: concat
+       - concat_axis: 1
 
 ----
 
