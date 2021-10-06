@@ -406,7 +406,7 @@ Parameter: initial_state
 
 **Description:** Array of Operation object defining incrementally the initial_state.
 
-**Accepted values:** Array of `Operation objects <#operation-object>`_.
+**Accepted values:** Array of :ref:`Operation objects <operation-object>`.
 
 Step 2: Message-passing phase
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
