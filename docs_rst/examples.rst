@@ -25,11 +25,11 @@ Below you can find the list of examples implemented so far by
     :local:
     :depth: 1
 
-.. include:: ./Examples/shortest_path.rst
-.. include:: ./Examples/graph_query_neural_networks.rst
-.. include:: ./Examples/routenet.rst
-.. include:: ./Examples/q-size.rst
-.. include:: ./Examples/qm9.rst
-.. include:: ./Examples/radio_resource_allocation.rst
+.. include:: Examples/shortest_path.rst
+.. include:: Examples/graph_query_neural_networks.rst
+.. include:: Examples/routenet.rst
+.. include:: Examples/q-size.rst
+.. include:: Examples/qm9.rst
+.. include:: Examples/radio_resource_allocation.rst
 
 
