@@ -608,11 +608,11 @@ destination node.
           input: [source]
           output_name: my_output1
         - type: neural_network
-          input: [my_output1, target]
+          input: [my_output1, destination]
 
 An important note is that for the definition of neural networks in the message function, *IGNNITION* reserves the use
-of *source* and *target* keywords. These keywords are used to reference to the source hidden states of the entity
-(in this case entity1), and to reference the destination hidden states of the target node.
+of *source* and *destination* keywords. These keywords are used to reference to the source hidden states of the entity
+(in this case entity1), and to reference the destination hidden states of the destination node.
 
 .. _aggregation_operation:
 

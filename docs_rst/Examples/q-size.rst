@@ -1,6 +1,8 @@
 4. Q-size
 ---------
 
+.. _q-size-brief:
+
 Brief Description
 ~~~~~~~~~~~~~~~~~
 
@@ -42,11 +44,12 @@ Below we provide a visualization of the corresponding MSMP graph for
 this use-case. In this representation we can observe the three different
 entities, this being the links, the paths and the nodes. Then we can
 observe the message passing that they perform into two separete stages.
-|MSMP Q-Size definition|
+
+.. image::Images/msmp_q_size.png
+    :align:center
 
 .. button::
    :text: Q-size
    :link: <https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Q-size
 
 |
-

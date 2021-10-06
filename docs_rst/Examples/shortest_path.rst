@@ -17,5 +17,3 @@ depth the target problem, as well as the architecture of the resulting
    :link: https://github.com/BNN-UPC/ignnition/tree/main/examples/Shortest_Path
 
 |
-
-.. |MSMP Q-Size definition| image:: Images/msmp_q_size.png
