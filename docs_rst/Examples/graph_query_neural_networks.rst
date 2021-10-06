@@ -51,7 +51,10 @@ MSMP Graph
 Below we provide a visualization of the corresponding MSMP graph. In
 this representation we can observe the two different entities, this
 being the interfaces (INTER) and the routers (ROUTER). Then, as
-mentioned before, these exchange messages in two different stages. |MSMP GQNN definition|
+mentioned before, these exchange messages in two different stages.
+
+.. image::Images/msmp_gqnn.png
+    :align:center
 
 Try Graph Query Neural Network
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,5 +74,3 @@ this process.
    :link: https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Graph_query_networks
 
 |
-
-.. |MSMP GQNN definition| image:: Images/msmp_gqnn.png

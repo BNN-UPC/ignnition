@@ -43,12 +43,13 @@ MSMP Graph
 Below we provide a visualization of the corresponding MSMP graph for
 this use-case. In this representation we can observe the two different
 entities, these being the *links* and the *paths*. Then we can observe
-the message passing that they perform into two separete stages. |MSMP RouteNet definition|
+the message passing that they perform into two separete stages.
+
+.. image::Images/msmp_routenet.png
+    :align:center
 
 .. button::
    :text: Try RouteNet
    :link: https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Routenet
 
 |
-
-.. |MSMP RouteNet definition| image:: ./Images/msmp_routenet.png

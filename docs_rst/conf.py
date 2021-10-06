@@ -87,10 +87,5 @@ html_context = {
 html_static_path = ['_static']
 
 source_suffix = {
-    '.rst': 'restructuredtext',
-    '.txt': 'markdown',
-    '.md': 'markdown',
+    '.rst': 'restructuredtext'
 }
-
-def setup(app):
-    app.add_css_file('_static/button.css')

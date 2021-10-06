@@ -60,7 +60,7 @@ Parameter: initial_state
 
 **Description:** Array of Operation object defining incrementally the initial_state.
 
-**Accepted values:** Array of `Operation objects <#operation-object>`_.
+**Accepted values:** Array of :ref:`Operation objects <operation-object>`.
 
 Step 2: Message-passing phase
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -262,7 +262,7 @@ destination node.
           input: [source]
           output_name: my_output1
         - type: neural_network
-          input: [my_output1, target]
+          input: [my_output1, destination]
 
 An important note is that for the definition of neural networks in the message function, *IGNNITION* reserves the use
 of *source* and *target* keywords. These keywords are used to reference to the source hidden states of the entity
@@ -503,7 +503,7 @@ If concat_axis = 1, we will get a new message
     AggregatedMessage_j = [[1,2,3,4,5,6], [4,5,6,1,2,3]]
 
 
-If concat_axis = 2, we weill get a new message
+If concat_axis = 2, we will get a new message
 
 .. math::
 
@@ -511,6 +511,11 @@ If concat_axis = 2, we weill get a new message
 
 
 ----
+.. code-block:: yaml
+
+   aggregation:
+       - type: concat
+       - concat_axis: 1
 
 Option 10: interleave
 ~~~~~~~~~~~~~~~~~~~~~

@@ -66,7 +66,7 @@ how to build the dataset in the section :ref:`Dataset <generate-your-dataset>`.
 
 In this particular case, the nodes are going to be encoded using a
 binary feature called "src\_tgt" that tells us whether a node is the
-source or the target of the shortest path being calculated. For the
+source or the destination of the shortest path being calculated. For the
 example graph we provided before, the different nodes will be encoded
 as:
 
