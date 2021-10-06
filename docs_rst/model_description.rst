@@ -1337,7 +1337,7 @@ Step 4: Neural Network architectures
 In this section we define the architecture of the neural networks that we refenced in all the previous sections. For
 this, we just need to define an array of :ref:`Neural Network object <neural_network_object>`. Note that we will use
 the very same syntax to define either *Feed-forward NN* or *Recurrent NN*. Let us describe what a
- :ref:`Neural Network object <neural_network_object>` looks like:
+:ref:`Neural Network object <neural_network_object>` looks like:
 
 .. _neural_network_object:
 
