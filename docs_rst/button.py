@@ -6,9 +6,41 @@ from docutils.parsers.rst import Directive
 
 BUTTON_TEMPLATE = jinja2.Template(u"""
 <div style="text-align: center;">
-     
+<style>
+
+/* CSS */
+.button {
+  background-image: linear-gradient(-180deg, #37AEE2 0%, #0075b6 100%);
+  border-radius: .5rem;
+  box-sizing: border-box;
+  color: #FFFFFF;
+  display: flex;
+  font-size: 20px;
+  justify-content: center;
+  padding: 1rem 1.75rem;
+  text-decoration: none;
+  width: 50%;
+  border: 0;
+  margin-left: auto;
+  margin-right: auto;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.button:hover {
+  background-image: linear-gradient(-180deg, #1D95C9 0%, #17759C 100%);
+}
+
+@media (min-width: 768px) {
+  .button {
+    padding: 1rem 2rem;
+  }
+}
+</style>
     <a href="{{ link }}">
-        <button>{{ text }}</button>
+        <button class="button">{{ text }}</button>
     </a>
 </div>
 """)
