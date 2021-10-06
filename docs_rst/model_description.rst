@@ -855,6 +855,10 @@ If concat_axis = 2, we weill get a new message
 
     AggregatedMessage_j = [[1,2,3], [4,5,6],[4,5,6],[1,2,3]])
 
+.. code-block:: yaml
+
+   aggregation:
+       - type: interleave
 
 ----
 
