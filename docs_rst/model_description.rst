@@ -822,7 +822,7 @@ Option 9: concat
 This aggregation function is specially thought for the cases in which we have a list of messages sent from messages of
 entity type *"entity1"* and a list of messages from nodes of entity type *"entity2"*. Then, this aggregation function
 will concatenate together this two lists by the axis indicated in the following field "concat_axis". Then, similarly
-than with the "ordered" function, we would pass this to an *RNN*\ , which will update itself iteratively with all the
+than with the "ordered" function, we would pass this to an *RNN*, which will update itself iteratively with all the
 messages received.
 
 Parameter: concat_axis
@@ -859,7 +859,18 @@ If concat_axis = 2, we weill get a new message
 Option 10: interleave
 ~~~~~~~~~~~~~~~~~~~~~
 
-**Description:** To_complete
+**Description:** This aggregation concatenates both message by interleaving them.
+
+Given the two lists of messages:
+
+.. math::
+
+    M_{entity_1} = [1,2,3]
+
+    M_{entity_2} = [4,5,6]
+
+    AggregatedMessage_j = [1,4,2,5,3,6]
+
 
 .. code-block:: yaml
 
