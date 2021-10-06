@@ -80,7 +80,7 @@ license.
    :caption: Background On GNNs
 
    motivation
-   what_are_gnns
+   what_is_a_gnn
 
 .. toctree::
    :maxdepth: 5

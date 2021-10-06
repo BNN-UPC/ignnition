@@ -44,25 +44,9 @@ entities, this being the links, the paths and the nodes. Then we can
 observe the message passing that they perform into two separete stages.
 |MSMP Q-Size definition|
 
-Try Q-size
-~~~~~~~~~~
-
-For this example, we provide the corresponding implementation of the
-*model\_description.json* file in
-`Q-size <https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Q-size>`__.
-Concretely, in this directory you will find all the necessary material
-regarding *Q-size*, including data as well as the model description and
-training files need to train this GNN model. Moreover, we recommend
-reading the provided README file in this directory, which will guide you
-through this process.
-
 .. button::
-   :text: Button Text
-   :link: https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Q-size
+   :text: Q-size
+   :link: <https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Q-size
 
-.. raw:: html
-
-    <a href="<https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Q-size" class="btn btn-neutral float-right" display="inline-block">Try Q-Size</a>
-
-
+|
 

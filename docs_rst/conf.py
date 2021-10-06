@@ -48,7 +48,8 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'sphinx.ext.autosectionlabel'
+    'sphinx.ext.autosectionlabel',
+    'button'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -90,3 +91,6 @@ source_suffix = {
     '.txt': 'markdown',
     '.md': 'markdown',
 }
+
+def setup(app):
+    app.add_css_file('_static/button.css')

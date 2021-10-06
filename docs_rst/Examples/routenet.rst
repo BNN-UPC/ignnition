@@ -45,15 +45,10 @@ this use-case. In this representation we can observe the two different
 entities, these being the *links* and the *paths*. Then we can observe
 the message passing that they perform into two separete stages. |MSMP RouteNet definition|
 
-Try RouteNet
-~~~~~~~~~~~~
+.. button::
+   :text: Try RouteNet
+   :link: https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Routenet
 
-For this example, we provide the corresponding implementation of the
-*model\_description.json* file and all the related files needed for the
-execution in
-`Routenet <https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Routenet>`__.
-In this directory you will find all the necessary material regarding
-*RouteNet*, including the data and all the files composing the
-implementation of this GNN model -- model description and training
-options files. Moreover, we recommend reading the provided README file
-in this directory, which will guide you through this process.
+|
+
+.. |MSMP RouteNet definition| image:: ./Images/msmp_routenet.png

@@ -1,6 +1,3 @@
-Backgound on GNNs
-=================
-
 .. _what-is-a-gnn:
 
 What is a GNN?
@@ -40,16 +37,14 @@ graph. Formally, the message passing algorithm can be described as:
 
 .. math::
 
-    Message: \quad m_{vw}^{t+1} = M(h_v^t,h_w^t,e_{v,w}) \\
-    Aggregation: \quad m_v^{t+1} = \sum_{w \in N(v)} m_{vw}^{t+1} \\
+    Message: \quad m_{vw}^{t+1} = M(h_v^t,h_w^t,e_{v,w}) \\[11pt]
+    Aggregation: \quad m_v^{t+1} = \sum_{w \in N(v)} m_{vw}^{t+1} \\[2pt]
     Update: \quad h_v^{t+1} = U(h_v^t,m_v^{t+1})
 
 All the process is also summarized in the figure below:
 
 .. figure:: Images/message_passing.png
    :alt: MP
-
-   MP
 
 After completing the *T* message-passing iterations, a *Readout
 function* :math:`R(·)` is used to produce the output of the GNN model. Particularly,

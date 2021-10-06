@@ -16,11 +16,9 @@ GNN <what-is-a-gnn>` where we explain in detail the
 different phases that a MPNN has. To do so, we are going to cover four
 main steps:
 
-#. :ref:`Understanding the problem <Understanding the problem>`
-#. :ref:`Building the Dataset <Building the Dataset>`
-#. :ref:`Designing and implementing the GNN <Designing and implementing the GNN>`
-#. :ref:`Training and evaluation <Training and evaluation>`
-#. :ref:`Debugging <Debugging>`
+.. contents::
+    :local:
+    :depth: 1
 
 Understanding the problem
 -------------------------
@@ -119,20 +117,17 @@ Designing and implementing the GNN
 In order to design the GNN model based on a Message-Passing strcuture,
 we need to basically focus on four main steps:
 
-#. How the different nodes are initialized
-#. How the MPNN architecture is designed
-
-   #. Message phase
-   #. Update phase
-   #. Readout phase
+.. contents::
+    :local:
+    :depth: 2
 
 To do so, we will need to create a *model\_description.yaml* which will
 contain all the information regarding our model architecture. Note that
 you can find the final implementation in
 `model\_description.yaml <https://github.com/knowledgedefinednetworking/ignnition/tree/main/examples/Shortest_Path/model_description.yaml>`__.
 
-Hidden state initialization
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+1. Hidden state initialization
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To encode the information of the different nodes found in the graph,
 MPNN uses a vector of a predefined size that is called state (sometimes
@@ -168,8 +163,8 @@ For a more detailed explanation on how to build the entities object and
 what parameters accept or not, we suggest on reading the section :ref:`Entity
 definition <entity-definition>`.
 
-MPNN architecture
-~~~~~~~~~~~~~~~~~
+2. MPNN architecture
+~~~~~~~~~~~~~~~~~~~~
 
 At this point, we must define the core part of the *MPNN* algorithm,
 which is the neural message-passing phase. In this phase, different
@@ -178,7 +173,7 @@ of each node. These hidden states will be finally used as input to the
 readout phase to generate the final input.
 
 Message phase
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 Defining the message phase is probably the one that has the most impact
 on the model. In this case, we are going to define a single
@@ -265,7 +260,7 @@ Again, we refer the user to
 provide full detail of each of the available keywords.
 
 Update phase
-~~~~~~~~~~~~
+^^^^^^^^^^^^
 
 Once all the messages are sent, the different nodes need to collect all
 the message that they received and use a function to aggregate them and
@@ -309,7 +304,7 @@ passing definition by adding the following:
       nn_name: update_function
 
 Readout phase
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
 Once the message-passing has ended we need some way to combine the
 different hidden states to produce the output. This is where the Readout
@@ -358,6 +353,8 @@ this case the *output\_label* is a feature that can be found in the
 dataset named *sp*. Moreover, as done before, we write *$sp* to indicate
 that *sp* refers to data from the dataset.
 
+.. _training-and-evaluation:
+
 Training and evaluation
 -----------------------
 
@@ -400,6 +397,8 @@ found in the Tensorboard visualization.
     | 0.9042     | 1.0000      | 0.7592   | 0.9076   |
     +------------+-------------+----------+----------+
 
+.. _debugging:
+
 Debugging
 ---------
 
@@ -419,5 +418,5 @@ execute the following command:
 
 Then, again, visit `link <http://localhost:6006/>`__ where you will
 observe the resulting computational graph. If you want more information
-regarding the interpretation of this graph, please visit :doc:`debugging
+regarding the interpretation of this graph, please visit :ref:`debugging
 assistant <debugging_assistant>`.

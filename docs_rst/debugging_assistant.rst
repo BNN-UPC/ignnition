@@ -1,3 +1,5 @@
+.. _debugging_assistant:
+
 Debugging assistant
 ===================
 

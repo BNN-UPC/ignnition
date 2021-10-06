@@ -1,3 +1,5 @@
+.. _generate-your-dataset:
+
 Generate your dataset
 =====================
 

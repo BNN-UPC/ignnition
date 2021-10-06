@@ -65,3 +65,11 @@ the files composing the implementation of this GNN model --model
 description and training option files. Moreover, we recommend reading
 the provided README file in this directory, which will guide you through
 this process.
+
+.. button::
+   :text: Try Graph Query Neural Networks
+   :link: https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Graph_query_networks
+
+|
+
+.. |MSMP GQNN definition| image:: Images/msmp_gqnn.png
