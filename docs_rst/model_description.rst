@@ -300,6 +300,7 @@ be done.
 As you can see, we make use of the field *output_name* to define a name for the output of the first operation, which
 can then use as input for the second operation.
 
+.. _neural_networks_definition:
 
 Step 4: Internal neural networks definition
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -554,7 +555,7 @@ Message function object:
 
 One of the most important aspects when defining a message passing between a source entity and a destination entity is
 to specify how the source entities form their messages. To do so, and to support very complex functions, we device a
-pipe-line of operations, which will be specified in :ref:`Operation object <opeartion-object>`. An operation performs
+pipe-line of operations, which will be specified in :ref:`Operation object <operation-object>`. An operation performs
 some calculation and then returns a reference to its output. By doing so, we can concatenate operations, by referencing
 previous results to obtain increasingle more complicated results. Note that the messages will be, by default, the
 result of the last operation.
@@ -837,6 +838,7 @@ Given the two lists of messages:
 .. math::
 
     M_{entity_1} = [[1,2,3],[4,5,6]]
+
     M_{entity_2} = [[4,5,6],[1,2,3]]
 
 
@@ -884,10 +886,12 @@ Option 11: neural_network
 (e.g., max,min,mean...). In some ocasions, however, we must build more complicated functions. This operation, thus,
 allows to take the results of previous operations and pass them through a NN to compute a new value.
 
-**Accepted values:** `Neural network operation <#operation-2-neural_network>`_
+**Accepted values:** :ref:`Neural network operation <neural-network-operation>`
 
 **Example of use:**
-In this case, we need to include the parameter *output_name* at the end of each of the operations that preceed the neural network. This will store each of the results of the operations, which we will then reference in the *neural network operation*. Let us see this with an example
+In this case, we need to include the parameter *output_name* at the end of each of the operations that preceed the
+neural network. This will store each of the results of the operations, which we will then reference in the *neural
+network operation*. Let us see this with an example
 
 .. code-block::
 
@@ -902,18 +906,22 @@ In this case, we need to include the parameter *output_name* at the end of each 
          input: [max_value, min_value, attention_value]
          nn_name: aggregation_function
 
-In this example we compute the max value, the min and the result of applying the attention to the messages received by each of the destination nodes, respectively. Then, the neural network takes as input the results of each of the previous operations, and computes the final aggregated message, used for the update.
+In this example we compute the max value, the min and the result of applying the attention to the messages received by
+each of the destination nodes, respectively. Then, the neural network takes as input the results of each of the
+previous operations, and computes the final aggregated message, used for the update.
 
 .. _update-operation:
 
 Update operation:
 ~~~~~~~~~~~~~~~~~
 
-In order to define the update function, we must specify a *Neural Network*. Note that the syntax will be the same no matter if the *NN* is a *feed-forward* or a *RNN*. To define it, we must only specify two fields: which are the *type* and the *nn_name*.
+In order to define the update function, we must specify a *Neural Network*. Note that the syntax will be the same no
+matter if the *NN* is a *feed-forward* or a *RNN*. To define it, we must only specify two fields: which are the *type*
+and the *nn_name*.
 
-
-* `Parameter: type <#parameter-type>`_
-* `Parameter: nn_name <#parameter-nn_name>`_
+.. contents::
+    :local:
+    :depth: 1
 
 Parameter: type
 """""""""""""""
@@ -927,9 +935,11 @@ Parameter: nn_name
 """"""""""""""""""
 
 **Description:** Name of the Neural Network to be used for the upate.
-**Accepted values:** String. The name should match a *NN* created in `Step 4 <#step-4-neural-network-architectures>`_
 
-Below we present an example of how an update function can be defined. Note that in this case the update will be using the *NN* named *my_neural_network*\ , and which architecture must be later defined.
+**Accepted values:** String. The name should match a *NN* created in :ref:`Step 4 <neural_networks_definition>`
+
+Below we present an example of how an update function can be defined. Note that in this case the update will be using
+the *NN* named *my_neural_network*, and which architecture must be later defined.
 
 .. code-block:: yaml
 
@@ -937,14 +947,24 @@ Below we present an example of how an update function can be defined. Note that 
        type: neural_network
        nn_name: my_neural_network
 
+
 Step 3: Readout
 ^^^^^^^^^^^^^^^
 
-Just as for the case of the message function, the readout function can potentially be very complex. For this, we follow a similar approach. We define the readout as a pipe-line of `Operation object <#operation-object>`_ which shall allow us to define very complex functions. Again, each of the operations will keep the field *output_name* indicating the name with which we can reference/use the result of this operation in successive opeartions.
+Just as for the case of the message function, the readout function can potentially be very complex. For this, we
+follow a similar approach. We define the readout as a pipe-line of :ref:`Operation object <operation-object>` which
+shall allow us to define very complex functions. Again, each of the operations will keep the field *output_name*
+indicating the name with which we can reference/use the result of this operation in successive opeartions.
 
-The main particularity for the defintion of the readout is that in one of the operations (normally the last one), will have to include the name of the *output_label* that we aim to predict. To do so, include the keyword presented below as a property of last *Operation* of your readout function (the output of which will be used as output of the *GNN*\ ).
+The main particularity for the defintion of the readout is that in one of the operations (normally the last one),
+will have to include the name of the *output_label* that we aim to predict. To do so, include the keyword presented
+below as a property of last *Operation* of your readout function (the output of which will be used as output of
+the *GNN*\ ).
 
-Another important consideration is that in this case, the user can use *entity1_initial_state* as part of the input of an operation (where *entity1* can be replaced for any entity name of the model). With this, the operation will take as input the initial hidden states that were initialized at the beginning of the execution, and thus, before the message-passing phase.
+Another important consideration is that in this case, the user can use *entity1_initial_state* as part of the input
+of an operation (where *entity1* can be replaced for any entity name of the model). With this, the operation will take
+as input the initial hidden states that were initialized at the beginning of the execution, and thus, before the
+message-passing phase.
 
 Parameter: output_label
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -953,7 +973,13 @@ Parameter: output_label
 
 **Allowed values:** Array of strings. The names should match the labels specified in the dataset.
 
-Let us see this with a brief example of a simple readout function based on two `Neural Network operations <#neural-network-operation>`_. In this case we apply two neural networks which are intially to each of the nodes of type *entity1*. Then, the output is concatenated together with each of the nodes of type *entity2* (as long that there is the same number of nodes of each entity) and then applied to the second neural network *my_network2*. Note that the last operation includes the definition of *my_label*\ , which is the name of the label found in the dataset. To specify this label, we write *$my_label* so as to indicate that this keywords refers to data that *IGNNITION* can find in the corresponding dataset.
+Let us see this with a brief example of a simple readout function based on two
+:ref:`Neural Network operations <neural-network-operation>`. In this case we apply two neural networks which are i
+ntially to each of the nodes of type *entity1*. Then, the output is concatenated together with each of the nodes of
+type *entity2* (as long that there is the same number of nodes of each entity) and then applied to the second neural
+network *my_network2*. Note that the last operation includes the definition of *my_label*, which is the name of the
+label found in the dataset. To specify this label, we write *$my_label* so as to indicate that this keywords refers to
+data that *IGNNITION* can find in the corresponding dataset.
 
 .. code-block:: yaml
 
@@ -967,7 +993,10 @@ Let us see this with a brief example of a simple readout function based on two `
      nn_name: my_network2
      output_label: [$my_label]
 
-Notice, however, that *output_label* may contain more than one label. For instance, consider the case in which we want that the readout function predicts two properties of a node, namely *label1* and *label2*. For simplicity, let us considert these labels to be single values --even though the same proceduce applies when they represent 1-d arrays. For this, we make the following adaptations of the previous model: 
+Notice, however, that *output_label* may contain more than one label. For instance, consider the case in which we
+want that the readout function predicts two properties of a node, namely *label1* and *label2*. For simplicity, let us
+consider these labels to be single values --even though the same proceduce applies when they represent 1-d arrays. For
+this, we make the following adaptations of the previous model:
 
 .. code-block:: yaml
 
@@ -981,29 +1010,32 @@ Notice, however, that *output_label* may contain more than one label. For instan
      nn_name: my_network2
      output_label: [$label1, $label2]
 
-In this case, hence, *my_network2* will output two predictions, one for each of the target labels. Then, *IGNNITION* will internally process this and backpropagate accordingly, so as to force the GNN to learn to predict both properties, simultaniously.
+In this case, hence, *my_network2* will output two predictions, one for each of the target labels. Then, *IGNNITION*
+will internally process this and backpropagate accordingly, so as to force the GNN to learn to predict both properties,
+simultaniously.
 
 .. _operation-object:
 
 Operation object:
 ^^^^^^^^^^^^^^^^^
 
-We now review the different options of *Operations* that *IGNNITION* allows, and which can be used in many of the parts of the *GNN* (e.g., message function, update function, readout function...). All these possible operations are:
+We now review the different options of *Operations* that *IGNNITION* allows, and which can be used in many of the parts
+of the *GNN* (e.g., message function, update function, readout function...). All these possible operations are:
 
 
-* `Operation 1: product <#operation-1-product>`_
-* `Operation 2: neural_network <#operation-2-neural_network>`_
-* `Operation 3: pooling <#operation-3-pooling>`_
+.. contents::
+    :local:
+    :depth: 1
 
 Operation 1: product
 ~~~~~~~~~~~~~~~~~~~~~~
 
-This operation will perform the product of two different inputs. Let us go through the different parameters that we can tune to customize this operation.
+This operation will perform the product of two different inputs. Let us go through the different parameters that we
+can tune to customize this operation.
 
-
-* `Parameter: input <#parameter-type>`_
-* `Parameter: output_name <#parameter-nn_name>`_
-* `Parameter: type_product <#parameter-type_product>`_
+.. contents::
+    :local:
+    :depth: 1
 
 ----
 
@@ -1011,9 +1043,11 @@ Parameter: input
 """"""""""""""""
 
 **Description:** Defines the set of inputs to be fed to this operation.
+
 **Allowed values:** Array of two strings, defining the two inputs of the *product operation*.
 
-Notice that if a string from the input references a feature from the dataset, the name must always be preceeded by a # symbol. This will indicate *IGNNITION* that such keyword references a value present in the dataset.
+Notice that if a string from the input references a feature from the dataset, the name must always be preceeded by a
+# symbol. This will indicate *IGNNITION* that such keyword references a value present in the dataset.
 
 ----
 
@@ -1036,19 +1070,24 @@ Parameter: type_product
 Let us explain in more detail what each of the following keywords stands for:
 
 
-* `Option 1: dot_product <#option-1-dot_product>`_
-* `Option 2: element_wise <#option-2-element_wise>`_
-* `Option 3: matrix_mult <#option-3-matrix_mult>`_
+.. contents::
+    :local:
+    :depth: 1
 
 ----
 
 Option 1: dot_product
 #####################
 
-**Description:** Computes the dot product between two inputs *a* and *b*. Note that if the inputs are two arrays *a = (a_1, a_2, ... , a_k)* and *b = (b_1, ,b_2, ... , b_k)*\ , then the dot product is applied to *a_i* and *b_i* respectively.
+**Description:** Computes the dot product between two inputs *a* and *b*. Note that if the inputs are two arrays
+*a = (a_1, a_2, ... , a_k)* and *b = (b_1, ,b_2, ... , b_k)*, then the dot product is applied to *a_i* and *b_i*
+respectively.
+
 **Allowed values:** String. Name of an entity or output of a previous operation. 
 
-Below we show an example of a readout function which first computes the *dot_product* between nodes of type *entity1* and *entity2*\ , respectively. Then, the result of each of these operations are passed to a *Neural Network* that compute the prediction.
+Below we show an example of a readout function which first computes the *dot_product* between nodes of type *entity1*
+and *entity2*\ , respectively. Then, the result of each of these operations are passed to a *Neural Network* that
+compute the prediction.
 
 .. code-block:: yaml
 
@@ -1068,10 +1107,15 @@ Below we show an example of a readout function which first computes the *dot_pro
 Option 2: element_wise
 ######################
 
-**Description:** Computes the element-wise multiplication between two inputs *a* and *b*. Note that if the inputs are two arrays *a = (a_1, a_2, ... , a_k)* and *b = (b_1, ,b_2, ... , b_k)*\ , then the element-wise multiplication is applied to *a_i* and *b_i* respectively.
+**Description:** Computes the element-wise multiplication between two inputs *a* and *b*. Note that if the inputs are
+two arrays *a = (a_1, a_2, ... , a_k)* and *b = (b_1, ,b_2, ... , b_k)*\ , then the element-wise multiplication is
+applied to *a_i* and *b_i* respectively.
+
 **Allowed values:** String. Name of an entity or output of a previous operation. 
 
-Below we show an example of a readout function which first computes the *element_wise* multiplication between nodes of type *entity1* and *entity2*\ , respectively. Then, the result of each of these operations are passed to a *Neural Network* that compute the prediction.
+Below we show an example of a readout function which first computes the *element_wise* multiplication between nodes of
+type *entity1* and *entity2*, respectively. Then, the result of each of these operations are passed to a *Neural
+Network* that compute the prediction.
 
 .. code-block:: yaml
 
@@ -1091,10 +1135,15 @@ Below we show an example of a readout function which first computes the *element
 Option 3: matrix_mult
 #####################
 
-**Description:** Computes the matrix multiplication between two inputs *a* and *b*. Note that if the inputs are two arrays *a = (a_1, a_2, ... , a_k)* and *b = (b_1, ,b_2, ... , b_k)*\ , then the matrix multiplication is applied to *a_i* and *b_i* respectively.
+**Description:** Computes the matrix multiplication between two inputs *a* and *b*. Note that if the inputs are two
+arrays *a = (a_1, a_2, ... , a_k)* and *b = (b_1, ,b_2, ... , b_k)*\ , then the matrix multiplication is applied to
+*a_i* and *b_i* respectively.
+
 **Allowed values:** String. Name of an entity or output of a previous operation. 
 
-Below we show an example of a readout function which first computes the *dot_product* between nodes of type *entity1* and *entity2*\ , respectively. Then, the result of each of these operations are passed to a *Neural Network* that compute the prediction.
+Below we show an example of a readout function which first computes the *dot_product* between nodes of type *entity1*
+and *entity2*\ , respectively. Then, the result of each of these operations are passed to a *Neural Network* that
+compute the prediction.
 
 ----
 
@@ -1103,12 +1152,18 @@ Below we show an example of a readout function which first computes the *dot_pro
 Operation 2: neural_network
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Similarly to the neural_network operations used in the *message* or *update* function, we just need to reference the neural network to be used, and provide a name for the output.
-Then, given some input (a) and a neural network that we define (f), this operation performs the following:
+Similarly to the neural_network operations used in the *message* or *update* function, we just need to reference the
+neural network to be used, and provide a name for the output. Then, given some input (:math:`a`) and a neural network that we
+define (:math:`f`), this operation performs the following:
 
-(output_name = f(a))
+.. math::
 
-Below we show a code-snipped of what a *neural_network* operation would look like, and we present afterward each of its possible options. This neural network takes as input all the states of the nodes of type *entity1*\ , and pass them (separetely) to our *NN* named *my_network*. Finally it stores the results of these operations in *my_output*.
+    output\_name = f(a)
+
+
+Below we show a code-snipped of what a *neural_network* operation would look like, and we present afterward each of
+its possible options. This neural network takes as input all the states of the nodes of type *entity1* , and pass
+them (separately) to our *NN* named *my_network*. Finally it stores the results of these operations in *my_output*.
 
 .. code-block:: yaml
 
@@ -1120,8 +1175,9 @@ Below we show a code-snipped of what a *neural_network* operation would look lik
 We can now review in more depth each of its available parameters:
 
 
-* `Parameter: nn_name <#parameter-nn_name>`_
-* `Parameter: output_name <#parameter-output_name>`_
+.. contents::
+    :local:
+    :depth: 1
 
 ----
 
@@ -1129,16 +1185,21 @@ Parameter: input
 """"""""""""""""
 
 **Description:** Defines the set of inputs to be fed to this operation.
-**Allowed values:** Array of strings. If this neural network is part of the readout, you can use *entity1_initial_state* to reference the initial values of the hidden-states of *entity1*. Note that *entity1* can be replaced for any entity name of the model.
+**Allowed values:** Array of strings. If this neural network is part of the readout, you can use *entity1_initial_state*
+to reference the initial values of the hidden-states of *entity1*. Note that *entity1* can be replaced for any entity
+name of the model.
 
-An important consideration is that all the strings in the input that reference a features --that is present in the dataset-- must be proceeded by a # symbol. This will indicate *IGNNITION* that such keyword references a value from the dataset.
+An important consideration is that all the strings in the input that reference a features --that is present in the
+dataset-- must be proceeded by a # symbol. This will indicate *IGNNITION* that such keyword references a value from
+the dataset.
 
 ----
 
 Parameter: nn_name
 """"""""""""""""""
 
-**Description:** Name of the neural network (f), which shall then used to define its actual architecture in `Step 4 <#step-4-internal-neural-networks>`_.
+**Description:** Name of the neural network (:math:`f`), which shall then used to define its actual
+architecture in :ref:`Step 4 <neural_networks_definition>`.
 
 **Allowed values:** String. This name should match the one from one of the neural networks defined.
 
@@ -1147,11 +1208,13 @@ Parameter: nn_name
 Parameter: output_name
 """"""""""""""""""""""
 
-**Description:** Defines the name by which we can reference the output of this operation, to be then used in successive operations.
+**Description:** Defines the name by which we can reference the output of this operation, to be then used in
+successive operations.
 
 **Allowed values:** String
 
-An example of the use of this operation is the following *message* function (based on a pipe-line of two different operations):
+An example of the use of this operation is the following *message* function (based on a pipe-line of two different
+operations):
 
 .. code-block:: yaml
 
@@ -1165,18 +1228,28 @@ An example of the use of this operation is the following *message* function (bas
      input: [my_output]
      nn_name: my_network2
 
-With this, hence, we apply two successive neural networks, which is just a prove of some of the powerfull operations that we can define.
+With this, hence, we apply two successive neural networks, which is just a prove of some of the powerfull
+operations that we can define.
 
 ----
 
 Operation 3: pooling
 ~~~~~~~~~~~~~~~~~~~~
 
-The use of this operation is key to make global predictions (over the whole graph) instead of node predictions. This allows to take a set of input (a_1, ... , a_k) and a defined function (g), to obtain a single resulting output. This is:
+The use of this operation is key to make global predictions (over the whole graph) instead of node predictions. This
+allows to take a set of input (:math:`a_1, ... , a_k`) and a defined function (:math:`g`), to obtain a single resulting
+output. This is:
 
-(output_name = g(a_1, ..., a_k))
+.. math::
 
-For this, we must define, as usual, the *output_name* field, where we specify the name for the output of this operation. Additionally, we must specify which function (g) we want to use. Let us see how this operation would look like if used to define a *readout* function to make global predictions over a graph. In this example we again define a pipe-line of opeartions, first of all by pooling all the nodes of type *entity1* together into a single representation (which is stored in my_output. Then we define a neural network operation which takes as input this pooled representation and applies it to a *NN* which aimy to predict our label *my_label*.
+    output\_name = g(a_1, ..., a_k)
+
+For this, we must define, as usual, the *output_name* field, where we specify the name for the output of this operation.
+Additionally, we must specify which function (g) we want to use. Let us see how this operation would look like if used
+to define a *readout* function to make global predictions over a graph. In this example we again define a pipe-line of
+operations, first of all by pooling all the nodes of type *entity1* together into a single representation (which is
+stored in my_output. Then we define a neural network operation which takes as input this pooled representation and
+applies it to a *NN* which aimy to predict our label *my_label*.
 
 .. code-block:: yaml
 
@@ -1191,29 +1264,32 @@ For this, we must define, as usual, the *output_name* field, where we specify th
      nn_name: readout_model
      output_label: [$my_label]
 
-Again, we now present the new keyword that is charactheristic from this specific operation:
+Again, we now present the new keyword that is characteristic from this specific operation:
 
 Parameter: type_pooling:
 """"""""""""""""""""""""
 
-**Description:** This field defines the pooling operation that we want to use to reduce a set of inputs (a_1, ... , a_k) to a single resulting output.
+**Description:** This field defines the pooling operation that we want to use to reduce a set of inputs
+(a_1, ... , a_k) to a single resulting output.
 
 **Allowed values:** Below we define the several values that this field *type_pooling* can take:
 
 Let us now explain in depth what each of the possible types of pooling that *IGNNITION* currently supports:
 
-* `Option 1: sum <#option-1-sum>`_
-* `Option 2: max <#option-2-max>`_
-* `Option 3: mean <#option-3-mean>`_
+.. contents::
+    :local:
+    :depth: 1
 
 ----
 
 Option 1: sum
 #############
 
-This operations takes the whole set of inputs (a_1, ... , a_k), and sums them all together.
+This operations takes the whole set of inputs :math:`(a_1, ... , a_k)`, and sums them all together.
 
-(output_name = \sum(a_1, ... , a_k))
+.. math::
+
+    output\_name = \sum_{n=1}^{n=k} a_n
 
 .. code-block:: yaml
 
@@ -1226,9 +1302,11 @@ This operations takes the whole set of inputs (a_1, ... , a_k), and sums them al
 Option 2: max
 #############
 
-This operations takes the whole set of inputs (a_1, ... , a_k), and outputs the its max.
+This operations takes the whole set of inputs :math:`(a_1, ... , a_k)`, and outputs the its max.
 
-(output_name = \max(a_1, ... , a_k))
+.. math::
+
+    output\_name = \max(a_1, ... , a_k))
 
 .. code-block:: yaml
 
@@ -1241,9 +1319,11 @@ This operations takes the whole set of inputs (a_1, ... , a_k), and outputs the 
 Option 3: mean
 ##############
 
-This operations takes the whole set of inputs (a_1, ... , a_k), and calculates their average.
+This operations takes the whole set of inputs :math:`(a_1, ... , a_k)`, and calculates their average.
 
-(output_name = \frac{1}{k} \sum(a_1, ... , a_k))
+.. math::
+
+    output\_name = \frac{1}{k} \sum_{n=1}^{n=k} a_n
 
 .. code-block:: yaml
 
@@ -1254,18 +1334,25 @@ This operations takes the whole set of inputs (a_1, ... , a_k), and calculates t
 Step 4: Neural Network architectures
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In this section we define the architecture of the neural networks that we refenced in all the previous sections. For this, we just need to define an array of `Neural Network object <#neural-network-object>`_. Note that we will use the very same syntax to define either *Feed-forward NN* or *Recurrent NN*. Let us describe what a `Neural Network object <#neural-network-object>`_ looks like:
+In this section we define the architecture of the neural networks that we refenced in all the previous sections. For
+this, we just need to define an array of :ref:`Neural Network object <neural_network_object>`. Note that we will use
+the very same syntax to define either *Feed-forward NN* or *Recurrent NN*. Let us describe what a
+ :ref:`Neural Network object <neural_network_object>` looks like:
+
+.. _neural_network_object:
 
 Neural Network object
 ~~~~~~~~~~~~~~~~~~~~~
 
-A Neural Network object refers to the architecture of an specific Neural Network. To do so, we must define two main fields, these being *nn_name* and *nn_architecture* which we define below. 
+A Neural Network object refers to the architecture of an specific Neural Network. To do so, we must define two main
+fields, these being *nn_name* and *nn_architecture* which we define below.
 
 We can now review in more depth each of its available parameters:
 
 
-* `Parameter: nn_name <#parameter-nn_name>`_
-* `Parameter: nn_architecture <#parameter-nn_architecture>`_
+.. contents::
+    :local:
+    :depth: 1
 
 ----
 
@@ -1274,7 +1361,8 @@ Parameter: nn_name
 
 **Description:** Name of the Neural Network. 
 
-**Accepted values:** String. This name must match all the references to this Neural Network from all the previous sections (e.g., the name of the *NN* of the previous example would be *my_neural_network*\ )
+**Accepted values:** String. This name must match all the references to this Neural Network from all the previous
+sections (e.g., the name of the *NN* of the previous example would be *my_neural_network*)
 
 ----
 
@@ -1283,7 +1371,7 @@ Parameter: nn_architecture
 
 **Description:** Definition of the actual architecture of the *NN*.
 
-**Accepted values:** Array of Layer objects (e.g., a single *Dense* layer for the previous *NN*\ )
+**Accepted values:** Array of Layer objects (e.g., a single *Dense* layer for the previous *NN*)
 
 Let us now, for sake of the explanation, provide a simple example of how a *Neural Network* object can be defined:
 
@@ -1298,14 +1386,16 @@ Let us now, for sake of the explanation, provide a simple example of how a *Neur
 Layer object
 ~~~~~~~~~~~~
 
-To define a Layer, we rely greatly on the well-known `tf.keras library <https://www.tensorflow.org/api_docs/python/tf/keras/layers>`_. In consequence, we just require the user to define the following field. 
+To define a Layer, we rely greatly on the well-known `tf.keras library <https://www.tensorflow.org/api_docs/python/tf/keras/layers>`_.
+In consequence, we just require the user to define the following field.
 
 ----
 
 Parameter: type_layer
 """""""""""""""""""""
 
-**Description:** Here we must indicate the type of layer to be used. Please writte only the layers accepted by the `tf.keras.layers library <https://www.tensorflow.org/api_docs/python/tf/keras/layers>`_ using the same syntax.
+**Description:** Here we must indicate the type of layer to be used. Please writte only the layers accepted by the
+`tf.keras.layers library <https://www.tensorflow.org/api_docs/python/tf/keras/layers>`_ using the same syntax.
 
 **Allowed values:** String. It must match a layer from the *tf.keras.layers library*
 
@@ -1317,9 +1407,14 @@ Parameter: type_layer
 Other parameters
 """"""""""""""""
 
-Additionally, the user can define any other parameter from the `tf.keras library <https://www.tensorflow.org/api_docs/python/tf/keras/layers>`_ corresponding to the type of layer defined. Note that in many occasions, the user is in fact required to define layer specific attributes (e.g., the number of units when creating a Dense layers). Thus, please make sure to define all mandatory parameters, and then, additionally, define optional parameters if needed.
+Additionally, the user can define any other parameter from the `tf.keras library <https://www.tensorflow.org/api_docs/python/tf/keras/layers>`_
+corresponding to the type of layer defined. Note that in many occasions, the user is in fact required to define layer
+specific attributes (e.g., the number of units when creating a Dense layers). Thus, please make sure to define all
+mandatory parameters, and then, additionally, define optional parameters if needed.
 
-E.g., if we define a Dense layer, we must first define the required parameter *units* (as specified by Tensorflow). Then, we can also define any optional parameter for the Dense class (visit `documentation <https://www.tensorflow.org/api_docs/python/tf/keras/layers/Dense>`_\ ) such as the activation or the use of bias.
+E.g., if we define a Dense layer, we must first define the required parameter *units* (as specified by Tensorflow).
+Then, we can also define any optional parameter for the Dense class (visit `documentation <https://www.tensorflow.org/api_docs/python/tf/keras/layers/Dense>`_)
+such as the activation or the use of bias.
 
 .. code-block:: yaml
 

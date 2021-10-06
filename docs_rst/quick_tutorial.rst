@@ -4,7 +4,7 @@ Quick step-by-step tutorial
 ===========================
 
 First of all, if you have not intstalled *IGNNITION* yet, please go to
-the :doc:`installation guide <./installation>` to quickly install it with
+the :ref:`installation guide <installation>` to quickly install it with
 PyPI.
 
 In this tutorial we will learn how to solve the shortest path using a
@@ -62,7 +62,7 @@ files, each of which contains one single *json* file.
 For this tutorial we are going to build a simple dataset which includes
 one type of nodes, one node feature and one edge feature. However, the
 framework accepts any amount of features and node types. You can check
-how to build the dataset in the section :doc:`Dataset <./generate_your_dataset>`.
+how to build the dataset in the section :ref:`Dataset <generate-your-dataset>`.
 
 In this particular case, the nodes are going to be encoded using a
 binary feature called "src\_tgt" that tells us whether a node is the
@@ -367,7 +367,7 @@ being where the file *training\_options.yaml* file is located. In this
 case, the *main.py* file is already located there. Then we simply call
 the *train\_and\_validate()* function of the model, which starts the
 training. For more details regarding how to call the functionalities of
-our model, check :doc:`train and evaluate <train_and_evaluate>`.
+our model, check :ref:`train and evaluate <train-and-evaluate>`.
 
 After doing so, we obtain a new directory *checkpoint* in the
 *output\_path* provided in the *training\_options.yaml* file. There we

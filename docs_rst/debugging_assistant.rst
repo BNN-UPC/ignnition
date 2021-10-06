@@ -24,13 +24,13 @@ modify the granularity of the visualization, to adjust to their specific
 need by double-clicking an specific box.
 
 In order to optain this information, the user must run the
-*model.computational\_graph()* as seen in `quick
-tutorial <quick_tutorial.md>`__. Then, when placed in the model
-directory, simply run:
+*model.computational\_graph()* as seen in :ref:`quick tutorial <quick-step-by-step-tutorial>`.
+Then, when placed in the model directory, simply run:
 
-::
+.. code-block:: shell
 
         tensorboard --logdir ./
+
 
 Then, access through your web browser localhost://6006, which will show
 the graph.
@@ -40,16 +40,13 @@ Visualization of Shortest-Path
 
 In order to further understand the information that this system
 provides, we will use the very simple example of Shortest-Path,
-presented in `quick start
-tutorial <../quick_tutorial/#step-5-debugging>`__.
+presented in :ref:`quick start tutorial <debugging>`.
 
 First of all, once you are in the Tensorboard page, look for a box named
 *IgnnitionModel*. If you expand this box, you should see the following:
 
 .. figure:: Images/overview_debugging.png
    :alt: overview debugging
-
-   overview debugging
 
 In this image we can distinguish the three main phases of the *GNN*.
 First of all, the state creation which will create the state of each of
@@ -68,8 +65,6 @@ below.
 .. figure:: Images/state_creation.png
    :alt: state creation debugging
 
-   state creation debugging
-
 In this case, you can observe that only one box within the state
 creation box is shown, since we have only defined one entity. Inside
 this box, we can see all the operations that define how these states are
@@ -87,7 +82,6 @@ iterations of the MP phase. Click on one indistinctively.
 .. figure:: Images/single_iteration.png
    :alt: single iteration debugging
 
-   single iteration debugging
 
 Above we show what a single iteration looks like. In it, we find all the
 stages (time-steps) forming this iteration. In our example, we only have
@@ -102,7 +96,6 @@ place. If we now expand the *node\_to\_node* box, we see the following:
 .. figure:: Images/node_to_node.png
    :alt: node to node
 
-   node to node
 
 At this point we can observe the message creation function that nodes
 use to form their messages, and also the aggregation function. Let us
@@ -111,7 +104,6 @@ take a look at these functions:
 .. figure:: Images/aggregation_message.png
    :alt: aggregation and message function debugging
 
-   aggregation and message function debugging
 
 This representation shows the type of aggregation used and how the
 message function is computed. Note that you can get even more detail by
@@ -125,7 +117,6 @@ layer used, this being a *gru*.
 .. figure:: Images/debugging_update.png
    :alt: update debugging
 
-   update debugging
 
 Readout
 ^^^^^^^
@@ -157,7 +148,7 @@ can see the three layers that we defined for the readout network.
 Error checking
 --------------
 
-As mentioned in `generate your dataset <generate_your_dataset.md>`__,
+As mentioned in :ref:`generate your dataset <generate-your-dataset>`,
 our model is defined through the use of references to the actual value
 of the features, nodes... found in the dataset. Furthermore, throughout
 the definition of the model, we constantly reference to neural networks
@@ -192,8 +183,6 @@ the terminal:
 .. figure:: Images/error_checking_nn.png
    :alt: Error checking wrong NN
 
-   Error checking wrong NN
-
 Wrong entity
 ~~~~~~~~~~~~
 
@@ -203,6 +192,4 @@ this case, we would get the following message:
 
 .. figure:: Images/error_checking_entities.png
    :alt: Error checking wrong entity
-
-   Error checking wrong entity
 

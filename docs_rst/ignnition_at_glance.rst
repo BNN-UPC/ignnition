@@ -1,5 +1,7 @@
-IGNNITION at glance
-===================
+.. _ignnition_at_a_glance:
+
+IGNNITION at a glance
+=====================
 
 Why IGNNITION?
 --------------
@@ -111,8 +113,8 @@ Next step
 
 *IGNNITION* is intended to be useful for both unexperienced and expert
 users in the field of *GNNs*. Nevertheless, we recommend unexperienced
-user to refer to section :doc:`GNN background <./what_are_gnns>` which
+user to refer to section :ref:`GNN background <what-is-a-gnn>` which
 provides a basic intuition that can help you speed-up the design of your
 first GNN! For those with already some experiese, we recommend
-proceeding with the :doc:`installation guide <./installation>` to start
+proceeding with the :ref:`installation guide <installation>` to start
 using *IGNNITION*.

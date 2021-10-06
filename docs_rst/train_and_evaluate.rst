@@ -1,3 +1,5 @@
+.. _train-and-evaluate:
+
 Train and evaluate your model
 =============================
 
@@ -8,9 +10,11 @@ that affect the training process (e.g., optimizers, losses, training
 duration or simply the location of the datasets to be used).
 Nevertheless, all this information must be specified, for which we
 design a specific configuration file containing all this information. We
-shall now review first the following aspects. 1. `Running the training
-and evaluation <#1-run-the-training-and-evaluation>`__ 2. `Creation of
-the configuration file <#2-configuration-file>`__\ 
+shall now review first the following aspects.
+
+.. contents::
+    :local:
+    :depth: 1
 
 1. Run the training and evaluation
 ----------------------------------
@@ -24,9 +28,10 @@ different training options specified. For this, the user must specify
 the path to the model directory where we can find the
 model\_description.yaml file, and the training\_options.yaml file.
 
-::
+.. code-block:: python
 
     model = ignnition.create_model(model_directory = './MY_EXAMPLE')
+
 
 Create the computational graph
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -41,7 +46,7 @@ For this, IGNNITION incorporates a debugging system which is based on
 producing a simplified computational graph of the model. For this, the
 user should make the following call over the previously created model
 
-::
+.. code-block:: python
 
     model.computational_graph()
 
@@ -50,7 +55,7 @@ definition of the train dataset or of the predict dataset. Thus, the
 user should specify at least one of them in the *train\_options.yaml*,
 just as we show below:
 
-::
+.. code-block:: yaml
 
     # PATHS
     train_dataset: <PATH TO YOUR DATA>
@@ -58,7 +63,7 @@ just as we show below:
 This will create a directory named "computational\_graph", in the
 corresponding path indicated in the "train\_options.yml" file. We
 further extend on how to visualize or interpret the output of this
-operation in `debugging assistant <debugging_assistant.md>`__.
+operation in :ref:`debugging assistant <debugging_assistant>`.
 
 Train and validation
 ~~~~~~~~~~~~~~~~~~~~
@@ -66,7 +71,7 @@ Train and validation
 The main goal of *IGNNITION* is precisely to be able to train a GNN
 model easily. For this, the user must only make the following call:
 
-::
+.. code-block:: python
 
     model.train_and_validate()
 
@@ -75,7 +80,7 @@ This calll proceeds to train the *GNN* specified in the
 will be performed throughout the training phase, so as to provide better
 insight on the model performance. The behaviour during the training
 phase is controlled by the *train\_options.yaml* file, specified in
-section `2. Configuration file <#2-configuration-file>`__.
+section :ref:`2. Configuration file <config_file>`.
 
 Furthermore, this operations will create (if it doesn't exist already) a
 directory called "CheckPoints" in the specified path. In this directory,
@@ -85,7 +90,7 @@ as well as the "events.out.tfevents.XXX" file, which contains the
 tensorboard information of the training metrics specified. Similarly as
 before, the user can visualize this information by running
 
-::
+.. code-block:: shell
 
     tensorboard --logdir <PATH TO THE "events.out.tfevents.XXX" FILE>
 
@@ -110,20 +115,20 @@ For this, clearly, the user will have to indicate the path where the
 *IGNNITION* to compute. All this information will be encoded in the
 *train\_options.yaml* in the following fields:
 
-::
+.. code-block:: yaml
 
     validation_dataset: <PATH>
-
     load_model_path: <PATH>
 
-More information regarding these fields can be found in section `2.
-Configuration file <#2-configuration-file>`__. Moreover, to run this
+More information regarding these fields can be found in section
+:ref:`2. Configuration file <config_file>`. Moreover, to run this
 functionality, the user must only make the following call, which will
 return the result of the aforementioned metrics.
 
-::
+.. code-block:: python
 
     model.evaluate()
+
 
 Predict
 ~~~~~~~
@@ -135,7 +140,7 @@ of all, IGNNITION provides the possibility of making predictions over a
 prediction dataset. For this, the user must define 2 special fields in
 the "train\_options.yaml" file, which are:
 
-::
+.. code-block:: yaml
 
     predict_dataset: <PATH>
 
@@ -144,23 +149,25 @@ the "train\_options.yaml" file, which are:
 In this fields, we can specify the dataset that we aim to predict, and
 the location of the checkpoint of the model that we need to restore, to
 later be used for the predicting phase. See more details on how to fill
-this fields in `2. Configuration file <#2-configuration-file>`__. Then,
+this fields in `2. Configuration file <config_file>`. Then,
 *IGNNITION* will compute the corresponding prediction of each of the
 samples of the prediction dataset. Moreover, to run this functionality,
 the user must only make the following call, which will return all the
 computed predictions.
 
-::
+.. code-block:: python
 
     model.predict()
+
 
 In some cases, it may be useful to limit *IGNNITION* to compute the
 predictions over the first *n* samples only. To do so, simply pass this
 information during the Python call, as follows:
 
-::
+.. code-block:: python
 
     model.predict(num_predictions = n)
+
 
 Feeding an array of samples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -172,26 +179,31 @@ do so, the user must still provide a valid path to the checkpoint where
 the model has been stored --unless this operation is preceeded by a
 train operation.
 
-::
+.. code-block:: yaml
 
     load_model_path: <PATH>
 
+
 Afterwards, simply make the following Python call:
 
-::
+.. code-block:: python
 
     model.predict(prediction_samples= my_samples)
 
+
 In this case, *my\_samples* is a simple Python array containing all the
 samples that we want to obtain predictions of. The syntax of these
-samples should be the same as in the dataset (see `Build your
-dataset <./generate_your_dataset.md>`__ for more details). A similar
-procedure as the one presented before can be followed to limit the
+samples should be the same as in the dataset (see
+:ref:`Generate your dataset <generate-your-dataset>` for more details).
+A similar procedure as the one presented before can be followed to limit the
 predictions to the first *n* samples:
 
-::
+.. code-block:: python
 
     model.predict(prediction_samples= my_samples, num_predictions = n)
+
+
+.. _config_file:
 
 2. Configuration file
 ---------------------
@@ -218,7 +230,7 @@ Path to the training dataset
 Indicate the path pointing the training dataset, used by the *train and
 validation* functionality.
 
-.. code:: yaml
+.. code-block:: yaml
 
     train_dataset: <PATH>
 
@@ -229,7 +241,7 @@ Indicate the path pointing the validation/evaluation dataset, that will
 be used by the *train and validation* functionality, as well as the
 *evaluation* functionality.
 
-.. code:: yaml
+.. code-block:: yaml
 
     validation_dataset: <PATH>
 
@@ -238,12 +250,13 @@ Path to the prediction dataset
 
 Defines the path to the prediction dataset, used by the *predict
 functionality*. Notice that this field needs only to be specified in the
-case that a *predict* functionality is executed. Otherwised, it will be
+case that a *predict* functionality is executed. Otherwise, it will be
 ignored.
 
-.. code:: yaml
+.. code-block:: yaml
 
     predict_dataset: <PATH>
+
 
 Load model path
 ^^^^^^^^^^^^^^^
@@ -253,9 +266,10 @@ for our training process (e.g., for evaluation functionality or for
 predicting). For this, the user can specify the path to such
 checkpoints, and *IGNNITION* will use it automatically.
 
-.. code:: yaml
+.. code-block:: yaml
 
     load_model_path: <PATH>
+
 
 Output path
 ^^^^^^^^^^^
@@ -263,9 +277,10 @@ Output path
 Path where the *Checkpoint* and *logs* directory will be created when
 executing the *train and validate* functionality.
 
-.. code:: yaml
+.. code-block:: yaml
 
     output_path: <PATH>
+
 
 Additional file path
 ^^^^^^^^^^^^^^^^^^^^
@@ -274,9 +289,10 @@ Path to an additional *python* file that may contain implementation of
 specific functions, such as the implementation of a certain metric or of
 a certain loss function
 
-.. code:: yaml
+.. code-block:: yaml
 
     additional_file: <PATH>
+
 
 Path to the model description file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -285,6 +301,7 @@ In this case, *IGNNITION* assumes that the definition of the *GNN*
 --through the model description file-- is present in the very same
 directory as the *train\_options.yaml* file itself. Hence, there is no
 need to speficy anything at all regarding this file.
+
 
 Model training parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -297,9 +314,10 @@ be a name from
 `tf.keras.losses <https://www.tensorflow.org/api_docs/python/tf/keras/losses>`__
 library or a custom function which can be defined by the user.
 
-.. code:: yaml
+.. code-block:: yaml
 
     loss: [MeanSquaredError]
+
 
 Optimizer
 ^^^^^^^^^
@@ -310,10 +328,11 @@ library <https://www.tensorflow.org/api_docs/python/tf/keras/optimizers>`__.
 Thus the user must use the exact name used in this library to reference
 it.
 
-.. code:: yaml
+.. code-block:: yaml
 
     optimizer:
       type: Adam
+
 
 Additional parameters
 '''''''''''''''''''''
@@ -329,12 +348,13 @@ values defined in the *tensorflow* library. For illustrative purpuses
 however, let us suppose we want to change the beta\_1 value to 0.9 and
 the beta\_2 value to 0.9 also. This can be done as follows:
 
-.. code:: yaml
+.. code-block:: yaml
 
     optimizer:
       type: Adam
       beta_1: 0.9
       beta_2: 0.999
+
 
 Use of schedules
 ''''''''''''''''
@@ -352,7 +372,7 @@ supported in such library (otherwise *IGNNITION* will use the default
 values). Below we show a simple example defining an exponential decay
 schedule:
 
-.. code:: yaml
+.. code-block:: yaml
 
     optimizer:
       type: Adam
@@ -364,6 +384,7 @@ schedule:
         decay_steps: 80000
         decay_rate: 0.6
 
+
 Metrics
 ^^^^^^^
 
@@ -371,9 +392,10 @@ Metrics defines the list of metric criterias that we want to use to
 evaluate our *GNN* model. This metrics will be plotted during the
 training and validation phase.
 
-.. code:: yaml
+.. code-block:: yaml
 
     metrics: [MeanAbsoluteError]
+
 
 For this definition, the user may specify in this list any name
 supported by the library
@@ -396,9 +418,10 @@ Batch size
 Specify the batch\_size in order to internally execute the mini-batch
 algorithm.
 
-.. code:: yaml
+.. code-block:: yaml
 
     batch_size: 32
+
 
 Number of epochs
 ^^^^^^^^^^^^^^^^
@@ -406,9 +429,10 @@ Number of epochs
 Specify the number of epochs that the algorithm must run before
 termination.
 
-.. code:: yaml
+.. code-block:: yaml
 
     epochs: 100
+
 
 Epoch size
 ^^^^^^^^^^
@@ -419,27 +443,30 @@ not specified, *IGNNITION* will consider the whole dataset as a single
 epoch. This option is useful if the dataset is very big, as we must
 recall that validation is only carried out after each of the epochs.
 
-.. code:: yaml
+.. code-block:: yaml
 
     epoch_size: 10000
+
 
 Training shuffling
 ^^^^^^^^^^^^^^^^^^
 
 True / False to indicate if the training dataset should be shuffled.
 
-.. code:: yaml
+.. code-block:: yaml
 
     shuffle_train_samples: True
+
 
 Validation shuffling
 ^^^^^^^^^^^^^^^^^^^^
 
 True / False to indicate if the evaluation dataset should be shuffled.
 
-.. code:: yaml
+.. code-block:: yaml
 
     shuffle_validation_samples: False
+
 
 Validation samples
 ^^^^^^^^^^^^^^^^^^
@@ -447,18 +474,20 @@ Validation samples
 Specify the number of evaluation samples to be used for the evaluation
 of our GNN.
 
-.. code:: yaml
+.. code-block:: yaml
 
     val_samples: 100
+
 
 Validation frequency
 ^^^^^^^^^^^^^^^^^^^^
 
 Number of epochs after between validations.
 
-.. code:: yaml
+.. code-block:: yaml
 
     val_frequency: 100
+
 
 K-best checkpoints
 ^^^^^^^^^^^^^^^^^^
@@ -467,9 +496,10 @@ Natural number indicating the number of checkpoints that we want to
 keep. Note that the system will automatically keep the best :math:`k`
 checkpoints in terms of the loss.
 
-.. code:: yaml
+.. code-block:: yaml
 
     k_best: 5
+
 
 Batch normalization
 ^^^^^^^^^^^^^^^^^^^
@@ -481,9 +511,10 @@ normalization function for all the elements of a single batch
 respectively. So far, *IGNNITION* supports the use of *mean* and *max*
 normalization.
 
-.. code:: yaml
+.. code-block:: yaml
 
     batch_norm: mean
+
 
 Initial epoch
 ^^^^^^^^^^^^^
@@ -496,7 +527,7 @@ normally gets smaller as the training advances). To do so, the user can
 indicating its number (e.g., 100), which by default will take the value
 0.
 
-.. code:: yaml
+.. code-block:: yaml
 
     initial_epoch: 100
 

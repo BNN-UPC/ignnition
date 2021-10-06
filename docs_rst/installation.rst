@@ -1,3 +1,5 @@
+.. _installation:
+
 Install IGNNITION
 =================
 
@@ -57,10 +59,10 @@ Next step
 ---------
 
 To continue the process of creating your first *GNN*, if you feel
-confident with *GNNs*, we recommend you to check out the :doc:`user guide <./intro>` where you will find
+confident with *GNNs*, we recommend you to check out the :ref:`User Guide <user-guide>` where you will find
 all the information needed to write your new model. Check also
-:doc:`examples <./examples>` where you will find implementations of other
+:ref:`examples <examples>` where you will find implementations of other
 *GNNs* which might serve as starting point for your own model. In case
 you don't yet feel complitely confident with *GNNs*, we recommend you to
-examine our :doc:`quick tutorial <./quick_tutorial>` where we review every
+examine our :ref:`quick tutorial <quick-step-by-step-tutorial>` where we review every
 step to create a *GNN* model for a simple use-case.

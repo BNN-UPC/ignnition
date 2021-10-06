@@ -16,8 +16,8 @@ a single line of TensorFlow. With this tool, network engineers are able
 to create their own GNN models in a matter of few hours. *IGNNITION*
 also incorporates a set of tools and functionalities that guide users
 during the design and implementation process of the GNN. Check out our
-:doc:`quick start tutorial <./quick_tutorial>` to start using IGNNITION.
-Also, you can visit our :doc:`examples library <./examples>` with some
+:ref:`quick start tutorial <quick-step-by-step-tutorial>` to start using IGNNITION.
+Also, you can visit our :ref:`examples library <examples>` with some
 of the most popular GNN models applied to communication networks already
 implemented.
 
@@ -33,13 +33,13 @@ Getting started
 Installation
 ~~~~~~~~~~~~
 
-Visit :doc:`installation <./installation>` to have a detailed tutorial
+Visit :ref:`installation <installation>` to have a detailed tutorial
 on how to install *IGNNITION* and all its necessary dependencies.
 
 IGNNITION at a glance
 ~~~~~~~~~~~~~~~~~~~~~
 
-In the section :doc:`ignnition at a glance <./ignnition_at_glance>`, we
+In the section :ref:`ignnition at a glance <ignnition_at_a_glance>`, we
 provide an overview of the benefits of using *IGNNITION* with respect of
 traditional tools for the implementation of custom GNN models.
 
@@ -47,14 +47,14 @@ Quick step-by-step tutorial
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Because we believe that the best way to learn is by practicing, we
-provide in :doc:`quick step-by-step tutorial <quick_tutorial/>` an
+provide in :ref:`quick step-by-step tutorial <quick-step-by-step-tutorial>` an
 example of how to implement a *GNN* from scratch, which should be a good
 starting point for any user.
 
 About
 -----
 
-Learn more in :doc:`About us <about/>`, about *Barcelona Neural
+Learn more in :ref:`About us <about>`, about *Barcelona Neural
 Networking Center* team which has carried out the development of
 *IGNNITION*.
 
@@ -62,7 +62,7 @@ Licence
 -------
 
 Despite being an open-source project, in section
-:doc:`License <./license/>` we provide the details on the released
+:ref:`License <license>` we provide the details on the released
 license.
 
 .. toctree::

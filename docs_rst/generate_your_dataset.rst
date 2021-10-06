@@ -10,11 +10,10 @@ In order to properly feed the dataset to *IGNNITION*, the dataset must
 be in *json* format. For this, the user must generate *json* files
 --potentially many-- with the help of the well-known library *Networkx*,
 each of which can optionally be compressed into a *.tar.gz* file.
-Furthermore, *IGNNITION* requires that the user manually separetes the
-training from the evalutation set into two different directories, the
+Furthermore, *IGNNITION* requires that the user manually separates the
+training from the evaluation set into two different directories, the
 paths of which must be specified in the *training\_options.yml* file in
-their corresponding filds (check `train and
-evaluate <train_and_evaluate.md>`__).
+their corresponding fields (check :ref:`train and evaluate <train-and-evaluate>`).
 
 We would like to highlight that the dataset can contain potentially many
 *json* files as well as many *tar.gz* files, each of which compressing
@@ -41,8 +40,8 @@ This principle, however, imposes an important constraint that all the
 references used in the model descprition file match the ones used in the
 dataset. Below we provide a brief description of how a user can ensure
 that this constraint is satisfied. Nevertheless, *IGNNITION*
-incorporates an error-checking system (further explained in `debugging
-assistant <debugging_assistant.md>`__]), which assists users in the
+incorporates an error-checking system (further explained in
+:ref:`debugging assistant <debugging_assistant>`), which assists users in the
 debugging of such aspects.
 
 How to generate a sample?
@@ -54,7 +53,7 @@ user a good intuition to potentially build more complex examples.
 Create the graph
 ~~~~~~~~~~~~~~~~
 
-First of all, the user must create a general grap using the calls from
+First of all, the user must create a general graph using the calls from
 below.
 
 .. code:: python
@@ -203,5 +202,5 @@ Practical example
 So far we have covered how a general dataset can be generated.
 Nevertheless, we are sure everything will be much more clear after
 checking how an specific dataset is generated. To do so, take a look at
-`quick tutorial <quick_tutorial.md>`__ where we cover in detail how to
+:ref:`quick tutorial <quick-step-by-step-tutorial>` where we cover in detail how to
 create a dataset to solve the problem of the *Shortest-path*.

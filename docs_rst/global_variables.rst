@@ -37,9 +37,8 @@ How to adapt my model
 To adapt our model, we need only to make minor changes on the
 *model\_description.yaml* file. Below we will show a mock example on how
 to adapt several parts of the architecture, and finally we will show how
-the *Shortest-path* example presented in `quick
-tutorial <quick_tutorial.md>`__ can be adapted to use such powerful
-tool.
+the *Shortest-path* example presented in :ref:`quick tutorial <quick-step-by-step-tutorial>`
+can be adapted to use such powerful tool.
 
 Basic working principle
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -89,6 +88,6 @@ In order to further explain how we can use global variables, click
 `here <https://github.com/knowledgedefinednetworking/ignnition/tree/main/examples/Shortest_Path/model_description_global_vars.yaml>`__.
 
 In this file we present the udpated version of the model explained in
-`quick start tutorial <quick_tutorial.md>`__ using the global variables
+:ref:`quick start tutorial <quick-step-by-step-tutorial>` using the global variables
 that we defined in the file
 `global\_variables.yaml <https://github.com/knowledgedefinednetworking/ignnition/tree/main/examples/Shortest_Path/global_variables.yaml>`__.
