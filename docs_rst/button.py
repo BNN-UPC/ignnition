@@ -10,7 +10,7 @@ BUTTON_TEMPLATE = jinja2.Template(u"""
 
 /* CSS */
 .button {
-  background-image: linear-gradient(-180deg, #37AEE2 0%, #0075b6 100%);
+  background-color: #2088be;
   border-radius: .5rem;
   box-sizing: border-box;
   color: #FFFFFF;
@@ -30,7 +30,7 @@ BUTTON_TEMPLATE = jinja2.Template(u"""
 }
 
 .button:hover {
-  background-image: linear-gradient(-180deg, #1D95C9 0%, #17759C 100%);
+  background-image: linear-gradient(-180deg, #1D95C9 0%, #2088be 100%);
 }
 
 @media (min-width: 768px) {
