@@ -33,7 +33,6 @@ following graph, the shortest path between N1 and N3 is: N1, N5, N3.
    :scale: 50
    :align: center
 
-   GraphExample
 
 Since shortest paths can be understood as sequences of nodes, and
 therefore, sequences can have different lengths we are going to

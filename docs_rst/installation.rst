@@ -4,7 +4,7 @@ Install IGNNITION
 =================
 
 To install *IGNNTION*, we provide the user with two possibilities.
-Please, ensure you use **Python 3.7**. Otherwise, we do not guarantee
+Please, ensure you use **Python 3.7 - 3.8**. Otherwise, we do not guarantee
 the correct installation of dependencies.
 
 Pip
@@ -16,7 +16,7 @@ show below. This command will automatically install if needed all the
 dependencies, and then install *IGNNITION*.
 
 ::
-
+        pip install --upgrade pip
         pip install ignnition
 
 Source files
