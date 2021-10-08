@@ -28,10 +28,10 @@ def main():
     gbn = list()
     geant2 = list()
     
-    with open('GBN_LogsA_37_40k.pkl', 'rb') as f:
+    with open('GBN.pkl', 'rb') as f:
         gbn = pickle.load(f)
     
-    with open('Geant2_LogsA_37_40k.pkl', 'rb') as f:
+    with open('Geant2.pkl', 'rb') as f:
         geant2 = pickle.load(f)
 
     gbn = gbn[:1000]
