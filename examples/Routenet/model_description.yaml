@@ -40,7 +40,17 @@ message_passing:
           message:
           - type: direct_assignment
         aggregation:
+          - type: max
+            output_name: max_value
+          - type: min
+            output_name: min_value
           - type: sum
+            output_name: sum_value
+          - type: mean
+            output_name: mean_value
+          - type: neural_network
+            input: [max_value, min_value, sum_value, mean_value]
+            nn_name: aggregation_function
         update:
           type: neural_network
           nn_name: recurrent1
@@ -58,19 +68,19 @@ neural_networks:
   nn_architecture:
   - type_layer: Dense
     units: readout_units
-    kernel_regularizer: r_l2
     activation: selu
-  - type_layer: Dropout
-    rate: 0.5
   - type_layer: Dense
     units: readout_units
-  - type_layer: Dropout
-    rate: 0.5
+    activation: selu
   - type_layer: Dense
     units: output_units
-    kernel_regularizer: r_l2_2
     activation: None
 
 - nn_name: recurrent1
   nn_architecture:
     - type_layer: GRU
+
+- nn_name: aggregation_function
+  nn_architecture:
+  - type_layer: Dense
+    units: hidden_state_dim
