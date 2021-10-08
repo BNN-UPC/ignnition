@@ -1,5 +1,7 @@
 # Executing RouteNet example
 
+In this example we reproduce the GNN from the paper [RouteNet: Leveraging Graph Neural Networks for network modeling and optimization in SDN](https://arxiv.org/pdf/1910.01508.pdf). Specifically, we use the original datasets from the paper and we give the instructions to train the GNN from scratch. Notice that some pre-processing scripts might take some time (up to hours) due to the large datasets.
+
 ## Using a small subset of data
 For this example you can find the directory *data* containing a very small subset of the dataset that we used. In addition, we have included the rest of files properly filled, and thus require only to be executed.
 
