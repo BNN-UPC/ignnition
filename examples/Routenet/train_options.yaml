@@ -1,7 +1,7 @@
 # PATHS
-train_dataset: ./nsfnetGermany/train
-validation_dataset: ./nsfnetGermany/eval
-predict_dataset: ./GBNMigrated/eval
+train_dataset: ./nsfnetMigrated/train
+validation_dataset: ./nsfnetMigrated/eval
+predict_dataset: ./gbnMigrated/eval
 #load_model_path: ./CheckPoint/experiment_2021_10_07_16_22_30/ckpt/weights.37-0.00.hdf5
 additional_functions_file: ./main.py
 output_path: ./

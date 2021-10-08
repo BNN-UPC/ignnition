@@ -42,18 +42,26 @@ To execute this file, you need to pass four arguments as parameters. First of al
 It is important to consider that the migration process can take several minutes to finish.
 
 ### 3) Training
-Go to the *train_options.yaml* file and ensure that the *train_dataset* path points to your new dataset.
-Finally, execute:
+Go to the *train_options.yaml* file and ensure that the *train_dataset* path points to your new dataset. For example, the *train_options.yaml* would look like this:
+```python
+train_dataset: ./nsfnetMigrated/train
+validation_dataset: ./nsfnetMigrated/eval
+```
+Finally, execute the following to start the training process:
 ```python
     python main.py
 ```
 
 ### 4) Evaluate
-Once the training process finished, we can evaluate our model on a different topology than the one used during training. To do this, we need to ensure that the *predict_dataset* from *train_options.yaml* points to the desired dataset. Then, execute:
+Once the training process finished, we can evaluate our model on a different topology than the one used during training. To do this, we need to ensure that the *predict_dataset* from *train_options.yaml* points to the desired dataset. 
+```python
+predict_dataset: ./gbnMigrated/eval
+```
+Then, execute the following to start the evaluation process:
 ```python
     python predict.py
 ```
-Once the model finished making the predictions over all evaluation dataset, we can plot the CDF of the relative error by executing: 
+Once the model finished making the predictions over all the evaluation dataset, we can plot the CDF of the relative error by executing: 
 ```python
     python plot_cdf.py
 ```
