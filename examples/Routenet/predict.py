@@ -36,7 +36,7 @@ def main():
     for elem in all_metrics:
         convert_to_np.append(elem.numpy())
 
-    with open('GBN.pkl', 'wb') as f:
+    with open('Results.pkl', 'wb') as f:
         pickle.dump(convert_to_np, f)
 
 

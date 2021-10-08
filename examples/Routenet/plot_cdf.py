@@ -25,26 +25,18 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    gbn = list()
-    geant2 = list()
+    top_results = list()
     
-    with open('GBN.pkl', 'rb') as f:
-        gbn = pickle.load(f)
-    
-    with open('Geant2.pkl', 'rb') as f:
-        geant2 = pickle.load(f)
+    with open('Results.pkl', 'rb') as f:
+        top_results = pickle.load(f)
 
-    gbn = gbn[:1000]
-    geant2 = geant2[:1000]
+    top_results = top_results[:1000]
 
     fig, ax = plt.subplots()
-    n = np.arange(1,len(gbn)+1) / np.float(len(gbn))
-    Xs = np.sort(gbn)
-    ax.step(Xs,n, c='darkorange', linestyle='-.', label="GBN", linewidth=3) 
-    n = np.arange(1,len(gbn)+1) / np.float(len(geant2))
-    Xs = np.sort(geant2)
-    ax.step(Xs,n, c='green', linestyle='-', label="GEANT2", linewidth=3) 
-
+    n = np.arange(1,len(top_results)+1) / np.float(len(top_results))
+    Xs = np.sort(top_results)
+    ax.step(Xs,n, c='darkorange', linestyle='-', label="top_results", linewidth=3) 
+   
     plt.rcParams.update({'font.size': 14})
     plt.rcParams['pdf.fonttype'] = 42
     plt.ylim((0, 1.001))
@@ -58,7 +50,7 @@ def main():
     lgd = plt.legend(loc="lower left", bbox_to_anchor=(0.0, 0.8), ncol=1)
     plt.tight_layout()
     #plt.show()
-    plt.savefig('CDF_GEANT_GBN.pdf', bbox_extra_artists=(lgd,), bbox_inches='tight')
+    plt.savefig('top_results_cdf.pdf', bbox_extra_artists=(lgd,), bbox_inches='tight')
     #plt.clf()
 
 

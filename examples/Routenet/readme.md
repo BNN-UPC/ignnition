@@ -47,3 +47,13 @@ Finally, execute:
 ```python
     python main.py
 ```
+
+### 4) Evaluate
+Once the training process finished, we can evaluate our model on a different topology than the one used during training. To do this, we need to ensure that the *predict_dataset* from *train_options.yaml* points to the desired dataset. Then, execute:
+```python
+    python predict.py
+```
+Once the model finished making the predictions over all evaluation dataset, we can plot the CDF of the relative error by executing: 
+```python
+    python plot_cdf.py
+```
