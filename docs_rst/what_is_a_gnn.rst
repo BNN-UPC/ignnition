@@ -9,29 +9,29 @@ well-known GNN family that covers a wide range of standard GNN
 architectures.
 
 The input of a GNN is a graph *G=(V, E)* -- directed or undirected --
-that comprises a set nodes :math:`V` and some edges connecting them :math:`E`. Each node
-*v* has an associated vector of predefined size that encodes its state,
+that comprises a set of nodes :math:`V` and some edges connecting them :math:`E`. Each node
+*v* has an associated vector of a predefined size that encodes its state,
 namely, the node hidden state :math:`h_v`. At the beginning of a GNN execution,
 hidden state vectors :math:`h_v` are initialized with some node-related features :math:`x_v`
 included in the input graph. Optionally, edges may also contain a set of
 features denoted by :math:`e_{uv}` where :math:`u,v \in V`.
 
-Once the hidden states are initialized, a message passing algorithm is
+Once the hidden states are initialized, a message-passing algorithm is
 executed according to the connections of the input graph. In this
 message-passing process, three main phases can be distinguished: *(i)
 Message*, *(ii) Aggregation*, and *(iii) Update*. First, every node :math:`v \in V`
 sends its hidden state to all its neighbors :math:`u \in N(v)`. Then, each node applies
 the *message function* :math:`M(·)` to each of the received messages respectively, to
-obtain a new more refained representation of the state of its neighbors.
+obtain a new more refined representation of the state of its neighbors.
 After this, every node merges all the computed messages from its
-neighbors into a single fixed-size vector :math:`m_v` that comprise all they
+neighbors into a single fixed-size vector :math:`m_v` that comprises all the
 information. To do this, they use a common *Aggregation function* (e.g.,
 element-wise summation ). Lastly, every node applies an *Update
 function* :math:`U(·)` that combines its own hidden state :math:`h_v` with the final aggregated
-message from the neighbors to obtain its new hidden-state. Finally, all
+message from the neighbors to obtain its new hidden state. Finally, all
 this message-passing process is repeated a number of iterations
 :math:`T` until the node hidden states converge to some fixed values.
-Hence, in each iteration a node potentially receives --- via its direct
+Hence, in each iteration, a node potentially receives --- via its direct
 neighbors --- some information of the nodes that are at :math:`k` hops in the
 graph. Formally, the message passing algorithm can be described as:
 
@@ -61,10 +61,10 @@ generate global graph-level outputs. In both cases, the *Readout*
 function can be applied to a particular subset of nodes.
 
 One essential aspect of GNN is that all the functions that shape its
-internal architecture are *universal*. Indeed, it uses four main
+internal architecture is *universal*. Indeed, it uses four main
 functions that are replicated multiple times along the GNN architecture:
 *(i)* the *Message* , *(ii)* the *Aggregation* , *(ii)* the *Update* ,
-and *(iv)* the *Readout* . Typically, at least , and are modeled by
+and *(iv)* the *Readout* . Typically, at least, and are modeled by
 three different Neural Networks (e.g., fully-connected NN, Recurrent NN)
 which approximate those functions through a process of joint
 fine-tunning (training phase) of all their internal parameters. As a
@@ -76,14 +76,14 @@ potentially different sizes and structures.
 Additional material
 -------------------
 
-Some user may find the previous explanation too general as, for
+Some users may find the previous explanation too general as, for
 simplicity, we focus only on the most general scenario. For this reason,
 we provide some additional material to learn about *GNNs* in more depth.
 
 Related papers
 ~~~~~~~~~~~~~~
 
-Due to the recent plethora of *GNNs*, numerous papers have been writen
+Due to the recent plethora of *GNNs*, numerous papers have been written
 on this topic. We however chose two of them which we believe are very
 relevant to get started on *GNNs*.
 

@@ -12,13 +12,13 @@ new releases.
 
 **Devel**
 
-This is the mailing list for developers, or people interested into
+This is the mailing list for developers or people interested into
 development aspects.
 
 `Subscribe <https://mail.ignnition.net/cgi-bin/mailman/listinfo/devel>`__
 
 **Users**
 
-This is the mailing list that provides the community-driven support.
+This is the mailing list that provides community-driven support.
 
 `Subscribe <https://mail.ignnition.net/cgi-bin/mailman/listinfo/users>`__

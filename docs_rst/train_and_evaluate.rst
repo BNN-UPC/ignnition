@@ -23,7 +23,7 @@ Create the model
 ~~~~~~~~~~~~~~~~
 
 By making the call from below, *IGNNITION* is creating a model with all
-the information of the model\_description.yml file as well as the
+the information of the model_description.yaml file as well as the
 different training options specified. For this, the user must specify
 the path to the model directory where we can find the
 model\_description.yaml file, and the training\_options.yaml file.
@@ -37,12 +37,12 @@ Create the computational graph
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 One of the main problems that any Machine Learning Engineer has faced is
-to properly debug the models. Machine learning oftently perform very
-well, but we are rarely capable of having proper insight on its inner
-working. This makes it very challanging and time consuming to fix /
-troubleshoot a ML model.
+to properly debug the models. Machine learning often performs very
+well, but we are rarely capable of having proper insight into its inner
+working. This makes it very challenging and time-consuming to fix /
+troubleshoot an ML model.
 
-For this, IGNNITION incorporates a debugging system which is based on
+For this, IGNNITION incorporates a debugging system that is based on
 producing a simplified computational graph of the model. For this, the
 user should make the following call over the previously created model
 
@@ -51,8 +51,8 @@ user should make the following call over the previously created model
     model.computational_graph()
 
 An important consideration is that this functionality requires a valid
-definition of the train dataset or of the predict dataset. Thus, the
-user should specify at least one of them in the *train\_options.yaml*,
+definition of the training dataset or of the predicted dataset. Thus, the
+user should specify at least one of them in the *train_options.yaml*,
 just as we show below:
 
 .. code-block:: yaml
@@ -61,9 +61,9 @@ just as we show below:
     train_dataset: <PATH TO YOUR DATA>
 
 This will create a directory named "computational\_graph", in the
-corresponding path indicated in the "train\_options.yml" file. We
+corresponding path indicated in the "train\_options.yaml" file. We
 further extend on how to visualize or interpret the output of this
-operation in :ref:`debugging assistant <debugging_assistant>`.
+operation at :ref:`debugging assistant <debugging_assistant>`.
 
 Train and validation
 ~~~~~~~~~~~~~~~~~~~~
@@ -75,36 +75,36 @@ model easily. For this, the user must only make the following call:
 
     model.train_and_validate()
 
-This calll proceeds to train the *GNN* specified in the
+This call proceeds to train the *GNN* specified in the
 *model\_description.yaml* file. Additionally, a process of validation
 will be performed throughout the training phase, so as to provide better
-insight on the model performance. The behaviour during the training
+insight into the model performance. The behavior during the training
 phase is controlled by the *train\_options.yaml* file, specified in
 section :ref:`2. Configuration file <config_file>`.
 
-Furthermore, this operations will create (if it doesn't exist already) a
+Furthermore, this operation will create (if it doesn't exist already) a
 directory called "CheckPoints" in the specified path. In this directory,
-a new directory will be created corresponding to the experiment runned
+a new directory will be created corresponding to the experiment run
 (indexed by date). In it, the corresponding checkpoints will be stored,
 as well as the "events.out.tfevents.XXX" file, which contains the
-tensorboard information of the training metrics specified. Similarly as
+tensorboard information of the training metrics specified. Similarly, as
 before, the user can visualize this information by running
 
 .. code-block:: shell
 
     tensorboard --logdir <PATH TO THE "events.out.tfevents.XXX" FILE>
 
-Then, by visiting *localhost:6006*, the user can analyse the different
+Then, by visiting *localhost:6006*, the user can analyze the different
 statistics produced during the training phase to evaluate the model
 (e.g., loss, mean absolute error, mean relative error, R2...)
 
 Evaluate
 ~~~~~~~~
 
-We also incorporated a very useful function which allows the user to
+We also incorporated a very useful function that allows the user to
 evaluate by obtaining performance metrics of a previously trained model.
 More specifically, the *Evaluate* functionality takes as input the
-speficied validation dataset --or the array of samples passe. Then,
+specified validation dataset --or the array of samples passe. Then,
 after loading the indicated model, it will make the corresponding
 predictions for each of the samples, and then will compute the
 performance metrics of these predictions with respect to the true label
@@ -120,7 +120,7 @@ For this, clearly, the user will have to indicate the path where the
     validation_dataset: <PATH>
     load_model_path: <PATH>
 
-More information regarding these fields can be found in section
+More information regarding these fields can be found in the section
 :ref:`2. Configuration file <config_file>`. Moreover, to run this
 functionality, the user must only make the following call, which will
 return the result of the aforementioned metrics.
@@ -133,12 +133,12 @@ return the result of the aforementioned metrics.
 Predict
 ~~~~~~~
 
-*IGNNITION* also allows to make predictions over a previously
+*IGNNITION* also allows making predictions over a previously
 pre-trained *GNN*. To do so, we provide two different alternative
-procedures which adapt to most scenarios: #### Feeding a dataset First
+procedures which adapt to most scenarios: #### Feeding a dataset, First
 of all, IGNNITION provides the possibility of making predictions over a
 prediction dataset. For this, the user must define 2 special fields in
-the "train\_options.yaml" file, which are:
+the "train_options.yaml" file, which are:
 
 .. code-block:: yaml
 
@@ -146,10 +146,10 @@ the "train\_options.yaml" file, which are:
 
     load_model_path: <PATH>
 
-In this fields, we can specify the dataset that we aim to predict, and
+In these fields, we can specify the dataset that we aim to predict, and
 the location of the checkpoint of the model that we need to restore, to
 later be used for the predicting phase. See more details on how to fill
-this fields in `2. Configuration file <config_file>`. Then,
+these fields in :ref:`2. Configuration file <config_file>`. Then,
 *IGNNITION* will compute the corresponding prediction of each of the
 samples of the prediction dataset. Moreover, to run this functionality,
 the user must only make the following call, which will return all the
@@ -173,18 +173,18 @@ Feeding an array of samples
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The second alternative is based on the idea of passing an array of
-samples during the Python call to the predict functionality. This can be
+samples during the Python call to the predicted functionality. This can be
 very useful, for instance, in *Reinforcement Learning* applications. To
 do so, the user must still provide a valid path to the checkpoint where
-the model has been stored --unless this operation is preceeded by a
-train operation.
+the model has been stored --unless this operation is preceded by a
+train operator.
 
 .. code-block:: yaml
 
     load_model_path: <PATH>
 
 
-Afterwards, simply make the following Python call:
+Afterward, simply make the following Python call:
 
 .. code-block:: python
 
@@ -208,11 +208,11 @@ predictions to the first *n* samples:
 2. Configuration file
 ---------------------
 
-In this section we review in depth the content of the
+In this section, we review in-depth the content of the
 *train\_options.yaml* file, which will contain all the configuration
-parameters that ultimately define the behaviour of the specific
+parameters that ultimately define the behavior of the specific
 functionality executed by the user. We must note that this file must be
-written in *YAML* format, which allows a very intuitve definition of all
+written in *YAML* format, which allows a very intuitive definition of all
 the possible fields in the form of *KEY: VALUE*.
 
 Definition of the paths
@@ -227,7 +227,7 @@ absolute paths or relative paths from the directory of this file.
 Path to the training dataset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Indicate the path pointing the training dataset, used by the *train and
+Indicate the path pointing to the training dataset, used by the *train and
 validation* functionality.
 
 .. code-block:: yaml
@@ -237,7 +237,7 @@ validation* functionality.
 Path to the validation dataset
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Indicate the path pointing the validation/evaluation dataset, that will
+Indicate the path pointing to the validation/evaluation dataset, that will
 be used by the *train and validation* functionality, as well as the
 *evaluation* functionality.
 
@@ -261,7 +261,7 @@ ignored.
 Load model path
 ^^^^^^^^^^^^^^^
 
-Sometimes we might wish to use a previous checkpoint as starting point
+Sometimes we might wish to use a previous checkpoint as a starting point
 for our training process (e.g., for evaluation functionality or for
 predicting). For this, the user can specify the path to such
 checkpoints, and *IGNNITION* will use it automatically.
@@ -300,7 +300,7 @@ Path to the model description file
 In this case, *IGNNITION* assumes that the definition of the *GNN*
 --through the model description file-- is present in the very same
 directory as the *train\_options.yaml* file itself. Hence, there is no
-need to speficy anything at all regarding this file.
+need to specify anything at all regarding this file.
 
 
 Model training parameters
@@ -312,7 +312,7 @@ Loss
 Name of the loss function to use for the training of the model. It can
 be a name from
 `tf.keras.losses <https://www.tensorflow.org/api_docs/python/tf/keras/losses>`__
-library or a custom function which can be defined by the user.
+library or a custom function that can be defined by the user.
 
 .. code-block:: yaml
 
@@ -340,12 +340,11 @@ Additional parameters
 Following the documentation of the `tf.keras.optimizers
 library <https://www.tensorflow.org/api_docs/python/tf/keras/optimizers>`__,
 one can for instance define different attributes that model the inner
-working of the desired optimizer, in this case *ADAM*. To do so, we
+working of the desired optimizer, in this case, *ADAM*. To do so, we
 simply include, just like the *type* attribute, any other parameter
-included in the afformentioned library that accepts this optimizer. Note
+included in the aforementioned library that accepts this optimizer. Note
 that if no parameters are defined, *IGNNITION* will use the default
-values defined in the *tensorflow* library. For illustrative purpuses
-however, let us suppose we want to change the beta\_1 value to 0.9 and
+values defined in the *TensorFlow* library. For illustrative purposes, however, let us suppose we want to change the beta\_1 value to 0.9 and
 the beta\_2 value to 0.9 also. This can be done as follows:
 
 .. code-block:: yaml
@@ -359,16 +358,16 @@ the beta\_2 value to 0.9 also. This can be done as follows:
 Use of schedules
 ''''''''''''''''
 
-Finally we consider the case in which we want to define a schedule to be
-used with our optimizer. For this, again, we follow the syntax of of the
+Finally, we consider the case in which we want to define a schedule to be
+used with our optimizer. For this, again, we follow the syntax of the
 library
 `tf.keras.optimizers.schedules <https://www.tensorflow.org/api_docs/python/tf/keras/optimizers/schedules>`__.
 Thus, we must only create a parameter *learning\_rate*, just as we would
-with the tensorflow library, and pass to it the definition of the
-scheduler. This definition follows the same principle from before.
+with the TensorFlow library, and pass to it the definition of the
+scheduler. This definition follows the same principle as before.
 Reference the schedule type using a valid name from the previously
 mentioned library, and also include any other desired parameter
-supported in such library (otherwise *IGNNITION* will use the default
+supported in such library (otherwise, *IGNNITION* will use the default
 values). Below we show a simple example defining an exponential decay
 schedule:
 
@@ -388,8 +387,8 @@ schedule:
 Metrics
 ^^^^^^^
 
-Metrics defines the list of metric criterias that we want to use to
-evaluate our *GNN* model. This metrics will be plotted during the
+Metrics define the list of metric criteria that we want to use to
+evaluate our *GNN* model. These metrics will be plotted during the
 training and validation phase.
 
 .. code-block:: yaml
@@ -407,7 +406,7 @@ name, and then define a function with this very same name in the
 Advanced options
 ~~~~~~~~~~~~~~~~
 
-*IGNNITION* also allows the user to costumize basically any training
+*IGNNITION* also allows the user to customize basically any training
 option. For this, in this last part of the file, the user must specify
 the following fields. We recommend to copy-past the provided examples,
 and change only the desired fields -if any-.
@@ -437,7 +436,7 @@ termination.
 Epoch size
 ^^^^^^^^^^
 
-This is an optional parameter which defines the number of elements that
+This is an optional parameter that defines the number of elements that
 form each of the epochs (using a natural number). Note that if this is
 not specified, *IGNNITION* will consider the whole dataset as a single
 epoch. This option is useful if the dataset is very big, as we must
@@ -505,7 +504,7 @@ Batch normalization
 ^^^^^^^^^^^^^^^^^^^
 
 When defining a model, we can either not use any normalization at all,
-define a normalization function that will be applied to all the dataset,
+define a normalization function that will be applied to all the datasets,
 or use batch normalization. This batch normalization will apply the same
 normalization function for all the elements of a single batch
 respectively. So far, *IGNNITION* supports the use of *mean* and *max*
@@ -520,7 +519,7 @@ Initial epoch
 ^^^^^^^^^^^^^
 
 When using an existing checkpoint as starting point of our *GNN*, it
-might be desirible to adapt also the initial epoch number. This is due
+might be desirable to adapt also the initial epoch number. This is due
 to the fact that such value has implications on the learning rate (which
 normally gets smaller as the training advances). To do so, the user can
 (optionally) define the initial epoch to start the training by

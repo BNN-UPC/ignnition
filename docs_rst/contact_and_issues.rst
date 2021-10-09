@@ -3,11 +3,10 @@ Contact and issues
 
 *IGNNITION* has been released as an open-source project powered by
 Barcelona Neural Networking Center `BNN <https://bnn.upc.edu>`__, making
-it our goal to build a community around *IGNNITION*, all working with
-our common goal of encouraging scientific and commercial break-throughs
-though the use of Graph Neural Networks.
+our goal to build a community around *IGNNITION*, all working with
+our common goal of encouraging scientific and commercial break-throughs through the use of Graph Neural Networks.
 
-Consequently, we welcome any kind of feed-back that can help us make
+Consequently, we welcome any kind of feedback that can help us make
 this tool more useful to the community and to all its potential users.
 For this reason, we invite you to contact us at
 **contactus@ignnition.net**.

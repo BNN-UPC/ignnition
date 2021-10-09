@@ -12,14 +12,14 @@ Networks <https://dl.acm.org/doi/10.1145/3360468.3366773>`__ aims at
 estimating the src-dst performance of a network (i.e delay, jitter).
 This case presents a more complex GNN architecture that contains three
 entity types (links, paths, and nodes). In this case, the message
-passing is divided in two stages with the following structure:
+passing is divided into two stages with the following structure:
 
 **Stage 1:** paths -> nodes, and paths -> links
 
 **Stage 2:** nodes and links -> paths
 
 The first stage runs two message passings separately, while in the
-second stage it combines the hidden states of nodes and links and
+the second stage combines the hidden states of nodes and links and
 aggregates them using a Recurrent NN.
 
 Contextualization
@@ -41,9 +41,9 @@ MSMP Graph
 ~~~~~~~~~~
 
 Below we provide a visualization of the corresponding MSMP graph for
-this use-case. In this representation we can observe the three different
-entities, this being the links, the paths and the nodes. Then we can
-observe the message passing that they perform into two separete stages.
+this use case. In this representation we can observe the three different
+entities, these being the links, the paths, and the nodes. Then we can
+observe the message passing that they perform into two separate stages.
 
 .. image::Images/msmp_q_size.png
     :align:center

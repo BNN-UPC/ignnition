@@ -7,7 +7,7 @@ Brief description
 The `QM9
 dataset <https://figshare.com/collections/Quantum_chemistry_structures_and_properties_of_134_kilo_molecules/978904>`__
 contains information about 134k organic molecules containing Hydrogen
-(H), Carbon (C), Nitrogen (N) and Fluorine (F). For each molecule,
+(H), Carbon (C), Nitrogen (N), and Fluorine (F). For each molecule,
 computational quantum mechanical modeling was used to find each atom's
 “positions” as well as a wide range of interesting and fundamental
 chemical properties, such as dipole moment, isotropic polarizability,
@@ -19,11 +19,9 @@ The model presented in this example follows the GNN architecture used in
 single **atom** entity and consists of:
 
 -  Feed-forward neural network to build *atom to atom* messages
-   (single-step message passing) using the hidden states along with edge
-   information (atom to atom distance and bond type).
+   (single-step message passing) using the hidden states along with edge information (atom to atom distance and bond type).
 -  Gated Recurrent Unit (GRU) to update atom's hidden states.
--  Gated feed-forward neural network as readout to compute target
-   properties.
+-  Gated feed-forward neural network as readout to compute target properties.
 
 Contextualization
 ~~~~~~~~~~~~~~~~~
@@ -44,10 +42,9 @@ Two more recent approaches by `Behler & Parrinello
 and `Rupp et al.
 (2012) <https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.108.058301>`__
 attempt to approximate solutions to quantum mechanics directly without
-appealing to DFT by using statistical learning models. In the first case
+appealing to DFT by using statistical learning models. In the first case,
 single-hidden-layer neural networks were used to approximate the energy
-and forces for configurations of a Silicon melt with the goal of
-speeding up molecular dynamics simulations. The second paper used Kernel
+and forces for configurations of a Silicon melt to speed up molecular dynamics simulations. The second paper used Kernel
 Ridge Regression (KRR) to infer atomization energies over a wide range
 of molecules.
 

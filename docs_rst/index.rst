@@ -6,11 +6,10 @@ communication networks, where many problems are formulated as graphs
 with complex relationships (e.g., topology, routing, wireless channels).
 However, implementing a GNN model is nowadays a complex and
 time-consuming task, especially for scientists and engineers of the
-networking field, which often lack a deep background on neural network
+networking field, which often lack a deep background in neural network
 programming (e.g., TensorFlow or PyTorch). This arguably prevents
 networking experts to apply this type of neural networks to their
-specific problems. *IGNNITION* is a TensorFlow-based framework for fast
-prototyping of GNNs. It provides a codeless programming interface, where
+specific problems. *IGNNITION* is a TensorFlow-based framework for fast prototyping of GNNs. It provides a codeless programming interface, where
 users can implement their own GNN models in a YAML file, without writing
 a single line of TensorFlow. With this tool, network engineers are able
 to create their own GNN models in a matter of few hours. *IGNNITION*
@@ -48,8 +47,7 @@ Quick step-by-step tutorial
 
 Because we believe that the best way to learn is by practicing, we
 provide in :ref:`quick step-by-step tutorial <quick-step-by-step-tutorial>` an
-example of how to implement a *GNN* from scratch, which should be a good
-starting point for any user.
+example of how to implement a *GNN* from scratch, which should be a good starting point for any user.
 
 About
 -----
@@ -58,7 +56,7 @@ Learn more in :ref:`About us <about>`, about *Barcelona Neural
 Networking Center* team which has carried out the development of
 *IGNNITION*.
 
-Licence
+License
 -------
 
 Despite being an open-source project, in section
@@ -89,6 +87,7 @@ license.
 
    intro
    model_description
+   keyword_definition
    generate_your_dataset
    train_and_evaluate
    debugging_assistant

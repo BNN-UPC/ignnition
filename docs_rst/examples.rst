@@ -15,7 +15,7 @@ implementations, most of the custom GNN can be produced just by making
 some minor changes, which should help avoid any potential designing
 issue. Also, in each of the respective directories of the use-cases
 presented, we also provide a file containing a single sample of the
-dataset to help the user to better understand the required structure of
+dataset to help the user better understand the required structure of
 the dataset.
 
 Below you can find the list of examples implemented so far by

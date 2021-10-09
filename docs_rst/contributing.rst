@@ -9,24 +9,16 @@ Managing branches in Ignnition
 
 There are three main branches in Ignnition:
 
--  **main**: The main branch of Ignnition. This branch contains the
-   latest stable release.
--  **ignnition-nightly**: The nightly branch of Ignnition. This branch
-   contains the small incremental updates that are released in a
+-  **main**: The main branch of Ignnition. This branch contains the latest stable release.
+-  **ignnition-nightly**: The nightly branch of Ignnition. This branch contains the small incremental updates that are released in a
    constant release cycle.
--  **development**: The development branch of Ignnition. This branch
-   contains future features that may drastically change how Ignnition is
-   used. As such, this branch is expected to be unstable and should not
-   be used for any other use than alpha testing.
+-  **development**: The development branch of Ignnition. This branch contains future features that may drastically change how Ignnition is used. As such, this branch is expected to be unstable and should not be used for any other use than alpha testing.
 
 There are three different kinds of development branches:
 
--  **hf-(name)**: This branch contains hotfixes (i.e. fixes deemed
-   urgent enough to be included directly into the main branch without
-   having to wait to the end of the development cycle). These branches
+-  **hf-(name)**: This branch contains hotfixes (i.e. fixes deemed urgent enough to be included directly into the main branch without having to wait until the end of the development cycle). These branches
    should start from the **main** branch and its Pull Request (PR)
-   should be directed at the **main** branch. The hotfix version should
-   be increased whenever one of these branches is created.
+   should be directed at the **main** branch. The hotfix version should be increased whenever one of these branches is created.
 
 -  **bf-(name)**: This branch contains bugfixes (i.e. fixes not deemed
    urgent enough to be included directly into the main branch and that
@@ -40,8 +32,7 @@ There are three different kinds of development branches:
 
 -  **dev-(name)**: This branch contains new features. These features are
    expected to contain deeper changes than those in the **ft-(name)**
-   branches. These branches should start from the **development** branch
-   and its PR should be directed to the **development** branch.
+   branches. These branches should start from the **development** branch and its PR should be directed to the **development** branch.
 
 Versioning
 ----------

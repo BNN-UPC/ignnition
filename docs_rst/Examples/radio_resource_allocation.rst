@@ -5,16 +5,15 @@ Brief description
 ~~~~~~~~~~~~~~~~~
 
 Radio resource management, such as power control -modifying the power of
-the transmitters in a network-, conform a computationally challenging
+the transmitters in a network-, conforms to a computationally challenging
 problem of great importance to the wireless networking community. Due to
 the characteristics of these networks, that is high scalability with low
-latency and high variance of their properties i.e. mobile networks, the
-need arises for fast and effective algorithms to optimize resource
+latency and high variance of their properties i.e. mobile networks, the need arises for fast and effective algorithms to optimize resource
 management. Traditional algorithms such as weighted minimum mean square
 error (WMMSE) as well as modern approaches which rely on convex
 optimization fall short and do not scale with different networks sizes.
 
-In this example we present an application of GNNs to solve the power
+In this example, we present an application of GNNs to solve the power
 control problem in wireless networks, as presented in `Shen, Y., Shi,
 Y., Zhang, J., & Letaief, K. B.
 (2020) <https://ieeexplore.ieee.org/abstract/document/9252917>`__. We
@@ -32,7 +31,7 @@ consists of:
 -  Feed-forward neural network to build pair-to-pair messages using the
    hidden states along with edge information (pair to pair channel
    losses) and aggregating messages using element-wise maximum.
--  Feed-forward neural network to update pairs's hidden states.
+-  Feed-forward neural network to update pairs' hidden states.
 -  Pass-through layer which does not modify each pair's hidden stats.
 
 .. button::

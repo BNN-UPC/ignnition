@@ -1,15 +1,16 @@
 .. _entity_object:
 
 Source entity object
---------------------
+^^^^^^^^^^^^^^^^^^^^
 
 This object ultimately defines how the nodes of a source entity send nodes to the destination entity. This definition
 also includes the :ref:`message function <message-function-object>` which will specify how this source entity forms its
 messages. To define this object, we must specify the following parameters:
 
 
-* `Parameter: name <#parameter-name>`_
-* `Parameter: message <#parameter-message>`_
+.. contents::
+    :local:
+    :depth: 1
 
 ----
 
@@ -42,14 +43,14 @@ Message function object:
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 One of the most important aspects when defining a message passing between a source entity and a destination entity is
-to specify how the source entities form their messages. To do so, and to support very complex functions, we device a
-pipe-line of operations, which will be specified in :ref:`Operation object <operation-object>`. An operation performs
+to specify how the source entities form their messages. To do so, and to support very complex functions, we devise a
+pipeline of operations, which will be specified in :ref:`Operation object <operation-object>`. An operation performs
 some calculation and then returns a reference to its output. By doing so, we can concatenate operations, by referencing
 previous results to obtain increasingly more complicated results. Note that the messages will be, by default, the
 result of the last operation.
 
 Take a look at the subsection (:ref:`Operation objects <operation-object>` to find the operations accepted for this
-sections). We, however, introduce a new specific *Operation* which can be specially useful to define a message
+section). We, however, introduce a new specific *Operation* which can be especially useful to define a message
 function, which is the :ref:`Direct_assignment <direct-assignement>` operation.
 
 
@@ -59,8 +60,7 @@ function, which is the :ref:`Direct_assignment <direct-assignement>` operation.
 Operation: Direct_assignment
 """"""""""""""""""""""""""""
 
-This operation simply assigns the source hidden states as the message to be sent. By using it, hence, each source
-node will use its hidden state as the message to be send to each of its neighbour destination node.
+This operation simply assigns the source hidden states as the message to be sent. By using it, hence, each source node will use its hidden state as the message to be sent to each of its neighbor destination node.
 
 
 .. code-block:: yaml
@@ -69,7 +69,7 @@ node will use its hidden state as the message to be send to each of its neighbou
 
 
 Usage example:
-""""""""""""""
+##############
 
 Let us put all of this together to see an example of how to define a *source_entity* in which nodes of type *entity1*
 send their hidden states to the corresponding destination nodes.
@@ -81,9 +81,9 @@ send their hidden states to the corresponding destination nodes.
      message:
         - type: direct_assignment
 
-But as mentioned before, we might want to form more complicated message functions. Below we show a more complicated
+But as mentioned before, we might want to form more complicated message functions. Below we show more complicated
 examples using two :ref:`Neural Network operation <neural-network-operation>`, and which illustrate the power of the
-pipe-line of operations. In this pipe-line, we can observe that we first define a neural network which take as input
+pipeline of operations. In this pipeline, we can observe that we first define a neural network that takes as input
 the source entity nodes (using the keyword *source*). Then we save the input by the name a *my_output1* and we reuse
 it as input of the second neural network altogether with each of the destination nodes respectively. The output of
 this neural network (for each of the edges of the graph) will be the message that the source node will send to the
@@ -101,7 +101,7 @@ destination node.
           input: [my_output1, destination]
 
 An important note is that for the definition of neural networks in the message function, *IGNNITION* reserves the use
-of *source* and *target* keywords. These keywords are used to reference to the source hidden states of the entity
+of *source* and *target* keywords. These keywords are used to reference the source hidden states of the entity
 (in this case entity1), and to reference the destination hidden states of the target node.
 
 .. _aggregation_operation:
@@ -110,11 +110,11 @@ Aggregation operation:
 ~~~~~~~~~~~~~~~~~~~~~~
 
 This object defines the *aggregation function a*. This is to define a function that given the *k* input messages of a
-given destination node *(m_1, ..., m_k)* , it produces a single aggregated message for each of the destination nodes.
+given destination node *(m_1, ..., m_k)*, it produces a single aggregated message for each of the destination nodes.
 
 .. math::
 
-   aggregated_message = a(m_1, ..., m_k)
+   AggregatedMessage = a(m_1, ..., m_k)
 
 For this, we provide several keywords that reference the most common aggregated functions used in state-of-art *GNNs*,
 which should be specified as follows:
@@ -125,7 +125,7 @@ which should be specified as follows:
         - type: sum/min/max/ordered/...
 
 
-Below we provide more details on each of this possible aggregation functions, these being:
+Below we provide more details on each of these possible aggregation functions, these being:
 
 
 .. contents::
@@ -220,7 +220,7 @@ Option 5: ordered
 """""""""""""""""
 
 This operation produces an aggregated message which consists of an array of all the input messages. This aggregation
-is intended to be used with a RNN update function. Then, the *RNN* automatically updates the hidden state by first
+is intended to be used with an RNN update function. Then, the *RNN* automatically updates the hidden state by first
 treating the first message, then the second message, all the way to the *k-th* message.
 
 .. math::
@@ -237,7 +237,7 @@ treating the first message, then the second message, all the way to the *k-th* m
 Option 6: attention
 """""""""""""""""""
 
-This operation performs the attention mechanism described in paper `Graph Attention Networks <https://arxiv.org/abs/1710.10903>`_.
+This operation performs the attention mechanism described in the paper `Graph Attention Networks <https://arxiv.org/abs/1710.10903>`_.
 Hence, given a set of input messages *(m_1, ..., m_k)*\ , it produces a set of *k* weights *(a_1, ..., a_k)*.
 Then, it performs a weighted sum to end up producing a single aggregated message.
 
@@ -261,7 +261,7 @@ Then, it performs a weighted sum to end up producing a single aggregated message
 Option 7: edge-attention
 """"""""""""""""""""""""
 
-This aggregation function performs the edge-attention mechanism, described in paper
+This aggregation function performs the edge-attention mechanism, described in the paper
 `Edge Attention-based Multi-Relational Graph Convolutional Networks <https://www.arxiv-vanity.com/papers/1802.04944/>`_.
 This is based on a variation of the previous "attention" strategy, where we follow a different approach to produce the
 weights *(a_1, ..., a_k)*. We end up, similarly, producing the aggregated message through a weighted sum of the input
@@ -273,7 +273,7 @@ messages and the computed weights.
 
     AggregatedMessage_j = \sum_{i \in N(j)} e_{ij} * m_i
 
-Notice that this aggregation requires of a neural network *e* that will compute an attention weight for each of
+Notice that this aggregation requires a neural network *e* that will compute an attention weight for each of
 the neighbors of a given destination node, respectively. Consequently, in this case, we need to include a new parameter
 *nn_name* , as defined in :ref:`nn_name <param-nn-name>`. In this field, we must include the name of the NN, which
 we define later on (as done for any NN). In this case, however, remember that this NN must return a single value, in
@@ -310,9 +310,9 @@ the formulation below.
 Option 9: concat
 """"""""""""""""
 
-This aggregation function is specially thought for the cases in which we have a list of messages sent from messages of
+This aggregation function is especially thought for the cases in which we have a list of messages sent from messages of
 entity type *"entity1"* and a list of messages from nodes of entity type *"entity2"*. Then, this aggregation function
-will concatenate together this two lists by the axis indicated in the following field "concat_axis". Then, similarly
+will concatenate together these two lists by the axis indicated in the following field "concat_axis". Then, similarly
 than with the "ordered" function, we would pass this to an *RNN*, which will update itself iteratively with all the
 messages received.
 
@@ -346,7 +346,6 @@ If concat_axis = 2, we will get a new message
     AggregatedMessage_j = [[1,2,3], [4,5,6],[4,5,6],[1,2,3]])
 
 
-----
 .. code-block:: yaml
 
    aggregation:
@@ -354,9 +353,9 @@ If concat_axis = 2, we will get a new message
        - concat_axis: 1
 
 Option 10: interleave
-~~~~~~~~~~~~~~~~~~~~~
+"""""""""""""""""""""
 
-**Description:** This aggregation concatenates both message by interleaving them.
+**Description:** This aggregation concatenates both messages by interleaving them.
 
 Given the two lists of messages:
 
@@ -378,13 +377,13 @@ Option 11: neural_network
 """""""""""""""""""""""""
 
 **Description:** So far we have looked at examples where the aggregated function is defined with a single operation
-(e.g., max,min,mean...). In some occasions, however, we must build more complicated functions. This operation, thus,
-allows to take the results of previous operations and pass them through a NN to compute a new value.
+(e.g., max, min, mean...). On some occasions, however, we must build more complicated functions. This operation, thus,
+allows us to take the results of previous operations and pass them through a NN to compute a new value.
 
 **Accepted values:** :ref:`Neural network operation <neural-network-operation>`
 
 **Example of use:**
-In this case, we need to include the parameter *output_name* at the end of each of the operations that preceed the
+In this case, we need to include the parameter *output_name* at the end of each of the operations that preceded the
 neural network. This will store each of the results of the operations, which we will then reference in the *neural
 network operation*. Let us see this with an example
 
@@ -401,9 +400,9 @@ network operation*. Let us see this with an example
          input: [max_value, min_value, attention_value]
          nn_name: aggregation_function
 
-In this example we compute the max value, the min and the result of applying the attention to the messages received by
+In this example, we compute the max value, the min, and the result of applying the attention to the messages received by
 each of the destination nodes, respectively. Then, the neural network takes as input the results of each of the
-previous operations, and computes the final aggregated message, used for the update.
+previous operations and computes the final aggregated message, used for the update.
 
 .. _update-operation:
 
@@ -411,7 +410,7 @@ Update operation:
 ~~~~~~~~~~~~~~~~~
 
 In order to define the update function, we must specify a *Neural Network*. Note that the syntax will be the same no
-matter if the *NN* is a *feed-forward* or a *RNN*. To define it, we must only specify two fields: which are the *type*
+matter if the *NN* is a *feed-forward* or an *RNN*. To define it, we must only specify two fields: which are the *type*
 and the *nn_name*.
 
 .. contents::
@@ -433,7 +432,7 @@ Parameter: nn_name
 
 **Accepted values:** String. The name should match a *NN* created in :ref:`Step 4 <neural_networks_definition>`
 
-Below we present an example of how an update function can be defined. Note that in this case the update will be using
+Below we present an example of how an update function can be defined. Note that in this case, the update will be using
 the *NN* named *my_neural_network*, and which architecture must be later defined.
 
 .. code-block:: yaml
@@ -441,10 +440,4 @@ the *NN* named *my_neural_network*, and which architecture must be later defined
    update:
        type: neural_network
        nn_name: my_neural_network
-
-
-.. _operation:
-
-Operation
-_________
 
