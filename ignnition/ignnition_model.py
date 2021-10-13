@@ -282,7 +282,7 @@ class IgnnitionModel:
         # HERE WE CAN ADD AN OPTION FOR EARLY STOPPING
         return [tf.keras.callbacks.TensorBoard(log_dir=output_path + '/logs', update_freq='epoch', write_images=False,
                                                histogram_freq=1),
-                tf.keras.callbacks.ModelCheckpoint(filepath=output_path + '/ckpt/weights.{epoch:02d}-{loss:.2f}.hdf5',
+                tf.keras.callbacks.ModelCheckpoint(filepath=output_path + '/ckpt/weights.{epoch:02d}-{loss:.3f}',
                                                    save_freq='epoch', monitor='loss'),
                 KBest(output_path=output_path + '/logs', k=self.CONFIG.get('k_best', None))]
 
@@ -544,7 +544,7 @@ class IgnnitionModel:
         # restore a warm-start Checkpoint (if any)
         self.gnn_model = self.__restore_model(gnn_model, sample=sample, require_warm_start=require_warm_start)
 
-    def __restore_model(self, gnn_model, sample, require_warm_start = False):
+    def __restore_model(self, gnn_model, sample, require_warm_start=False):
         """
         Parameters
         ----------
@@ -555,25 +555,29 @@ class IgnnitionModel:
         """
 
         checkpoint_path = self.CONFIG.get('load_model_path', '')
-        if os.path.isfile(checkpoint_path):
-            print("Restoring from", checkpoint_path)
+        if os.path.isfile(checkpoint_path) and os.path.splitext(checkpoint_path)[1] == '.hdf5':
+            print_info(
+                "WARNING: The use of .hdf5 format is deprecated and will be removed in future versions as it may cause"
+                " compatibility problems")
             # in this case we need to initialize the weights to be able to use a load_model checkpoint
 
             sample_it = self.__input_fn_generator(training=False, data_samples=[sample])
             sample = sample_it.get_next()
             # Call only one tf.function when tracing.
             _ = gnn_model(sample, training=False)
-            gnn_model.load_weights(checkpoint_path)
 
-        elif checkpoint_path != '': #an invalid file was specified
-            if not require_warm_start:
-                print_info(
-                    "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
-            else:
-                print_failure(
-                    "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file in hdf5 format.')
-        elif require_warm_start and checkpoint_path == '':  #no file was specified
-            print_failure("There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this path, so that model that will compute the predictions can be recovered.")
+        elif require_warm_start and checkpoint_path == '':  # no file was specified
+            print_failure(
+                "There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this path, "
+                "so that model that will compute the predictions can be recovered.")
+            return gnn_model
+
+        try:
+            gnn_model.load_weights(checkpoint_path)
+            print("Restoring saved model from", checkpoint_path)
+        except (tf.errors.NotFoundError, ValueError):
+            print_info(
+                "The file in the directory " + checkpoint_path + ' does not exists or is not a valid checkpoint file.')
 
         return gnn_model
 
@@ -757,7 +761,7 @@ class IgnnitionModel:
                            use_multiprocessing=True,
                            verbose=1)
 
-    def predict(self, prediction_samples=None, verbose=True, num_predictions = None):
+    def predict(self, prediction_samples=None, verbose=True, num_predictions=None):
         """
         Parameters
         ----------
@@ -834,7 +838,8 @@ class IgnnitionModel:
         elif os.path.isdir(pred_path):
             data_path = pred_path
         else:
-            print_failure('In order to build the computational graph of your model, you must specify valid path to the train dataset or the predict dataset in the train_options.yaml file. Please revise that you have specified at least one of them, and that they point to a valid dataset.')
+            print_failure(
+                'In order to build the computational graph of your model, you must specify valid path to the train dataset or the predict dataset in the train_options.yaml file. Please revise that you have specified at least one of them, and that they point to a valid dataset.')
 
         if not hasattr(self, 'gnn_model'):
             self.__create_gnn(path=data_path)
