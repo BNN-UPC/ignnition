@@ -572,9 +572,9 @@ class IgnnitionModel:
         try:
             gnn_model.load_weights(checkpoint_path)
             print("Restoring saved model from", checkpoint_path)
-        except tf.errors.NotFoundError:
+        except (tf.errors.NotFoundError, ValueError):
             print_info(
-                "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file.')
+                "The file in the directory " + checkpoint_path + ' does not exists or is not a valid checkpoint file.')
 
         return gnn_model
 
