@@ -552,6 +552,7 @@ class IgnnitionModel:
         """
 
         checkpoint_path = self.CONFIG.get('load_model_path', '')
+        print(os.path.splitext(checkpoint_path)[1])
         if os.path.isfile(checkpoint_path) and os.path.splitext(checkpoint_path)[1] == '.hdf5':
             print_info(
                 "WARNING: The use of .hdf5 format is deprecated and will be removed in future versions as it may cause"
@@ -572,9 +573,9 @@ class IgnnitionModel:
         try:
             gnn_model.load_weights(checkpoint_path)
             print("Restoring saved model from", checkpoint_path)
-        except tf.errors.NotFoundError:
+        except:
             print_info(
-                "The file in the directory " + checkpoint_path + ' was not a valid checkpoint file.')
+                "The file in the directory " + checkpoint_path + ' is not a valid checkpoint file.')
 
         return gnn_model
 
