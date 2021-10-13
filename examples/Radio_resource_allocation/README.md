@@ -30,12 +30,12 @@ discussion in [[1]](#scalable-radio).
 ## Running the example
 
 For this example you can find the directory _data_ containing a very small subset of the dataset. In
-particular, 1000 molecules for training and 100 for validation. In addition, we have included the
+particular, 1000 samples for training and 100 for validation. In addition, we have included the
 rest of framework files properly filled, and thus there are no prerequisites to execute it.
 
 To train the corresponding Radio Resource Management GNN with the default settings, just run:
 
-```bash
+```python
     python main.py
 ```
 
@@ -54,6 +54,10 @@ Although minimal example data is provided, one can generate bigger datasets by e
 [generate_dataset](generate_dataset.py) Python script. This generates synthetic wireless networks
 with the model specifications to create the associated NetworkX graphs, writing them as arrays
 in JSON files.
+
+```python
+    python generate_dataset.py
+```
 
 Through changing the global variables in the top of the script one can change the amount of
 training/validation samples, and other properties of the generated wireless networks.
