@@ -119,9 +119,11 @@ class GnnModel(tf.keras.Model):
 
                             if aggregation.type == 'attention':
                                 self.node_kernel = self.add_weight(shape=(F_src, F_src),
-                                                                   initializer=aggregation.weight_initialization)
+                                                                   initializer=aggregation.weight_initialization,
+                                                                   name='attention_node_kernel')
                                 self.attn_kernel = self.add_weight(shape=(2 * F_dst, 1),
-                                                                   initializer=aggregation.weight_initialization)
+                                                                   initializer=aggregation.weight_initialization,
+                                                                   name='attention_attn_kernel')
 
                             elif aggregation.type == 'edge_attention':
                                 # create a neural network that takes the concatenation of the source and dst message
