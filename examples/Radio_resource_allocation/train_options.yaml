@@ -1,8 +1,11 @@
 # PATHS
 additional_functions_file: ./main.py
-output_path: ./
 train_dataset: ./data/train
 validation_dataset: ./data/validation
+#predict_dataset: ./data/eval
+#load_model_path: ./CheckPoint/experiment_2021_10_13_10_56_12/ckpt/weights.10-0.00.hdf5
+additional_functions_file: ./main.py
+output_path: ./
 
 # OPTIMIZATION OPTIONS
 loss: sum_rate_loss
