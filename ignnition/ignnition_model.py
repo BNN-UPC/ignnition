@@ -554,30 +554,32 @@ class IgnnitionModel:
             Input dictionary necessary to initialize all the dimensions
         """
 
-        checkpoint_path = self.CONFIG.get('load_model_path', '')
-        if os.path.isfile(checkpoint_path) and os.path.splitext(checkpoint_path)[1] == '.hdf5':
-            print_info(
-                "WARNING: The use of .hdf5 format is deprecated and will be removed in future versions as it may cause"
-                " compatibility problems")
-            # in this case we need to initialize the weights to be able to use a load_model checkpoint
+        checkpoint_path = self.CONFIG.get('load_model_path', None)
+        if checkpoint_path is not None:
+            if os.path.isfile(checkpoint_path) and os.path.splitext(checkpoint_path)[1] == '.hdf5':
+                print_info(
+                    "WARNING: The use of .hdf5 format is deprecated and will be removed in future versions as it "
+                    "may cause compatibility problems")
+                # in this case we need to initialize the weights to be able to use a load_model checkpoint
 
-            sample_it = self.__input_fn_generator(training=False, data_samples=[sample])
-            sample = sample_it.get_next()
-            # Call only one tf.function when tracing.
-            _ = gnn_model(sample, training=False)
+                sample_it = self.__input_fn_generator(training=False, data_samples=[sample])
+                sample = sample_it.get_next()
+                # Call only one tf.function when tracing.
+                _ = gnn_model(sample, training=False)
 
-        elif require_warm_start and checkpoint_path == '':  # no file was specified
-            print_failure(
-                "There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this path, "
-                "so that model that will compute the predictions can be recovered.")
-            return gnn_model
+            try:
+                gnn_model.load_weights(checkpoint_path)
+                print("Restoring saved model from", checkpoint_path)
+            except (tf.errors.NotFoundError, ValueError):
+                print_info(
+                    "The file in the directory " + checkpoint_path +
+                    ' does not exists or is not a valid checkpoint file.')
 
-        try:
-            gnn_model.load_weights(checkpoint_path)
-            print("Restoring saved model from", checkpoint_path)
-        except (tf.errors.NotFoundError, ValueError):
-            print_info(
-                "The file in the directory " + checkpoint_path + ' does not exists or is not a valid checkpoint file.')
+        elif require_warm_start:
+                print_failure(
+                    "There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this "
+                    "path, so that model that will compute the predictions can be recovered.")
+                return gnn_model
 
         return gnn_model
 
@@ -839,7 +841,9 @@ class IgnnitionModel:
             data_path = pred_path
         else:
             print_failure(
-                'In order to build the computational graph of your model, you must specify valid path to the train dataset or the predict dataset in the train_options.yaml file. Please revise that you have specified at least one of them, and that they point to a valid dataset.')
+                'In order to build the computational graph of your model, you must specify valid path to the train '
+                'dataset or the predict dataset in the train_options.yaml file. Please revise that you have specified '
+                'at least one of them, and that they point to a valid dataset.')
 
         if not hasattr(self, 'gnn_model'):
             self.__create_gnn(path=data_path)
