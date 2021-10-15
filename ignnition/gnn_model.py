@@ -142,7 +142,8 @@ class GnnModel(tf.keras.Model):
                                                   + F_dst + ' of the source and destination respectively.')
 
                                 self.conv_kernel = self.add_weight(shape=(F_dst, F_dst),
-                                                                   initializer=aggregation.weight_initialization)
+                                                                   initializer=aggregation.weight_initialization,
+                                                                   name='conv_kernel')
 
                             elif aggregation.type == 'neural_network':
                                 var_name = 'aggr_nn'
