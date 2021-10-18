@@ -20,14 +20,19 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import ignnition
+import numpy as np
 import tensorflow as tf
 
 
 def main():
     model = ignnition.create_model(model_dir='./')
     model.computational_graph()
-    model.predict()
+    
+    val_dataset = model.CONFIG["predict_dataset"]
+    n_links = val_dataset.split('_')[1]
 
+    all_predictions = np.array(model.evaluate())
+    np.save("./data/nlinks_"+str(n_links), all_predictions)
 
 if __name__ == "__main__":
     main()

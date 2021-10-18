@@ -26,19 +26,19 @@ from tqdm.auto import tqdm
 
 # Generation options
 empty_dirs = True
+n_links = 10
 random_seed = 20210205
 root_path = Path(__file__).parent
-raw_dir = root_path / Path("data/raw")
-train_dir = root_path / Path("data/train")
+raw_dir = root_path / Path("data/raw_"+str(n_links))
+train_dir = root_path / Path("data/train_"+str(n_links))
 train_samples = 1000
-validation_dir = root_path / Path("data/validation")
+validation_dir = root_path / Path("data/validation_"+str(n_links))
 validation_samples = 100
 # Computed
 total_samples = train_samples + validation_samples
 rng = np.random.default_rng(seed=random_seed)
 
 # Dataset options, please see the referenced papers for more details
-n_links = 10
 field_length = 1000
 shortest_directLink_length = 2
 longest_directLink_length = 65
