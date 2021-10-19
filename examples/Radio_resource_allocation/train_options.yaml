@@ -1,14 +1,17 @@
 # PATHS
 additional_functions_file: ./main.py
+train_dataset: ./data/train_10
+validation_dataset: ./data/validation_10
+#predict_dataset: ./data/validation_10
+#load_model_path: ./CheckPoint/experiment_2021_10_14_15_56_21/ckpt/weights.10--0.87.hdf5
+additional_functions_file: ./main.py
 output_path: ./
-train_dataset: ./data/train
-validation_dataset: ./data/validation
 
 # OPTIMIZATION OPTIONS
 loss: sum_rate_loss
 optimizer:
   type: Adam
-  learning_rate: 0.001
+  learning_rate: 1.0e-5
 metrics: [sum_rate_metric]
 
 # TRAINING OPTIONS

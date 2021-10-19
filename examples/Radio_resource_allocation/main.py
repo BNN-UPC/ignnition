@@ -96,6 +96,8 @@ def sum_rate_metric(y_true, y_pred):
     sum_rate = compute_sum_rate(power, y_true, weights, N)
     return tf.multiply(tf.divide(sum_rate, sum_rate_wmmse), tf.constant(100, dtype=tf.float32))
 
+def evaluation_metric(y_true, y_pred):
+    return sum_rate_metric(y_true, y_pred)
 
 def main():
     model = ignnition.create_model(model_dir='./')

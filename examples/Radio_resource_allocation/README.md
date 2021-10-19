@@ -27,15 +27,32 @@ weighted sum rate of the network, by using the predicted power value together wi
 losses with other pairs and the power of the additive noise. For more details, check the paper's
 discussion in [[1]](#scalable-radio).
 
-## Running the example
+### 1) Generate the dataset
+
+Although minimal example data is provided, one can generate bigger datasets by executing the
+[generate_dataset](generate_dataset.py) Python script. This generates synthetic wireless networks
+with the model specifications to create the associated NetworkX graphs, writing them as arrays
+in JSON files.
+
+```python
+    python generate_dataset.py
+```
+
+Through modifying the global variables in the top of the script one can change the amount of
+training/validation samples, and other properties of the generated wireless networks.
+
+Please note that the script requires specific dependencies to generate some atomical features
+which the model requires, see the script's docstring for more details.
+
+### 2) Running the example: Training
 
 For this example you can find the directory _data_ containing a very small subset of the dataset. In
-particular, 1000 molecules for training and 100 for validation. In addition, we have included the
+particular, 1000 samples for training and 100 for validation. In addition, we have included the
 rest of framework files properly filled, and thus there are no prerequisites to execute it.
 
 To train the corresponding Radio Resource Management GNN with the default settings, just run:
 
-```bash
+```python
     python main.py
 ```
 
@@ -48,18 +65,16 @@ If you want to execute any other functionality that is not train and validate, s
 [main](main.py) file, see [the documentation page](https://ignnition.net/doc/train_and_evaluate/)
 for more details.
 
-## Generate the dataset
+### 3) Evaluate
+Once the training process finished, we can evaluate our model on a different topology than the one used during training. To do this, we need to ensure that the *predict_dataset* from *train_options.yaml* points to the desired dataset. For example:
+```python
+predict_dataset: ./data/validation_100
+```
 
-Although minimal example data is provided, one can generate bigger datasets by executing the
-[generate_dataset](generate_dataset.py) Python script. This generates synthetic wireless networks
-with the model specifications to create the associated NetworkX graphs, writing them as arrays
-in JSON files.
-
-Through changing the global variables in the top of the script one can change the amount of
-training/validation samples, and other properties of the generated wireless networks.
-
-Please note that the script requires specific dependencies to generate some atomical features
-which the model requires, see the script's docstring for more details.
+Then, execute the following to start the evaluation process:
+```python
+    python predict.py
+```
 
 ## References
 
