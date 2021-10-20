@@ -1,13 +1,13 @@
 # Definition of the entities
 entities:
 - name: link
-  state_dimension: hidden_state_dim
+  state_dimension: 16
   initial_state:
     - type: build_state
       input: [$capacity]
 
 - name: path
-  state_dimension: hidden_state_dim
+  state_dimension: 32
   initial_state:
     - type: build_state
       input: [$traffic]
@@ -29,7 +29,7 @@ message_passing:
           - type: ordered
         update:
           type: neural_network
-          nn_name: recurrent1
+          nn_name: path_update
 
     # STAGE 2:
     - stage_message_passings:
@@ -53,7 +53,7 @@ message_passing:
             nn_name: aggregation_function
         update:
           type: neural_network
-          nn_name: recurrent1
+          nn_name: link_update
 
 # Definition of the readout
 readout:
@@ -76,7 +76,11 @@ neural_networks:
     units: output_units
     activation: None
 
-- nn_name: recurrent1
+- nn_name: path_update
+  nn_architecture:
+    - type_layer: GRU
+
+- nn_name: link_update
   nn_architecture:
     - type_layer: GRU
 
