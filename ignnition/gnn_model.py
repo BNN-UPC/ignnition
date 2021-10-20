@@ -61,9 +61,6 @@ class GnnModel(tf.keras.Model):
 
                         # Need to keep track of the output dimension of this one, in case we need it for a new model
                         if op.output_name is not None:
-                            print("op.output_name + '_dim'")
-                            print(op.output_name + '_dim')
-                            print(output_shape)
                             save_global_variable(self.calculations, op.output_name + '_dim', output_shape)
                     counter += 1
 
@@ -158,11 +155,8 @@ class GnnModel(tf.keras.Model):
 
                             # Need to keep track of the output dimension of this one, in case we need it for a new model
                             if aggregation.output_name is not None:
-
                                 src_dim = int(self.dimensions.get(src_name))
                                 save_global_variable(self.calculations, aggregation.output_name + '_dim', output_shape)
-                                print("src_dim")
-                                print("src_dim")
                                 save_global_variable(self.calculations, aggregation.output_name + '_out_dim', src_dim)
 
                         save_global_variable(self.calculations,
@@ -576,10 +570,6 @@ class GnnModel(tf.keras.Model):
                                                         var_name = 'aggr_nn'
                                                         aggregator_nn = get_global_variable(self.calculations,
                                                                                             var_name)
-                                                        print("aggregator_nn")
-                                                        print(aggregator_nn)
-                                                        print("self.calculations")
-                                                        print(self.calculations)
                                                         src_input = aggr.apply_nn(aggregator_nn, self.calculations,
                                                                                   f_)
 
