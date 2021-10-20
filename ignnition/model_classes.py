@@ -138,11 +138,6 @@ class Recurrent_Update_Cell(CustomLayer):
         dst_dim: int
             Dimension of the destination nodes
         """
-        print("dst_dim")
-        print(dst_dim)
-        print("dst_dim")
-        print(dst_dim)
-        #src_input = tf.ensure_shape(src_input, [None, dst_dim])
         new_state, _ = model(src_input, [old_state])
         return new_state
 
