@@ -80,18 +80,24 @@ class Operation:
             input_nn = self.input
             input_dim = 0
             dimension = None
+            print("input_nn")
+            print(input_nn)
             for i in input_nn:
                 if '_initial_state' in i:
                     i = i.split('_initial_state')[0]
 
                 if i in dimensions:
                     dimension = dimensions[i]
-                elif i + '_dim' in calculations:
-                    dimension = calculations[i + '_dim']  # take the dimension from here or from self.dimensions
+                elif i + '_out_dim' in calculations:
+                    print("calculations[i + '_out_dim']")
+                    print(calculations[i + '_out_dim'])
+                    dimension = calculations[i + '_out_dim']  # take the dimension from here or from self.dimensions
+                    print(calculations)
                 else:
                     print_failure("Keyword " + i + " used in the model definition was not recognized")
 
                 input_dim += dimension
+            print(input_dim)
             return input_dim
 
     def obtain_total_input_dim_message(self, dimensions, calculations, dst_name, src):
@@ -147,6 +153,8 @@ class Operation:
                 input_nn = new_input
             else:
                 input_nn = tf.concat([input_nn, new_input], axis=1)
+        print("input_nn")
+        print(input_nn)
         return input_nn
 
     def compute_all_input_msg(self, calculations, f_, src_msgs, dst_msgs):
@@ -390,6 +398,7 @@ class FeedForwardOperation(Operation):
         super(FeedForwardOperation, self).__init__(op)
 
         # we need somehow to find the number of extra_parameters beforehand
+        print(op.get('architecture'))
         self.model = FeedForwardModel({'architecture': op.get('architecture')}, model_role=model_role)
 
     def apply_nn(self, model, calculations, f_):
@@ -407,6 +416,9 @@ class FeedForwardOperation(Operation):
         input_nn = self.compute_all_input(calculations, f_)
 
         input_size = model.input_shape[-1]
+        print("model.input_shape")
+        print(model.input_shape)
+        print(model.input_shape[-1])
         input_nn = tf.ensure_shape(input_nn, [None, input_size])
         return model(input_nn)
 
