@@ -86,8 +86,8 @@ class Operation:
 
                 if i in dimensions:
                     dimension = dimensions[i]
-                elif i + '_dim' in calculations:
-                    dimension = calculations[i + '_dim']  # take the dimension from here or from self.dimensions
+                elif i + '_out_dim' in calculations:
+                    dimension = calculations[i + '_out_dim']  # take the dimension from here or from self.dimensions
                 else:
                     print_failure("Keyword " + i + " used in the model definition was not recognized")
 
