@@ -159,8 +159,9 @@ class GnnModel(tf.keras.Model):
                                 save_global_variable(self.calculations, aggregation.output_name + '_dim', output_shape)
                                 save_global_variable(self.calculations, aggregation.output_name + '_out_dim', src_dim)
 
+                        src_dim = int(self.dimensions.get(src_name))
                         save_global_variable(self.calculations,
-                                             "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg), output_shape)
+                                             "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg), src_dim)
 
                     # -----------------------------
                     # Creation of the update models
@@ -415,6 +416,7 @@ class GnnModel(tf.keras.Model):
                                                                                                   '_' + str(idx_msg)))
 
                                                             shape = tf.stack([num_dst, max_len, message_dim])
+
                                                             s = tf.scatter_nd(ids, final_messages,
                                                                               shape)
                                                             # find the input ordering it by sequence
