@@ -57,17 +57,12 @@ To train the corresponding Radio Resource Management GNN with the default settin
 ```
 
 This command will create the GNN specified in [model_description](model_description.yaml) file,
-with the variables specified in the [global_variables](global_variables.yaml) file. To learn more
-about the implementation details, refer to the
-[framework documentation](https://ignnition.net/doc/generate_your_gnn/).
-
-If you want to execute any other functionality that is not train and validate, simply change the
-[main](main.py) file, see [the documentation page](https://ignnition.net/doc/train_and_evaluate/)
-for more details.
+with the variables specified in the [global_variables](global_variables.yaml) file. If you want to execute any other functionality beyond train and validate, you can change the main file. Please, check the [the documentation page](https://ignnition.net/doc/) for more details.
 
 ### 3) Evaluate
-Once the training process finished, we can evaluate our model on a different topology than the one used during training. To do this, we need to ensure that the *predict_dataset* from *train_options.yaml* points to the desired dataset. For example:
+Once the training process finished, we can evaluate our model on a different topology than the one used during training. To do this, we need to ensure that the *predict_dataset* from *train_options.yaml* points to the desired dataset. In addition, the *load_model_path* from the same file should point to the directory where the trained model is stored. For example:
 ```python
+load_model_path: ./CheckPoint/experiment_2021_10_14_15_56_21/ckpt/weights.10--0.87.hdf5
 predict_dataset: ./data/validation_100
 ```
 
