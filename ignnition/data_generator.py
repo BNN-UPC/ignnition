@@ -30,6 +30,7 @@ import numpy as np
 import networkx as nx
 
 from ignnition.utils import print_failure, print_info
+from ignnition.error_handling import FeatureException, DatasetFormatException
 
 from networkx.readwrite import json_graph
 
@@ -81,8 +82,7 @@ class Generator:
             pos1 = f.read(1)
         # check that it is a valid array of objects
         if pos1 != '[':
-            print_failure(
-                "Error because the dataset files must be an array of json objects, and not single json objects")
+            DatasetFormatException(message="The dataset files must be an array of JSON objects")
 
         start_pos = 1
         while True:
@@ -116,16 +116,20 @@ class Generator:
 
         # Only directed graphs are supported. Error checking message if the graph is undirected
         if not G.is_directed():
-            print_failure("IGNNITION received as input an undirected graph, even though it only supports "
-                          "(at the moment) directed graphs. Please consider reformating your code accordingly. "
-                          "You can double the edges between two nodes (e.g., edge 1-2 can be transformed into 1->2 "
-                          "and 2->1) to simulate the same behaviour.")
+            raise DatasetFormatException(data_path=file,
+                                         message="IGNNITION received as input an undirected graph, even though it "
+                                                 "only supports (at the moment) directed graphs. Please consider "
+                                                 "reformatting your code accordingly. You can double the edges between "
+                                                 "two nodes (e.g., edge 1-2 can be transformed into 1->2 and 2->1) to "
+                                                 "simulate the same behaviour.")
 
         if G.is_multigraph():
-            print_failure("IGNNITION received as input a multigraph, while these are not yet supported. This means, "
-                          "that for every pair of nodes, only one edge with the same source and destination can exist "
-                          "(e.g., you cannot have two edges 1->2 and 1->2. Notice that 1->2 and 2->1 does not incur "
-                          "in this problem.")
+            raise DatasetFormatException(data_path=file,
+                                         message="IGNNITION received as input a multigraph, while these are not yet "
+                                                 "supported. This means, that for every pair of nodes, only one edge "
+                                                 "with the same source and destination can exist (e.g., you cannot "
+                                                 "have two edges 1->2 and 1->2. Notice that 1->2 and 2->1 does not "
+                                                 "incur in this problem.")
 
         entity_counter = {}
         mapping = {}
@@ -167,11 +171,11 @@ class Generator:
             try:
                 features_dict = nx.get_node_attributes(D_G, f)
                 feature_vals = np.array(list(features_dict.values()))
-                entity_names = set([name.split('_')[0] for name in features_dict.keys()])   #indicates the (unique)
+                entity_names = set([name.split('_')[0] for name in features_dict.keys()])  # indicates the (unique)
                 # names of the entities that have that feature
 
                 if len(entity_names) > 1:
-                    entities_string = functools.reduce(lambda x,y: str(x) + ',' + str(y), entity_names )
+                    entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
                     print_failure("The feature " + f + " was defined in several entities(" + entities_string +
                                   "). The feature names should be unique for each layer_type of node.")
 
@@ -180,20 +184,16 @@ class Generator:
                     feature_vals = np.expand_dims(feature_vals, axis=-1)
 
                 if feature_vals.size == 0:
-                    message = "The feature " + f + " was used in the model_description.yaml file " \
-                                                   "but was not defined in the dataset."
-                    if file is not None:
-                        message = "Error in the dataset file located in '" + file + ".\n" + message
-                    raise Exception(message)
+                    raise FeatureException(feature=f,
+                                           message="This feature was used in the model_description.yaml file but "
+                                                   "was not defined in the dataset")
                 else:
                     data[f] = feature_vals
 
             except:
-                message = "The feature " + f + " was used in the model_description.yaml file " \
-                                               "but was not defined in the dataset."
-                if file is not None:
-                    message = "Error in the dataset file located in '" + file + ".\n" + message
-                raise Exception(message)
+                raise FeatureException(feature=f,
+                                       message=f'This feature was used in the model_description.yaml file but '
+                                               f'was not defined in the dataset {file}.')
 
         # take other inputs if needed (check that they might be global features)
         for a in self.additional_input:
@@ -226,18 +226,16 @@ class Generator:
             # for now, check that the name is unique for every src-dst. Problem: One node connected to another but
             # the reverse to other nodes??
             if len(entity_names) > 2:
-                #print(entity_names)
+                # print(entity_names)
                 entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
                 print_failure(
                     "The edge feature " + a + " was defined in connecting two different source-destination entities(" +
                     entities_string + "). Make sure that an edge feature is unique for a given pair of entities "
                                       "(types of nodes).")
 
-
             # it should always be a 2d array
             if len(np.shape(edge_attr)) == 1:
                 edge_attr = np.expand_dims(edge_attr, axis=-1)
-
 
             # 3) try to see if this name has been defined as a graph feature
             graph_attr = [D_G.graph[a]] if a in D_G.graph else []
@@ -252,7 +250,6 @@ class Generator:
             elif node_attr.size != 0 and len(graph_attr) != 0:
                 print_failure("The feature " + a + "was defined both as node feature and as graph feature. Please use "
                                                    "unique names in this case.")
-
 
             # Return the correct value
             if node_attr.size != 0:
@@ -321,7 +318,6 @@ class Generator:
                 data['seq_' + src_entity + '_to_' + dst_entity].append(processed_neighbours[dst_node])
 
                 processed_neighbours[dst_node] += 1  # this is useful to check which sequence number to use
-
 
         # check that the dataset contains all the adjacencies needed
         if not self.warnings_shown:
@@ -469,8 +465,9 @@ class Generator:
         self.training = training
 
         files = glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz') + glob.glob(str(dir) + '/*.gml')
+        print(files)
         # no elements found
-        if files == []:
+        if not files:
             raise Exception('The dataset located in  ' + dir + ' seems to contain no valid elements (json or .tar.gz)')
 
         if shuffle:
@@ -502,7 +499,7 @@ class Generator:
             except KeyboardInterrupt:
                 sys.exit()
 
-            #except Exception as inf:
+            # except Exception as inf:
             #    print_failure("\n There was an unexpected error: \n" + str(
             #        inf) + "\n Please make sure that all the names used in the file: " + sample_file +
             #                  ' are defined in your dataset')

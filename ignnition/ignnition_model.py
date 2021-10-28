@@ -32,6 +32,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from ignnition.gnn_model import GnnModel
 from ignnition.yaml_preprocessing import YamlPreprocessing
 from ignnition.data_generator import Generator
+from ignnition.error_handling import DatasetException, DatasetFormatException
 from ignnition.utils import *
 from ignnition.custom_callbacks import *
 import sys
@@ -378,7 +379,8 @@ class IgnnitionModel:
         return x
 
     @tf.autograph.experimental.do_not_convert
-    def __input_fn_generator(self, filenames=None, repeat=False, shuffle=False, training=True, data_samples=None, iterator=False):
+    def __input_fn_generator(self, filenames=None, repeat=False, shuffle=False, training=True, data_samples=None,
+                             iterator=False):
         """
         Parameters
         ----------
@@ -576,10 +578,10 @@ class IgnnitionModel:
                     ' does not exists or is not a valid checkpoint file.')
 
         elif require_warm_start:
-                print_failure(
-                    "There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this "
-                    "path, so that model that will compute the predictions can be recovered.")
-                return gnn_model
+            print_failure(
+                "There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this "
+                "path, so that model that will compute the predictions can be recovered.")
+            return gnn_model
 
         return gnn_model
 
@@ -601,8 +603,10 @@ class IgnnitionModel:
         else:
             sample_paths = (glob.glob(path + '/*.tar.gz') + glob.glob(path + '/*.json'))
 
-            if sample_paths == []:
-                print_failure("No dataset found. Please make sure the paths of the datasets are correct.")
+            if not sample_paths:
+                raise DatasetException(data_path=path,
+                                       message="No dataset files found. Please make sure the path of the datasets is "
+                                               "correct and is not empty.")
             else:
                 sample_path = sample_paths[0]  # choose one single file to extract the dimensions
 
@@ -625,16 +629,18 @@ class IgnnitionModel:
                     ch1 = file_samples.read(1).decode("utf-8")
                 else:
                     ch1 = file_samples.read(1)
-                
+
                 if ch1 != '[':
-                    print_failure(
-                        "Error because the dataset files must be an array of json objects, and not single json objects")
+                    raise DatasetFormatException(data_path=sample_path,
+                                                 message="The dataset must be an array of JSON objects.")
 
                 aux = stream_read_json(file_samples)
                 sample = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
 
-            except:
-                print_failure('Failed to read the data file ' + sample_path)
+            except json.JSONDecodeError:
+                raise DatasetException(data_path=sample_path,
+                                       message="There was an error reading the dataset. Please check it is one of the "
+                                               "valid formats.")
 
             # Now that we have the sample, we can process the dimensions
             dimensions = {}  # for each key, we have a tuple of (length, num_elements)

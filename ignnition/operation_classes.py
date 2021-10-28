@@ -5,7 +5,7 @@ import tensorflow as tf
 from ignnition.model_classes import FeedForwardModel, Recurrent_Update_Cell
 from ignnition.utils import print_failure
 from ignnition.utils import get_global_var_or_input
-
+from ignnition.error_handling import FeatureException
 
 class Operation:
     """
@@ -60,10 +60,11 @@ class Operation:
         if 'input' in op:
             for input_item in op.get('input'):
                 if '$source' == input_item or '$destination' == input_item:
-                    print_failure(
-                        'The keywords source and destination are reserved keywords. Thus, they cannot name feature '
-                        'from the dataset. Check that you really meant to use $, indicating that its a feature '
-                        'from the dataset')
+                    raise FeatureException(feature=input_item,
+                                           message='The keywords source and destination are reserved keywords. Thus, '
+                                                   'they cannot name a feature from the dataset. Check that you '
+                                                   'really meant to use $, indicating that its a feature from the '
+                                                   'dataset.')
                 else:
                     self.input.append(input_item.split('$')[-1])  # delete the $ from the inputs (if any)
 
