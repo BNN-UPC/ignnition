@@ -1,3 +1,6 @@
+from typing import Callable
+
+
 class IgnnitionException(Exception):
     """Base IGNNITION for other exceptions"""
     pass
@@ -101,3 +104,20 @@ class FeatureException(IgnnitionException):
 
     def __str__(self):
         return f'Error with feature \'{self.feature}\'. {self.message}'
+
+
+def handle_exception(f) -> Callable:
+    """Handles any possible exception raised during the execution of the decorated function
+
+    Args:
+        f: Function to decorate
+
+    Returns:
+        The decorated function
+    """
+    def wrapper(*args, **kwargs):
+        try:
+            return f(*args, **kwargs)
+        except IgnnitionException as e:
+            print(f"Caught base exception!! \nMessage: {e}")
+    return wrapper
