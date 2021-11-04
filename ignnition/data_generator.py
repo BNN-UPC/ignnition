@@ -30,7 +30,7 @@ import numpy as np
 import networkx as nx
 
 from ignnition.utils import print_failure, print_info
-from ignnition.error_handling import FeatureException, DatasetFormatException
+from ignnition.error_handling import FeatureException, DatasetFormatException, DatasetNodeException
 
 from networkx.readwrite import json_graph
 
@@ -124,12 +124,12 @@ class Generator:
                                                  "simulate the same behaviour.")
 
         if G.is_multigraph():
-            raise DatasetFormatException(data_path=file,
-                                         message="IGNNITION received as input a multigraph, while these are not yet "
-                                                 "supported. This means, that for every pair of nodes, only one edge "
-                                                 "with the same source and destination can exist (e.g., you cannot "
-                                                 "have two edges 1->2 and 1->2. Notice that 1->2 and 2->1 does not "
-                                                 "incur in this problem.")
+            raise DatasetNodeException(data_path=file,
+                                       message="IGNNITION received as input a multigraph, while these are not yet "
+                                               "supported. This means, that for every pair of nodes, only one edge "
+                                               "with the same source and destination can exist (e.g., you cannot "
+                                               "have two edges 1->2 and 1->2. Notice that 1->2 and 2->1 does not "
+                                               "incur in this problem.")
 
         entity_counter = {}
         mapping = {}
@@ -141,11 +141,10 @@ class Generator:
         list_nodes = list(G.nodes())
         for node_name in list_nodes:
             attributes = G.nodes[node_name]
-
             if 'entity' not in attributes:
-                print_failure(
-                    "Error in the dataset file located in '" + file + ". The node named'" + str(node_name)
-                    + "' was not assigned an entity.")
+                raise DatasetNodeException(data_path=file,
+                                           node_name=str(node_name),
+                                           message="The node has not an identity attribute that identifies its type.")
 
             entity_name = attributes['entity']
             new_node_name = entity_name + '_{}'
@@ -465,7 +464,7 @@ class Generator:
         self.training = training
 
         files = glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz') + glob.glob(str(dir) + '/*.gml')
-        print(files)
+
         # no elements found
         if not files:
             raise Exception('The dataset located in  ' + dir + ' seems to contain no valid elements (json or .tar.gz)')

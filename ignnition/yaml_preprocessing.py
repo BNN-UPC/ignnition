@@ -21,6 +21,7 @@ import os
 import importlib
 import copy
 import json
+import re
 from functools import reduce
 
 import yaml
@@ -29,7 +30,7 @@ from jsonschema import validate
 from ignnition.mp_classes import InterleaveAggr, Entity, MessagePassing
 from ignnition.operation_classes import PoolingOperation, ProductOperation, ExtendAdjacencies, Concat, \
     FeedForwardOperation
-from ignnition.utils import print_failure, print_info
+from ignnition.utils import print_failure, print_info, read_yaml
 
 
 class YamlPreprocessing:
@@ -112,7 +113,7 @@ class YamlPreprocessing:
 
         # read and validate the json file
         model_description_path = os.path.join(model_dir, 'model_description.yaml')
-        self.data = self.__read_yaml(model_description_path, 'model description')
+        self.data = read_yaml(model_description_path, 'model description')
 
         # validate with the schema
         with importlib.resources.path('ignnition', "schema.json") as schema_file:
@@ -121,7 +122,7 @@ class YamlPreprocessing:
         # add the global variables (if any)
         global_variables_path = os.path.join(model_dir, 'global_variables.yaml')
         if os.path.exists(global_variables_path):
-            global_variables = self.__read_yaml(global_variables_path, 'global variables')
+            global_variables = read_yaml(global_variables_path, 'global variables')
             self.data = self.__add_global_variables(self.data, global_variables)
 
         else:
@@ -148,24 +149,6 @@ class YamlPreprocessing:
 
         with open(path) as json_file:
             return json.load(json_file)
-
-    def __read_yaml(self, path, file_name=''):
-        """
-        Parameters
-        ----------
-        path:    str
-            Path of the json file with the model description
-        file_name: str
-            Name of the file we aim to read
-        """
-        if os.path.isfile(path):
-            with open(path, 'r') as stream:
-                try:
-                    return yaml.safe_load(stream)
-                except yaml.YAMLError as exc:
-                    print_failure("There was the following error in the " + file_name + " file.\n" + str(exc))
-        else:
-            print_failure("The " + file_name + " file was not found in: " + path)
 
     def __add_global_variables(self, data, global_variables):
         """

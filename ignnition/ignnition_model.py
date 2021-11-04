@@ -32,7 +32,8 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from ignnition.gnn_model import GnnModel
 from ignnition.yaml_preprocessing import YamlPreprocessing
 from ignnition.data_generator import Generator
-from ignnition.error_handling import DatasetException, DatasetFormatException
+from ignnition.error_handling import DatasetException, DatasetFormatException, KeywordNotFoundException, \
+    IgnnitionException
 from ignnition.utils import *
 from ignnition.custom_callbacks import *
 import sys
@@ -134,15 +135,12 @@ class IgnnitionModel:
         """
         path = os.path.normpath(model_dir)
         self.model_dir = os.path.abspath(path)
-
+        self.mode = None  # 0 for training, 1 for evaluating, 2 for predicting
         train_options_path = os.path.join(self.model_dir, 'train_options.yaml')
 
         # read the train_options file
-        with open(train_options_path, 'r') as stream:
-            try:
-                self.CONFIG = yaml.safe_load(stream)
-            except yaml.YAMLError:
-                print("The training options file was not found in " + train_options_path)
+
+        self.CONFIG = read_yaml(train_options_path,file_name='training options')
 
         tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
         warnings.filterwarnings("ignore")
@@ -694,8 +692,23 @@ class IgnnitionModel:
         val_samples:    [array]
             Array of input validation samples, if no dataset is used.
         """
-
+        self.mode = 0
         # Create the GNN model
+        train_dataset = self.CONFIG.get('train_dataset', None)
+        validation_dataset = self.CONFIG.get('validation_dataset', None)
+
+        if training_samples is None and train_dataset is None:
+            raise KeywordNotFoundException(keyword="train_dataset",
+                                           file='train_options',
+                                           message="This keyword must be defined when calling the train_and_validate "
+                                                   "method and no training_samples is specified.")
+
+        if val_samples is None and validation_dataset is None:
+            raise KeywordNotFoundException(keyword="validation_dataset",
+                                           file='train_options',
+                                           message="This keyword must be defined when calling the train_and_validate "
+                                                   "method and no val_samples is specified.")
+
         if not hasattr(self, 'gnn_model'):
             if training_samples is None:  # look for the dataset path
                 training_path = self.__process_path(self.CONFIG['train_dataset'])
@@ -707,10 +720,10 @@ class IgnnitionModel:
             'Starting the training and validation process...\n----------------------------------'
             '-----------------------------------------\n')
 
-        filenames_train = self.__process_path(self.CONFIG['train_dataset'])
-        filenames_val = self.__process_path(self.CONFIG['validation_dataset'])
+        filenames_train = self.__process_path(train_dataset)
+        filenames_val = self.__process_path(validation_dataset)
 
-        output_path = self.__process_path(self.CONFIG['output_path'])
+        output_path = self.__process_path(self.CONFIG.get('output_path', None))
         output_path = os.path.join(output_path, 'CheckPoint')
 
         if not os.path.isdir(output_path):
@@ -837,19 +850,36 @@ class IgnnitionModel:
 
     def computational_graph(self):
         # Check if we can generate the computational graph without a dataset
+        train_path = self.CONFIG.get('train_dataset', '')
 
-        train_path = self.__process_path(self.CONFIG['train_dataset']) if 'train_dataset' in self.CONFIG else ''
-        pred_path = self.__process_path(self.CONFIG['predict_dataset']) if 'predict_dataset' in self.CONFIG else ''
-        data_path = ''
+        if train_path is not None:
+            train_path = self.__process_path(train_path)
+        else:
+            train_path = ''
+
+        val_path = self.CONFIG.get('validation_dataset', '')
+        if val_path is not None:
+            val_path = self.__process_path(val_path)
+        else:
+            val_path = ''
+
+        pred_path = self.CONFIG.get('pred_path', '')
+        if pred_path is not None:
+            pred_path = self.__process_path(pred_path)
+        else:
+            pred_path = ''
+
         if os.path.isdir(train_path):
             data_path = train_path
+        elif os.path.isdir(val_path):
+            data_path = val_path
         elif os.path.isdir(pred_path):
             data_path = pred_path
         else:
-            print_failure(
-                'In order to build the computational graph of your model, you must specify valid path to the train '
-                'dataset or the predict dataset in the train_options.yaml file. Please revise that you have specified '
-                'at least one of them, and that they point to a valid dataset.')
+            raise IgnnitionException(message='In order to build the computational graph of your model, you must '
+                                             'specify at least one of the train, validation or predict dataset paths in'
+                                             ' the train_options.yaml file. Please check that you have specified at '
+                                             'least one of them, and that they point to a valid dataset.')
 
         if not hasattr(self, 'gnn_model'):
             self.__create_gnn(path=data_path)
@@ -890,13 +920,15 @@ class IgnnitionModel:
 
         # Extract the path to the validation dataset, if any
         data_path = None
+        validation_dataset = self.CONFIG.get('validation_dataset', None)
+        if evaluation_samples is None and validation_dataset is None:
+            raise KeywordNotFoundException(keyword="validation_dataset",
+                                           file='train_options',
+                                           message="This keyword must be defined when calling the train_and_validate "
+                                                   "method and no val_samples is specified.")
+
         if evaluation_samples is None:
-            try:
-                data_path = self.__process_path(self.CONFIG['predict_dataset'])
-            except:
-                print_failure(
-                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path '
-                    'to the validation dataset')
+            data_path = self.__process_path(self.CONFIG['validation_dataset'])
 
         # Generate the model if it doesn't exist
         if not hasattr(self, 'gnn_model'):
@@ -909,44 +941,15 @@ class IgnnitionModel:
             print()
             print_header('Starting to make evaluations...\n---------------------------------------------------------\n')
 
-        sample_it = self.__input_fn_generator(data_path, training=True, data_samples=evaluation_samples, iterator=True)
+        validation_dataset = self.__input_fn_generator(data_path, training=True, data_samples=evaluation_samples,
+                                                       iterator=False)
 
-        all_metrics = []
-        try:
-            try:
-                denorm_func = getattr(self.module, 'denormalization')
-            except:
-                denorm_func = None
-
-            # metric for the evaluation
-            try:
-                metric_func = getattr(self.module, 'evaluation_metric')
-
-            except:
-                print_failure('The evaluation metric function failed. '
-                              'Please make sure you define a valid python function taking as input the label '
-                              'and the prediction, and returning one single numerical value.')
-
-            # while there are predictions
-            while True:
-                features, label = sample_it.get_next()
-                pred = self.gnn_model(features, training=False)
-                pred = tf.squeeze(pred)
-                output_name = self.model_info.get_output_info()  # for now suppose we only have one output layer_type
-                if denorm_func is not None:
-                    try:
-                        pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
-                        label = tf.py_function(func=denorm_func, inp=[label, output_name], Tout=tf.float32)
-                    except:
-                        print_failure('The denormalization function failed')
-
-                # compute the metric value
-                value = tf.py_function(func=metric_func, inp=[label, pred], Tout=tf.float32)
-                all_metrics.append(value)
-
-        except tf.errors.OutOfRangeError:
-            pass
-        return all_metrics
+        return self.gnn_model.evaluate(validation_dataset,
+                                       batch_size=self.CONFIG.get('batch_size', 1),
+                                       use_multiprocessing=True,
+                                       verbose=1,
+                                       steps=int(self.CONFIG['val_samples']),
+                                       return_dict=True)
 
     def batch_training(self, input_samples):
         """
