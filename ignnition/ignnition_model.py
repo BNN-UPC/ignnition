@@ -266,7 +266,7 @@ class IgnnitionModel:
         gnn_model.compile(loss=self.__get_loss(),
                           optimizer=optimizer,
                           metrics=self.__get_metrics(),
-                          run_eagerly=False)
+                          run_eagerly=True)
         return gnn_model
 
     def __get_model_callbacks(self, output_path):
