@@ -627,7 +627,6 @@ class IgnnitionModel:
                     ch1 = file_samples.read(1).decode("utf-8")
                 else:
                     ch1 = file_samples.read(1)
-
                 if ch1 != '[':
                     raise DatasetFormatException(data_path=sample_path,
                                                  message="The dataset must be an array of JSON objects.")
@@ -928,7 +927,12 @@ class IgnnitionModel:
                                                    "method and no val_samples is specified.")
 
         if evaluation_samples is None:
-            data_path = self.__process_path(self.CONFIG['validation_dataset'])
+            try:
+                data_path = self.__process_path(self.CONFIG['predict_dataset'])
+            except:
+                print_failure(
+                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path '
+                    'to the validation dataset')
 
         # Generate the model if it doesn't exist
         if not hasattr(self, 'gnn_model'):

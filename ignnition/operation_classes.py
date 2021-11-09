@@ -90,8 +90,8 @@ class Operation:
 
                 if i in dimensions:
                     dimension = dimensions[i]
-                elif i + '_dim' in calculations:
-                    dimension = calculations[i + '_dim']  # take the dimension from here or from self.dimensions
+                elif i + '_out_dim' in calculations:
+                    dimension = calculations[i + '_out_dim']  # take the dimension from here or from self.dimensions
                 else:
                     raise KeywordException(keyword=i,
                                            message="This keyword was used but was not recognized. Please make sure "
