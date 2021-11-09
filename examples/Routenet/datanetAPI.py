@@ -304,7 +304,7 @@ class Sample:
 
         """
         if dst in self.topology_object[src]:
-            cap = float(self.topology_object[src][dst][0]['bandwidth'][:-3])*1000
+            cap = float(self.topology_object[src][dst][0]['bandwidth'])
         else:
             cap = -1
             
@@ -448,7 +448,7 @@ class DatanetAPI:
     information gathered.
     """
     
-    def __init__ (self, data_folder, intensity_values = []):
+    def __init__ (self, data_folder, shuffle=False):
         """
         Initialization of the PasringTool instance
 
@@ -460,9 +460,8 @@ class DatanetAPI:
             Auxiliar data structures used to conveniently move information
             between the file where they are read, and the matrix where they
             are located.
-        intensity_values : int or array [x, y]
-            User-defined intensity values used to constrain the reading process
-            to these/this value/range of values.
+        shuffle: boolean
+            Specify if all files should be shuffled. By default false
 
         Returns
         -------
@@ -472,7 +471,8 @@ class DatanetAPI:
         
         self.data_folder = data_folder
         self.dict_queue = queue.Queue()
-        self.intensity_values = intensity_values
+        self.shuffle = shuffle
+
 
     def _readRoutingFile(self, routing_fd, netSize):
         """
@@ -585,52 +585,6 @@ class DatanetAPI:
                 f = tar.extractfile(member)
                 ret = networkx.read_gml(f, destringizer=int)
                 return ret
-
-    def _check_intensity(self, file):
-        """
-        
-
-        Parameters
-        ----------
-        file : str
-            Name of the data file that needs to be filtered by intensity.
-
-        Returns
-        -------
-        2 if the range of intensities treates in the file satisfies the needs
-        of the user.
-        1 if there may be lines in the file that do not fulfill the user
-        requirements.
-        0 if the file does not fulfill the user-defined intensity requirements.
-
-        """
-        
-        aux = file.split('_')
-        aux = aux[2]
-        aux = aux.split('-')
-        aux = list(map(int, aux))
-#        User introduced range of intensities
-        if(len(self.intensity_values) > 1):
-            if(len(aux) > 1):
-                if(aux[0] >= self.intensity_values[0]) and (aux[1] <= self.intensity_values[1]):
-                    return 2
-                elif(aux[0] > self.intensity_values[1]) or (self.intensity_values[0] > aux[1]):
-                    return 0
-                else:
-                    return 1
-                    
-            else:
-                if(aux[0] >= self.intensity_values[0] and aux[0] <= self.intensity_values[1]):
-                    return 2
-                else: 
-                    return 0
-#        User introduced single intensity
-        elif (len(self.intensity_values) == 1):
-            if(len(aux) == 1 and self.intensity_values[0] == aux[0]):
-                return 2
-            return 0
-        else:
-            return 2
         
     def __process_params_file(self,params_file):
         simParameters = {}
@@ -641,10 +595,15 @@ class DatanetAPI:
                 simulation_time = int (line[ptr+1:])
                 simParameters["simulationTime"] = simulation_time
                 continue
-            if ("lambda" in line):
+            if ("lowerLambda" in line):
                 ptr = line.find("=")
-                avgLambdaMax = float(line[ptr+1:])
-                simParameters["avgLambdaMax"] = avgLambdaMax
+                lowerLambda = float(line[ptr+1:])
+                simParameters["lowerLambda"] = lowerLambda
+                continue
+            if ("upperLambda" in line):
+                ptr = line.find("=")
+                upperLambda = float(line[ptr+1:])
+                simParameters["upperLambda"] = upperLambda
         return(simParameters)
     
     def __process_graph(self,G):
@@ -668,56 +627,58 @@ class DatanetAPI:
             from the dataset.
 
         """
+        
         g = None
+        
+        tuple_files = []
+        graphs_dic = {}
         for root, dirs, files in os.walk(self.data_folder):
-            #if (len(dirs)!=0):
-            #    continue
+            if (not "graph_attr.txt" in files):
+                continue
+            # Generate graphs dictionaries
+            graphs_dic[root] = networkx.read_gml(os.path.join(root, "graph_attr.txt"), destringizer=int)
+            self.__process_graph(graphs_dic[root])
+            # Extend the list of files to process
+            tuple_files.extend([(root, f) for f in files if f.endswith("tar.gz")])
 
-            if ("graph_attr.txt" in files):
-                g = networkx.read_gml(os.path.join(root, "graph_attr.txt"), destringizer=int)
-
+        if self.shuffle:
+            random.Random(1234).shuffle(tuple_files)
+            
+            
+        for root, file in tuple_files:
+            g = graphs_dic[root]
+            
+            tar = tarfile.open(os.path.join(root, file), 'r:gz')
+            dir_info = tar.next()
+            routing_file = tar.extractfile(dir_info.name+"/Routing.txt")
+            results_file = tar.extractfile(dir_info.name+"/simulationResults.txt")
+            if (dir_info.name+"/flowSimulationResults.txt" in tar.getnames()):
+                flowresults_file = tar.extractfile(dir_info.name+"/flowSimulationResults.txt")
             else:
-                print('Unable to find the graph information file')
-                break
-
-            self.__process_graph(g)
-            tar_files = [f for f in files if f.endswith("tar.gz")]
-            random.shuffle(tar_files)
-            for file in tar_files:
-                if (len(self.intensity_values) == 0): feasibility_of_file = 2
-                else: feasibility_of_file = self._check_intensity(file)
-
-                if(feasibility_of_file != 0):
-                    tar = tarfile.open(os.path.join(root, file), 'r:gz')
-                    dir_info = tar.next()
-                    routing_file = tar.extractfile(dir_info.name+"/Routing.txt")
-                    results_file = tar.extractfile(dir_info.name+"/simulationResults.txt")
-                    if (dir_info.name+"/flowSimulationResults.txt" in tar.getnames()):
-                        flowresults_file = tar.extractfile(dir_info.name+"/flowSimulationResults.txt")
-                    else:
-                        flowresults_file = None
-                    params_file = tar.extractfile(dir_info.name+"/params.ini")
-                    simParameters = self.__process_params_file(params_file)
-
-                    routing_matrix= self._create_routing_matrix(g, routing_file)
-                    while(True):
-                        s = Sample()
-                        s._set_data_set_file_name(os.path.join(root, file))
-
-                        s._results_line = results_file.readline().decode()[:-2]
-                        if (flowresults_file):
-                            s._flowresults_line = flowresults_file.readline().decode()[:-2]
-                        else:
-                            s._flowresults_line = None
-
-                        if (len(s._results_line) == 0):
-                            break
-
-                        self._process_flow_results_traffic_line(s._results_line, s._flowresults_line, simParameters, s)
-                        s._set_routing_matrix(routing_matrix)
-                        s._set_topology_object(g)
-                        yield s
-
+                flowresults_file = None
+            params_file = tar.extractfile(dir_info.name+"/params.ini")
+            simParameters = self.__process_params_file(params_file)
+            
+            routing_matrix= self._create_routing_matrix(g, routing_file)
+            while(True):
+                s = Sample()
+                s._set_topology_object(g)
+                s._set_data_set_file_name(os.path.join(root, file))
+                
+                s._results_line = results_file.readline().decode()[:-2]
+                if (flowresults_file):
+                    s._flowresults_line = flowresults_file.readline().decode()[:-2]
+                else:
+                    s._flowresults_line = None
+                
+                if (len(s._results_line) == 0):
+                    break
+                    
+                self._process_flow_results_traffic_line(s._results_line, s._flowresults_line, simParameters, s)
+                s._set_routing_matrix(routing_matrix)
+                
+                yield s
+    
     def _process_flow_results_traffic_line(self, rline, fline, simParameters, s):
         """
         
@@ -744,12 +705,11 @@ class DatanetAPI:
         else:
             f = r
 
-        s.maxAvgLambda = simParameters["avgLambdaMax"]
+        maxAvgLambda = 0
         
         m_result = []
         m_traffic = []
-        netSize = int(math.sqrt(len(r)/10))
-        numFlows = int(len(f)/(netSize*netSize*10))
+        netSize = s.get_network_size()
         globalPackets = 0
         globalLosses = 0
         globalDelay = 0
@@ -759,21 +719,20 @@ class DatanetAPI:
             new_traffic_row = []
             for dst_node in range (netSize):
                 offset_t = (src_node * netSize + dst_node)*3
-                offset_d = offset + (src_node * netSize + dst_node)*7
+                offset_d = offset + (src_node * netSize + dst_node)*8
                 pcktsGen = float(r[offset_t + 1])
                 pcktsDrop = float(r[offset_t + 2])
                 pcktsDelay = float(r[offset_d])
-                
-                dict_result_srcdst = {}
                 dict_result_agg = {
                     'PktsDrop':numpy.round(pcktsDrop/sim_time,6),
-                    "AvgDelay":pcktsDelay, 
-                    "p10":float(r[offset_d + 1]), 
-                    "p20":float(r[offset_d + 2]), 
-                    "p50":float(r[offset_d + 3]), 
-                    "p80":float(r[offset_d + 4]), 
-                    "p90":float(r[offset_d + 5]), 
-                    "Jitter":float(r[offset_d + 6])}
+                    "AvgDelay":pcktsDelay,
+                    "AvgLnDelay":float(r[offset_d + 1]),
+                    "p10":float(r[offset_d + 2]), 
+                    "p20":float(r[offset_d + 3]), 
+                    "p50":float(r[offset_d + 4]), 
+                    "p80":float(r[offset_d + 5]), 
+                    "p90":float(r[offset_d + 6]), 
+                    "Jitter":float(r[offset_d + 7])}
                 
                 if (src_node != dst_node):
                     globalPackets += pcktsGen
@@ -782,37 +741,36 @@ class DatanetAPI:
                 
                 lst_result_flows = []
                 lst_traffic_flows = []
-                offset_f = netSize*netSize*numFlows*3
-                for flow in range(numFlows):
-                    # Results:
-                    dict_result_tmp = {}
-                    offset_tf = (src_node * netSize * numFlows + dst_node * numFlows + flow)*3
-                    offset_df = offset_f + (src_node * netSize * numFlows + dst_node * numFlows + flow)*7
-                    dict_result_tmp = {
-                        'PktsDrop':numpy.round(float(f[offset_tf + 2])/sim_time,6), 
-                        "AvgDelay":float(f[offset_df]), 
-                        "p10":float(f[offset_df + 1]), 
-                        "p20":float(f[offset_df + 2]), 
-                        "p50":float(f[offset_df + 3]), 
-                        "p80":float(f[offset_df + 4]), 
-                        "p90":float(f[offset_df + 5]), 
-                        "Jitter":float(f[offset_df + 6])}
-                    lst_result_flows.append(dict_result_tmp)
-                    # Traffic:
-                    dict_traffic = {}
-                    dict_traffic['AvgBw'] = float(f[offset_tf])*1000
-                    dict_traffic['PktsGen'] = numpy.round(float(f[offset_tf + 1]) /sim_time,6)
-                    dict_traffic['TotalPktsGen'] = float(f[offset_tf + 1])
-                    dict_traffic['ToS'] = 0
-                    self._timedistparams(dict_traffic)
-                    self._sizedistparams(dict_traffic)
-                    lst_traffic_flows.append (dict_traffic)
                 
-                dict_traffic_srcdst = {}
+                dict_result_tmp = {
+                    'PktsDrop':numpy.round(pcktsDrop/sim_time,6),
+                    "AvgDelay":pcktsDelay,
+                    "AvgLnDelay":float(r[offset_d + 1]),
+                    "p10":float(r[offset_d + 2]), 
+                    "p20":float(r[offset_d + 3]), 
+                    "p50":float(r[offset_d + 4]), 
+                    "p80":float(r[offset_d + 5]), 
+                    "p90":float(r[offset_d + 6]), 
+                    "Jitter":float(r[offset_d + 7])}
+                lst_result_flows.append(dict_result_tmp)
+                
+                
+                dict_traffic = {}
+                dict_traffic['AvgBw'] = float(r[offset_t])*1000
+                dict_traffic['PktsGen'] = numpy.round(pcktsGen/sim_time,6)
+                dict_traffic['TotalPktsGen'] = float(pcktsGen)
+                dict_traffic['ToS'] = 0
+                self._timedistparams(dict_traffic)
+                self._sizedistparams(dict_traffic)
+                lst_traffic_flows.append (dict_traffic)
+                
                 # From kbps to bps
                 dict_traffic_agg = {'AvgBw':float(r[offset_t])*1000,
                                     'PktsGen':numpy.round(pcktsGen/sim_time,6),
                                     'TotalPktsGen':pcktsGen}
+
+                dict_result_srcdst = {}                           
+                dict_traffic_srcdst = {}
 
                 dict_result_srcdst['AggInfo'] = dict_result_agg
                 dict_result_srcdst['Flows'] = lst_result_flows
@@ -830,6 +788,7 @@ class DatanetAPI:
         s._set_global_packets(numpy.round(globalPackets/sim_time,6))
         s._set_global_losses(numpy.round(globalLosses/sim_time,6))
         s._set_global_delay(globalDelay/(netSize*(netSize-1)))
+        
 
     # Dataset v0 only contain exponential traffic with avg packet size of 1000
     def _timedistparams(self, dict_traffic):

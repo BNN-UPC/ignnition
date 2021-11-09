@@ -27,7 +27,8 @@ message_passing:
         message:
         - type: direct_assignment
       aggregation:
-        - type: convolution
+        - type: edge_attention
+          nn_name: edge_att_nn
       update:
         type: neural_network
         nn_name: recurrent1

@@ -65,15 +65,21 @@ class Generator:
         self.end_symbol = bytes(']', 'utf-8')
         self.warnings_shown = False
 
-    def stream_read_json(self, f):
+    def stream_read_json(self, f, tar_file):
         """
         Parameters
         ----------
         f:
             Input data
+        tar_file:   boolean
+            True if tar file, False if Json file
         """
+        # If it's a tar file, decode using utf-8
+        if tar_file:
+            pos1 = f.read(1).decode("utf-8")
+        else:
+            pos1 = f.read(1)
         # check that it is a valid array of objects
-        pos1 = f.read(1)
         if pos1 != '[':
             print_failure(
                 "Error because the dataset files must be an array of json objects, and not single json objects")
@@ -471,18 +477,20 @@ class Generator:
             random.shuffle(files)
 
         for sample_file in files:
+            tar_file = False
             try:
                 if 'tar.gz' in sample_file:
                     tar = tarfile.open(sample_file, 'r:gz')  # read the tar files
                     try:
                         file_name = tar.getmembers()[0]
                         file_samples = tar.extractfile(file_name)
+                        tar_file = True
                     except:
                         raise Exception('There was an error when trying to read the file ', file_name)
                 else:
-                    file_samples = open(sample_file, 'r')
+                    file_samples = open(sample_file, 'r', encoding="utf-8")
 
-                data = self.stream_read_json(file_samples)
+                data = self.stream_read_json(file_samples, tar_file)
 
                 while True:
                     processed_sample = self.__process_sample(next(data), sample_file)

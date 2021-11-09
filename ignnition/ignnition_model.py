@@ -378,12 +378,14 @@ class IgnnitionModel:
         return x
 
     @tf.autograph.experimental.do_not_convert
-    def __input_fn_generator(self, filenames=None, shuffle=False, training=True, data_samples=None, iterator=False):
+    def __input_fn_generator(self, filenames=None, repeat=False, shuffle=False, training=True, data_samples=None, iterator=False):
         """
         Parameters
         ----------
         filenames:    string
             Tensor with the filenames of the input (if using dataset input only)
+        repeat:     bool
+            Bool indicating if we need to repeat the dataset.
         shuffle:    bool
             Bool indicating if we need to shuffle the input data.
         training:    bool
@@ -448,7 +450,8 @@ class IgnnitionModel:
                                                                      shuffle),
                         output_types=(types, tf.float32),
                         output_shapes=(shapes, tf.TensorShape(None)))
-                    ds = ds.repeat()
+                    if repeat:
+                        ds = ds.repeat()
                 else:
                     data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
@@ -555,8 +558,8 @@ class IgnnitionModel:
         if checkpoint_path is not None:
             if os.path.isfile(checkpoint_path) and os.path.splitext(checkpoint_path)[1] == '.hdf5':
                 print_info(
-                    "WARNING: The use of .hdf5 format is deprecated and will be removed in future versions as it may cause"
-                    " compatibility problems")
+                    "WARNING: The use of .hdf5 format is deprecated and will be removed in future versions as it "
+                    "may cause compatibility problems")
                 # in this case we need to initialize the weights to be able to use a load_model checkpoint
 
                 sample_it = self.__input_fn_generator(training=False, data_samples=[sample])
@@ -564,18 +567,19 @@ class IgnnitionModel:
                 # Call only one tf.function when tracing.
                 _ = gnn_model(sample, training=False)
 
-            elif require_warm_start and checkpoint_path == '':  # no file was specified
-                print_failure(
-                    "There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this path, "
-                    "so that model that will compute the predictions can be recovered.")
-                return gnn_model
-
             try:
                 gnn_model.load_weights(checkpoint_path)
                 print("Restoring saved model from", checkpoint_path)
             except (tf.errors.NotFoundError, ValueError):
                 print_info(
-                    "The file in the directory " + checkpoint_path + ' does not exists or is not a valid checkpoint file.')
+                    "The file in the directory " + checkpoint_path +
+                    ' does not exists or is not a valid checkpoint file.')
+
+        elif require_warm_start:
+                print_failure(
+                    "There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this "
+                    "path, so that model that will compute the predictions can be recovered.")
+                return gnn_model
 
         return gnn_model
 
@@ -589,6 +593,7 @@ class IgnnitionModel:
         samples: [array]
             Array of samples to be used as input (if any)
         """
+        tar_file = False
 
         if samples is not None:
             sample = samples[0]  # take the first one to find the dimensions
@@ -606,15 +611,21 @@ class IgnnitionModel:
                     tar = tarfile.open(sample_path, 'r:gz')  # read the tar files
                     member = tar.getmembers()[0]
                     file_samples = tar.extractfile(member)
+                    tar_file = True
                 except:
                     print_failure('The tar file ' + sample_path + ' could not be opened')
 
             # if it is already a json file
             else:
-                file_samples = open(sample_path, 'r')
+                file_samples = open(sample_path, 'r', encoding="utf-8")
 
             try:
-                ch1 = file_samples.read(1)
+                # If it's a tar file, decode using utf-8
+                if tar_file:
+                    ch1 = file_samples.read(1).decode("utf-8")
+                else:
+                    ch1 = file_samples.read(1)
+                
                 if ch1 != '[':
                     print_failure(
                         "Error because the dataset files must be an array of json objects, and not single json objects")
@@ -723,6 +734,7 @@ class IgnnitionModel:
         print_info(dev_string)
 
         train_dataset = self.__input_fn_generator(filenames_train,
+                                                  repeat=True,
                                                   shuffle=str_to_bool(
                                                       self.CONFIG['shuffle_training_set']),
                                                   data_samples=training_samples)
@@ -874,7 +886,7 @@ class IgnnitionModel:
         data_path = None
         if evaluation_samples is None:
             try:
-                data_path = self.__process_path(self.CONFIG['validation_dataset'])
+                data_path = self.__process_path(self.CONFIG['predict_dataset'])
             except:
                 print_failure(
                     'Make sure to either pass an array of samples or to define in the train_options.yaml the path '

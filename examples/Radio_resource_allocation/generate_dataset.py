@@ -26,19 +26,19 @@ from tqdm.auto import tqdm
 
 # Generation options
 empty_dirs = True
+n_links = 10
 random_seed = 20210205
 root_path = Path(__file__).parent
-raw_dir = root_path / Path("data/raw")
-train_dir = root_path / Path("data/train")
+raw_dir = root_path / Path("data/raw_"+str(n_links))
+train_dir = root_path / Path("data/train_"+str(n_links))
 train_samples = 1000
-validation_dir = root_path / Path("data/validation")
+validation_dir = root_path / Path("data/validation_"+str(n_links))
 validation_samples = 100
 # Computed
 total_samples = train_samples + validation_samples
 rng = np.random.default_rng(seed=random_seed)
 
 # Dataset options, please see the referenced papers for more details
-n_links = 10
 field_length = 1000
 shortest_directLink_length = 2
 longest_directLink_length = 65
@@ -234,7 +234,7 @@ def join_graphs_into_dataset(files, output_dir, output_file_name="data.json", em
         json.dump(graphs, fp)
 
 
-def split_traing_validation(
+def split_train_validation(
     raw_dir, train_dir, validation_dir, train_samples, validation_samples, empty_dirs=False
 ):
     if empty_dirs:
@@ -246,7 +246,7 @@ def split_traing_validation(
     rng.shuffle(files)
     training_files = files[validation_samples:(train_samples + validation_samples)]
     validation_files = files[:validation_samples]
-    print(f"Copying training graphs into {raw_dir / 'traing'}")
+    print(f"Copying training graphs into {raw_dir / 'train'}")
     for file in training_files:
         shutil.copy(file, raw_dir / "train")
     print(f"Joining training graphs into {train_dir}")
@@ -262,7 +262,7 @@ if __name__ == "__main__":
     for _dir in [raw_dir, train_dir, validation_dir, raw_dir / "train", raw_dir / "validation"]:
         os.makedirs(_dir, exist_ok=True)
     generate_graphs(output_dir=raw_dir, empty_dirs=empty_dirs)
-    split_traing_validation(
+    split_train_validation(
         raw_dir=raw_dir,
         train_dir=train_dir,
         validation_dir=validation_dir,
