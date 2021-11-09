@@ -136,6 +136,41 @@ class FeatureException(IgnnitionException):
         return f'Error with feature \'{self.feature}\'. {self.message}'
 
 
+class KeywordException(IgnnitionException):
+    """Exception raised for errors in the model_description.yaml file.
+
+        Attributes:
+            feature -- feature name that raises the error
+            message -- explanation of the error
+    """
+
+    def __init__(self, keyword, message):
+        self.keyword = keyword
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f'Error with the keyword \'{self.keyword}\'. {self.message}'
+
+
+class EntityError(IgnnitionException):
+    """Exception raised for errors in the model_description.yaml file.
+
+        Attributes:
+            feature -- feature name that raises the error
+            message -- explanation of the error
+    """
+
+    def __init__(self, entity, entity_type, message):
+        self.entity = entity
+        self.entity_type = entity_type
+        self.message = message
+        super().__init__(self.message)
+
+    def __str__(self):
+        return f'Error with the entity \'{self.entity}\' used as {self.entity_type}. {self.message}'
+
+
 class YAMLFormatError(IgnnitionException):
     """Exception raised for errors in the model_description.yaml file.
 

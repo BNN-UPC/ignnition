@@ -31,6 +31,7 @@ from ignnition.mp_classes import InterleaveAggr, Entity, MessagePassing
 from ignnition.operation_classes import PoolingOperation, ProductOperation, ExtendAdjacencies, Concat, \
     FeedForwardOperation
 from ignnition.utils import print_failure, print_info, read_yaml
+from ignnition.error_handling import KeywordException, EntityError
 
 
 class YamlPreprocessing:
@@ -250,9 +251,10 @@ class YamlPreprocessing:
         # check the destination entities
         for d in dst_names:
             if d not in entity_names:
-                print_failure(
-                    'The destination entity "' + d + '" was used in a message passing. However, there is no such '
-                                                     'entity. \n Please check the spelling or define a new entity.')
+                raise EntityError(entity=d,
+                                  entity_type='destination',
+                                  message='This entity was used in a message passing. However, the model could not '
+                                          'find a definition of it. Please, make sure it was correctly defined.')
 
         # check the nn_names
         for name in called_nn_names:
@@ -263,14 +265,22 @@ class YamlPreprocessing:
                                           'spelled or define a neural network named ' + name)
 
         # ensure that all the inputs (that are not output of another operation) start with a $
-        for i in input_names:
-            if i not in output_names and i[0] != '$':
-                print_failure('The input name ' + i + ' references data from the dataset but does not start with $')
-
         for i in output_names:
             if i[0] == '$':
-                print_failure(
-                    'The keyword ' + i + ' starts with $ even though it does not represent data from the dataset.')
+                raise KeywordException(keyword=i,
+                                       message='It looks like you defined an output name of an operation using a $. '
+                                               'This symbol is specifically suited for data found in the dataset.')
+
+        for i in input_names:
+            if i not in output_names and i[0] != '$':
+                print("output_names")
+                print(output_names)
+                raise KeywordException(keyword=i,
+                                       message='If this keyword references data from the dataset make sure that it '
+                                               'starts with a $. If it does not, make sure it is properly defined as '
+                                               'an output of an operation.')
+
+
 
     def __get_nn_mapping(self, models):
         """

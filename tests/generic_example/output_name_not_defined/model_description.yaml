@@ -1,0 +1,70 @@
+entities:
+- name: entity0
+  state_dimension: 16
+  initial_state:
+    - type: build_state
+      input: [$feature0,$feature1,$feature2]
+
+- name: entity1
+  state_dimension: 32
+  initial_state:
+    - type: build_state
+      input: [$feature3,$feature4]
+
+message_passing:
+  num_iterations: 4
+  stages:
+    - stage_message_passings:
+      - destination_entity: entity0
+        source_entities:
+          - name: entity1
+            message:
+              - type: neural_network
+                nn_name: message_function
+                input: [source]
+        aggregation:
+          - type: max
+            output_name: max_value
+          - type: neural_network
+            input: [max_values]
+            nn_name: aggregation_function
+        update:
+          type: neural_network
+          nn_name: update_function
+
+readout:
+- type: neural_network
+  input: [entity0]
+  nn_name: readout_model
+  output_label: [$label0]
+
+neural_networks:
+- nn_name: readout_model
+  nn_architecture:
+  - type_layer: Dense
+    units: 16
+    activation: relu
+  - type_layer: Dense
+    units: 8
+    activation: relu
+  - type_layer: Dense
+    units: 1
+    activation: relu
+
+- nn_name: message_function
+  nn_architecture:
+  - type_layer: Dense
+    units: 32
+    activation: relu
+  - type_layer: Dense
+    units: 16
+    activation: relu
+
+- nn_name: update_function
+  nn_architecture:
+    - type_layer: GRU
+
+- nn_name: aggregation_function
+  nn_architecture:
+  - type_layer: Dense
+    units: 16

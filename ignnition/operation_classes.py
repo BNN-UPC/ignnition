@@ -5,7 +5,8 @@ import tensorflow as tf
 from ignnition.model_classes import FeedForwardModel, Recurrent_Update_Cell
 from ignnition.utils import print_failure
 from ignnition.utils import get_global_var_or_input
-from ignnition.error_handling import FeatureException
+from ignnition.error_handling import FeatureException, KeywordException
+
 
 class Operation:
     """
@@ -82,6 +83,8 @@ class Operation:
             input_dim = 0
             dimension = None
             for i in input_nn:
+                print("input_nn")
+                print(input_nn)
                 if '_initial_state' in i:
                     i = i.split('_initial_state')[0]
 
@@ -90,7 +93,9 @@ class Operation:
                 elif i + '_dim' in calculations:
                     dimension = calculations[i + '_dim']  # take the dimension from here or from self.dimensions
                 else:
-                    print_failure("Keyword " + i + " used in the model definition was not recognized")
+                    raise KeywordException(keyword=i,
+                                           message="This keyword was used but was not recognized. Please make sure "
+                                                   "you defined it properly.")
 
                 input_dim += dimension
             return input_dim
