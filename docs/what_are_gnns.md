@@ -1,5 +1,6 @@
 # Backgound on GNNs
 ## What is a GNN?
+
 For the use of *IGNNITION*, we focus on one of the most basic GNN architectures named *Message-Passing Neural Networks (MPNN)*, which is a well-known GNN family that covers a wide range of standard GNN architectures.
 
 The input of a GNN is a graph *G=(V, E)* -- directed or undirected -- that comprises a set nodes <img src="https://render.githubusercontent.com/render/math?math=v \in V"> and some edges connecting them <img src="https://render.githubusercontent.com/render/math?math=e \in E"> . Each node *v* has an associated vector of predefined size that encodes its state, namely, the node hidden state <img src="https://render.githubusercontent.com/render/math?math=h_v">. At the beginning of a GNN execution, hidden state vectors <img src="https://render.githubusercontent.com/render/math?math=h_v">  are initialized with some node-related features <img src="https://render.githubusercontent.com/render/math?math=X_v"> included in the input graph. Optionally, edges may also contain a set of features denoted by <img src="https://render.githubusercontent.com/render/math?math=e_{uv}">
