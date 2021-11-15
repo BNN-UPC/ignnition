@@ -4,7 +4,7 @@ entities:
   state_dimension: 16
   initial_state:
     - type: build_state
-      input: [$src-tgt]
+      input: [$src_tgt]
 
 # Definition of the message passing phase
 message_passing:
