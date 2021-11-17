@@ -60,12 +60,12 @@ class CustomLayer:
 
             elif 'activation' in k:  # already ensures that it was not None
                 try:
-                    self.parameters['activation'] = getattr(tf.keras.activations, v)
+                    self.parameters['activation'] = getattr(tf.nn, v)
                 except AttributeError:
                     raise KerasError(parameter=v,
                                      variable='activation',
                                      message="Please make sure it is a valid activation function ("
-                                             "https://www.tensorflow.org/api_docs/python/tf/keras/activations).")
+                                             "https://www.tensorflow.org/api_docs/python/tf/nn).")
 
 
 class Recurrent_Update_Cell(CustomLayer):
