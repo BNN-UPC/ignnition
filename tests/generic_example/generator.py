@@ -51,7 +51,7 @@ def generate_dataset(file_name, num_samples, min_nodes=20, max_nodes=30, p=0.3):
         json.dump(samples, f)
 
 
-root_dir = "./data"
+root_dir = "data"
 
 if not os.path.exists(root_dir):
     os.makedirs(root_dir)
@@ -62,6 +62,6 @@ if not os.path.exists(root_dir + "/validation"):
 if not os.path.exists(root_dir + "/test"):
     os.makedirs(root_dir + "/test")
 
-generate_dataset("./data/train/data.json", 10)
+generate_dataset("data/train/data.json", 10)
 #generate_dataset("./data/validation/data.json", 1)
 #generate_dataset("./data/test/data.json", 1)

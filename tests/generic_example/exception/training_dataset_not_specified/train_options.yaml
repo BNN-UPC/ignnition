@@ -1,5 +1,5 @@
 # PATHS
-train_dataset: ../../data/train
+train_dataset:
 validation_dataset: ../../data/validation
 predict_dataset: ../../data/test
 #load_model_path: ./CheckPoint/<path_to_hdf5_file>
