@@ -81,10 +81,7 @@ class Operation:
         if self.input is not None:
             input_nn = self.input
             input_dim = 0
-            dimension = None
             for i in input_nn:
-                print("input_nn")
-                print(input_nn)
                 if '_initial_state' in i:
                     i = i.split('_initial_state')[0]
 

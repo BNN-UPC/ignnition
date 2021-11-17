@@ -22,7 +22,7 @@ import ignnition
 
 
 def main():
-    model = ignnition.create_model(model_dir='entity_not_defined')
+    model = ignnition.create_model(model_dir='working')
     model.computational_graph()
     model.train_and_validate()
 

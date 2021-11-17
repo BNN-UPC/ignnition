@@ -273,8 +273,6 @@ class YamlPreprocessing:
 
         for i in input_names:
             if i not in output_names and i[0] != '$':
-                print("output_names")
-                print(output_names)
                 raise KeywordException(keyword=i,
                                        message='If this keyword references data from the dataset make sure that it '
                                                'starts with a $. If it does not, make sure it is properly defined as '

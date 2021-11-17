@@ -89,7 +89,6 @@ class GnnModel(tf.keras.Model):
                                                                                              self.calculations,
                                                                                              dst_name, src)
                                         model, output_shape = operation.model.construct_tf_model(input_dim=input_dim)
-
                                         save_global_variable(self.calculations, var_name, model)
 
                                         # Need to keep track of the output dimension of this one,
@@ -115,8 +114,7 @@ class GnnModel(tf.keras.Model):
 
                         for aggregation in aggregations:
                             # what is the shape if we are using ordered / interleave??
-                            output_shape = F_dst  # by default we don't change the shape of the final output
-
+                            # output_shape = F_dst  # by default we don't change the shape of the final output
                             if aggregation.type == 'attention':
                                 self.node_kernel = self.add_weight(shape=(F_src, F_src),
                                                                    initializer=aggregation.weight_initialization,
@@ -150,7 +148,6 @@ class GnnModel(tf.keras.Model):
                                 input_dim = aggregation.find_total_input_dim(self.dimensions, self.calculations)
 
                                 model, output_shape = aggregation.model.construct_tf_model(input_dim=input_dim)
-
                                 save_global_variable(self.calculations, var_name, model)
 
                             # Need to keep track of the output dimension of this one, in case we need it for a new model
@@ -159,9 +156,8 @@ class GnnModel(tf.keras.Model):
                                 save_global_variable(self.calculations, aggregation.output_name + '_dim', output_shape)
                                 save_global_variable(self.calculations, aggregation.output_name + '_out_dim', src_dim)
 
-                        src_dim = int(self.dimensions.get(src_name))
                         save_global_variable(self.calculations,
-                                             "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg), src_dim)
+                                             "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg), output_shape)
 
                     # -----------------------------
                     # Creation of the update models
@@ -178,7 +174,7 @@ class GnnModel(tf.keras.Model):
                             except Exception:
                                 print_failure('The definition of the recurrent cell in message passing to '
                                               + message.destination_entity + ' is not correctly defined. Check keras '
-                                              'documentation to make sure all the parameters are correct.')
+                                                                             'documentation to make sure all the parameters are correct.')
 
                         # ----------------------------------
                         # create the feed-forward upddate models
