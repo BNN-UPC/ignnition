@@ -21,6 +21,7 @@ from ignnition.aggregation_classes import InterleaveAggr, ConcatAggr, SumAggr, M
     StdAggr, AttentionAggr, EdgeAttentionAggr, ConvAggr
 from ignnition.operation_classes import FeedForwardOperation, BuildState, ProductOperation, RNNOperation
 from ignnition.utils import print_failure
+from ignnition.error_handling import CombinedAggregationError
 
 
 class Entity:
@@ -216,8 +217,8 @@ class MessagePassing:
                 multiple_embedding = True
 
         if single_embedding and multiple_embedding:
-            print_failure("You cannot combine aggregations which return a sequence of tensors, "
-                          "and aggregations that return a single embedding")
+            raise CombinedAggregationError(message="It is not possible to combine aggregations that return a sequence "
+                                                   "of tensors and aggregations that return a single embedding")
 
         elif single_embedding:
             return aggregations, 0

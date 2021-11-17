@@ -32,7 +32,6 @@ class CustomLayer:
         parameters: dict
             Dictionary with the parameters to be applied to the new layer (following the tf docu).
         """
-
         self.type = layer_type
         if 'type_layer' in parameters:
             del parameters['type_layer']
@@ -110,13 +109,24 @@ class Recurrent_Update_Cell(CustomLayer):
         """
 
         self.parameters['units'] = dst_dim
+        try:
+            cell_type = self.type
+            if 'Cell' not in self.type:
+                cell_type += 'Cell'
+            c_ = getattr(tf.keras.layers, cell_type)
+        except AttributeError:
+            raise KerasError(parameter=self.type,
+                             variable='layer',
+                             message="Please make sure it is a valid layer ("
+                                     "https://www.tensorflow.org/api_docs/python/tf/keras/layers).")
 
-        cell_type = self.type
-        if 'Cell' not in self.type:
-            cell_type += 'Cell'
-        c_ = getattr(tf.keras.layers, cell_type)
-
-        layer = c_(**self.parameters)
+        try:
+            layer = c_(**self.parameters)
+        except TypeError:
+            raise KerasError(parameter=str(self.parameters),
+                             variable=self.type,
+                             message="Please make sure that you defined all mandatory parameters and all the optional "
+                                     "ones are correctly defined.")
 
         return layer
 

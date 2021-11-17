@@ -226,6 +226,16 @@ class KerasError(IgnnitionException):
                f'{self.message} '
 
 
+class CombinedAggregationError(IgnnitionException):
+
+    def __init__(self, message=None):
+        super().__init__(message)
+        self.message = message
+
+    def __str__(self):
+        return f'{self.message}'
+
+
 def handle_exception(f) -> Callable:
     """Handles any possible exception raised during the execution of the decorated function
 

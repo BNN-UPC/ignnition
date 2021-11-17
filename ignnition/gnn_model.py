@@ -152,9 +152,8 @@ class GnnModel(tf.keras.Model):
 
                             # Need to keep track of the output dimension of this one, in case we need it for a new model
                             if aggregation.output_name is not None:
-                                src_dim = int(self.dimensions.get(src_name))
                                 save_global_variable(self.calculations, aggregation.output_name + '_dim', output_shape)
-                                save_global_variable(self.calculations, aggregation.output_name + '_out_dim', src_dim)
+                                save_global_variable(self.calculations, aggregation.output_name + '_out_dim', output_shape)
 
                         save_global_variable(self.calculations,
                                              "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg), output_shape)
@@ -168,16 +167,11 @@ class GnnModel(tf.keras.Model):
                         # create the recurrent update models
                         if update_model is not None and isinstance(update_model, RNNOperation):
                             recurrent_cell = update_model.model
-                            try:
-                                recurrent_instance = recurrent_cell.get_tensorflow_object(self.dimensions.get(dst_name))
-                                save_global_variable(self.calculations, dst_name + '_update', recurrent_instance)
-                            except Exception:
-                                print_failure('The definition of the recurrent cell in message passing to '
-                                              + message.destination_entity + ' is not correctly defined. Check keras '
-                                                                             'documentation to make sure all the parameters are correct.')
+                            recurrent_instance = recurrent_cell.get_tensorflow_object(self.dimensions.get(dst_name))
+                            save_global_variable(self.calculations, dst_name + '_update', recurrent_instance)
 
                         # ----------------------------------
-                        # create the feed-forward upddate models
+                        # create the feed-forward update models
                         # This only makes sense with aggregation functions that preserve one single input (not sequence)
                         elif update_model is not None:
                             model = update_model.model
