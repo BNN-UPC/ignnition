@@ -366,8 +366,6 @@ class IgnnitionModel:
                         tf.py_function(func=norm_func, inp=[y[pos:pos + x['__ignnition_{}_len'.format(o)]], o],
                                        Tout=tf.float32))
                     pos += x['__ignnition_{}_len'.format(o)]
-                    # except:
-                    #    print_failure('The normalization function computing the output label' + o + ' failed.')
                 y = tf.concat(out_list, axis=0)
                 return x, y
             return x

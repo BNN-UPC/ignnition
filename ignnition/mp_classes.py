@@ -218,7 +218,7 @@ class MessagePassing:
 
         if single_embedding and multiple_embedding:
             raise CombinedAggregationError(message="It is not possible to combine aggregations that return a sequence "
-                                                   "of tensors and aggregations that return a single embedding")
+                                                   "of tensors and aggregations that return a single embedding.")
 
         elif single_embedding:
             return aggregations, 0

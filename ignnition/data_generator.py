@@ -167,32 +167,27 @@ class Generator:
 
         # load the features (all the features are set to be lists. So we always return a list of lists)
         for f in self.feature_names:
-            try:
-                features_dict = nx.get_node_attributes(D_G, f)
-                feature_vals = np.array(list(features_dict.values()))
-                entity_names = set([name.split('_')[0] for name in features_dict.keys()])  # indicates the (unique)
-                # names of the entities that have that feature
+            features_dict = nx.get_node_attributes(D_G, f)
+            feature_vals = np.array(list(features_dict.values()))
+            entity_names = set([name.split('_')[0] for name in features_dict.keys()])  # indicates the (unique)
+            # names of the entities that have that feature
 
-                if len(entity_names) > 1:
-                    entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
-                    print_failure("The feature " + f + " was defined in several entities(" + entities_string +
-                                  "). The feature names should be unique for each layer_type of node.")
+            if len(entity_names) > 1:
+                entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
+                raise FeatureException(feature=f, message=f"This feature was found in several entities "
+                                                          f"({entities_string}). The feature names must be "
+                                                          f"unique for each node.)")
 
-                # it should always be a 2d array
-                if len(np.shape(feature_vals)) == 1:
-                    feature_vals = np.expand_dims(feature_vals, axis=-1)
+            # it should always be a 2d array
+            if len(np.shape(feature_vals)) == 1:
+                feature_vals = np.expand_dims(feature_vals, axis=-1)
 
-                if feature_vals.size == 0:
-                    raise FeatureException(feature=f,
-                                           message="This feature was used in the model_description.yaml file but "
-                                                   "was not defined in the dataset")
-                else:
-                    data[f] = feature_vals
-
-            except:
+            if feature_vals.size == 0:
                 raise FeatureException(feature=f,
-                                       message=f'This feature was used in the model_description.yaml file but '
-                                               f'was not defined in the dataset {file}.')
+                                       message="This feature was used in the model_description.yaml file but "
+                                               "was not defined in the dataset")
+            else:
+                data[f] = feature_vals
 
         # take other inputs if needed (check that they might be global features)
         for a in self.additional_input:
@@ -203,10 +198,9 @@ class Generator:
             # of the entities that have that feature
 
             if len(entity_names) > 1:
-                entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
-                print_failure(
-                    "The feature " + a + " was defined in several entities(" + entities_string +
-                    "). The feature names should be unique for each layer_type of node.")
+                raise FeatureException(feature=f, message=f"This feature was found in several entities "
+                                                          f"({entities_string}). The feature names must be "
+                                                          f"unique for each node.)")
 
             # it should always be a 2d array
             if len(np.shape(node_attr)) == 1:
@@ -227,10 +221,10 @@ class Generator:
             if len(entity_names) > 2:
                 # print(entity_names)
                 entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
-                print_failure(
-                    "The edge feature " + a + " was defined in connecting two different source-destination entities(" +
-                    entities_string + "). Make sure that an edge feature is unique for a given pair of entities "
-                                      "(types of nodes).")
+                raise FeatureException(feature=f, message=f"This feature was found in several edges connecting "
+                                                          f"different entities ({entities_string}). Make sure that an "
+                                                          f"edge feature is unique for a given pair of entities.")
+
 
             # it should always be a 2d array
             if len(np.shape(edge_attr)) == 1:
@@ -241,8 +235,8 @@ class Generator:
 
             # Check that this name has not been defined both as node features and as edge_features
             if node_attr.size != 0 and edge_attr.size != 0 and len(graph_attr) != 0:
-                print_failure("The feature " + a + "was defined both as node feature, edge feature and graph feature. "
-                                                   "Please use unique names in this case.")
+                print_failure("The feature " + a + "was defined as node feature, edge feature and graph feature. "
+                                                   "Please use unique names.")
             elif node_attr.size != 0 and edge_attr.size != 0:
                 print_failure("The feature " + a + "was defined both as node feature and as edge feature. Please use "
                                                    "unique names in this case.")
@@ -498,7 +492,3 @@ class Generator:
             except KeyboardInterrupt:
                 sys.exit()
 
-            # except Exception as inf:
-            #    print_failure("\n There was an unexpected error: \n" + str(
-            #        inf) + "\n Please make sure that all the names used in the file: " + sample_file +
-            #                  ' are defined in your dataset')

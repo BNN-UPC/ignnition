@@ -231,13 +231,11 @@ class FeedForwardLayer(CustomLayer):
 
         try:
             layer = c_(**self.parameters)
-        except Exception:
-            parameters_string = ''
-            for k, v in self.parameters.items():
-                parameters_string += k + ': ' + v + '\n'
-            print_failure(
-                "One of the parameters passed to the layer of layer_type '" + self.type + "' is incorrect. \n " +
-                "You have defined the following parameters: \n" + parameters_string)
+        except TypeError:
+            raise KerasError(parameter=str(self.parameters),
+                             variable=self.type,
+                             message="Please make sure that you defined all mandatory parameters and all the optional "
+                                     "ones are correctly defined.")
 
         return layer
 

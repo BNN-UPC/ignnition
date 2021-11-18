@@ -22,7 +22,7 @@ import ignnition
 
 
 def main():
-    model = ignnition.create_model(model_dir='./exception/combine_aggregation')
+    model = ignnition.create_model(model_dir='./exception/repeated_entities')
     model.computational_graph()
     model.train_and_validate()
 

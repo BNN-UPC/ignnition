@@ -123,7 +123,8 @@ class Operation:
             elif i + '_dim' in calculations:
                 input_dim += dimensions
             else:
-                print_failure("Keyword " + i + " used in the message passing was not recognized.")
+                raise KeywordException(keyword=i, message="This keyword was used but was not recognized. Please make "
+                                                          "sure you defined it properly.")
 
         return input_dim
 
