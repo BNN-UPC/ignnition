@@ -22,7 +22,7 @@ import ignnition
 
 
 def main():
-    model = ignnition.create_model(model_dir='./working/custom_loss')
+    model = ignnition.create_model(model_dir='./exception/loss_error')
     model.computational_graph()
     model.train_and_validate()
 

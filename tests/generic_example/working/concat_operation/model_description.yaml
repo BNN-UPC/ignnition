@@ -29,8 +29,13 @@ message_passing:
           nn_name: update_function
 
 readout:
+- type: concat
+  axis: 5
+  input: [ $feature0, $feature1 ]
+  output_name: concat_op
+
 - type: neural_network
-  input: [entity0]
+  input: [entity0, concat_op]
   nn_name: readout_model
   output_label: [$label0]
 

@@ -1,3 +1,4 @@
+
 entities:
 - name: entity0
   state_dimension: 16
@@ -29,8 +30,18 @@ message_passing:
           nn_name: update_function
 
 readout:
+- type: product
+  type_product: element_wise
+  input: [ $feature0, $feature1 ]
+  output_name: element_wise
+
+- type: product
+  type_product: dot_product
+  input: [ $feature0, $feature1 ]
+  output_name: dot_product
+
 - type: neural_network
-  input: [entity0]
+  input: [entity0, element_wise, dot_product]
   nn_name: readout_model
   output_label: [$label0]
 

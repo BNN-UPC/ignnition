@@ -5,7 +5,7 @@ import tensorflow as tf
 from ignnition.model_classes import FeedForwardModel, Recurrent_Update_Cell
 from ignnition.utils import print_failure
 from ignnition.utils import get_global_var_or_input
-from ignnition.error_handling import FeatureException, KeywordException
+from ignnition.error_handling import FeatureException, KeywordException, ProductOperationError, ConcatOperationError
 
 
 class Operation:
@@ -304,10 +304,12 @@ class ProductOperation(Operation):
 
             return result
 
-        except:
-            print_failure(
-                'The product operation between ' + product_input1 + ' and ' + product_input2 +
-                ' failed. Check that the dimensions are compatible.')
+        except Exception:
+            raise ProductOperationError(operation='product',
+                                        prod_type=self.type_product,
+                                        a=self.input[0],
+                                        b=self.input[1],
+                                        message="Check that the inputs have a correct shape for the selected type.")
 
 
 class PoolingOperation(Operation):
@@ -464,68 +466,6 @@ class RNNOperation(Operation):
         self.input = op.get('input', None)
 
 
-# TODO: check that it works
-class ExtendAdjacencies(Operation):
-    """
-    Subclass of oPERATION that represents the extend_adjacencies operation
-
-    Attributes:
-    ----------
-    adj_list:    str
-        Adjacency list to be used
-    output_name:    int
-        Name to save the output of the operation with
-
-    Methods:
-    --------
-    calculate(self, src_states, adj_src, dst_states, adj_dst)
-        Applies the extend_adjacency operation to two inputs
-    """
-
-    def __init__(self, op):
-        """
-        Parameters
-        ----------
-        op:    dict
-            Dictionary with the data defining this product operation
-        """
-
-        super(ExtendAdjacencies, self).__init__({'type': op['type'], 'input': op['input']})
-        self.adj_list = op['adj_list']
-        self.output_name = [op.get('output_name_src'), op.get('output_name_dst')]
-
-    def calculate(self, src_states, adj_src, dst_states, adj_dst):
-        """
-        Parameters
-        ----------
-        src_states:    tensor
-           Input 1
-        adj_src:    tensor
-            Adj src -> dest
-        dst_states:     tensor
-            Input 2
-        adj_dst:    tensor
-            Adj dst -> src
-        """
-
-        # obtain the extended input (by extending it to the number of adjacencies between them)
-        try:
-            extended_src = tf.gather(src_states, adj_src)
-        except Exception:
-            print_failure('Extending the adjacency list ' + str(self.adj_list) +
-                          ' was not possible. Check that the indexes of the source of the adjacency '
-                          'list match the input given.')
-
-        try:
-            extended_dst = tf.gather(dst_states, adj_dst)
-        except Exception:
-            print_failure('Extending the adjacency list ' + str(self.adj_list) +
-                          ' was not possible. Check that the indexes of the destination of '
-                          'the adjacency list match the input given.')
-
-        return extended_src, extended_dst
-
-
 class Concat(Operation):
     """
     Subclass of Operation class that represents the product operation between two tensors (also considers
@@ -567,6 +507,6 @@ class Concat(Operation):
             return result
 
         except Exception:
-            print_failure(
-                'The concat operation failed. Check that the dimensions are compatible.')
-            sys.exit(1)
+            raise ConcatOperationError(operation='concat',
+                                       axis=self.axis,
+                                       message="Check that the inputs have a proper shape for the selected axis.")

@@ -33,7 +33,7 @@ from ignnition.gnn_model import GnnModel
 from ignnition.yaml_preprocessing import YamlPreprocessing
 from ignnition.data_generator import Generator
 from ignnition.error_handling import DatasetException, DatasetFormatException, KeywordNotFoundException, \
-    IgnnitionException, handle_exception
+    IgnnitionException, AdditionalFunctionNotFoundException, LossFunctionException, handle_exception
 from ignnition.utils import *
 from ignnition.custom_callbacks import *
 import sys
@@ -140,7 +140,7 @@ class IgnnitionModel:
 
         # read the train_options file
 
-        self.CONFIG = read_yaml(train_options_path,file_name='training options')
+        self.CONFIG = read_yaml(train_options_path, file_name='training options')
 
         tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
         warnings.filterwarnings("ignore")
@@ -149,7 +149,9 @@ class IgnnitionModel:
         if 'additional_functions_file' in self.CONFIG:
             additional_path = Path(self.__process_path(self.CONFIG['additional_functions_file']))
             if not additional_path.exists():
-                print_failure(f"Additional functions file in {additional_path} does not exists.")
+                raise AdditionalFunctionNotFoundException(path=additional_path,
+                                                          message='Check that the path defined at the '
+                                                                  'train_options.yaml is correct.')
             sys.path.insert(1, str(additional_path.resolve().parent))
             self.module = import_module(additional_path.stem)
         else:
@@ -176,10 +178,10 @@ class IgnnitionModel:
         elif hasattr(self.module, loss_name):
             return getattr(self.module, loss_name)
         else:
-            print_failure(
-                "Loss name is neither a Tensorflow Keras Loss nor an objective function in the "
-                "additional functions file."
-            )
+            raise LossFunctionException(loss=loss_name,
+                                        message='The loss name is neither a Tensorflow Keras Loss ('
+                                                'https://www.tensorflow.org/api_docs/python/tf/keras/losses) nor a '
+                                                'function in the additional functions file.')
 
     def __denormalized_metric(self, metric, metric_name, denorm_func):
         def denorm_metric(y_true, y_pred):
@@ -681,7 +683,7 @@ class IgnnitionModel:
 
     # FUNCTIONALITIES
     # --------------------------------------------------
-    @handle_exception
+    # @handle_exception
     def train_and_validate(self, training_samples=None, val_samples=None):
         """
         Parameters
@@ -848,7 +850,7 @@ class IgnnitionModel:
 
         return all_predictions
 
-    @handle_exception
+    # @handle_exception
     def computational_graph(self):
         # Check if we can generate the computational graph without a dataset
         train_path = self.CONFIG.get('train_dataset', '')

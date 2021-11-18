@@ -107,6 +107,24 @@ class DatasetNotFoundException(DatasetException):
         return f'Error found in the {self.dataset} dataset located at {self.path}. {self.message}'
 
 
+class AdditionalFunctionNotFoundException(IgnnitionException):
+    """Exception raised when the path of the dataset is not found
+
+    Attributes:
+        dataset -- dataset (training, validation or predict) where the exception occurs
+        path -- path of the dataset that raises the exception
+        message -- explanation of the exception
+    """
+
+    def __init__(self, path, message):
+        super().__init__(message)
+        self.message = message
+        self.path = path
+
+    def __str__(self):
+        return f'Could not find the additional functions file at {self.path}. {self.message}'
+
+
 class ModelDescriptionException(IgnnitionException):
     """Exception raised for errors in the model_description.yaml file.
 
@@ -235,6 +253,69 @@ class CombinedAggregationError(IgnnitionException):
 
     def __str__(self):
         return f'{self.message}'
+
+
+class OperationError(IgnnitionException):
+
+    def __init__(self, operation, message=None):
+        super().__init__(message)
+        self.message = message
+        self.operation = operation
+
+    def __str__(self):
+        return f'There was an error while computing the operation {self.operation}. {self.message}'
+
+
+class ProductOperationError(OperationError):
+
+    def __init__(self, operation, prod_type, a, b, message=None):
+        super().__init__(operation, message)
+        self.operation = operation
+        self.prod_type = prod_type
+        self.a = a
+        self.b = b
+        self.message = message
+
+    def __str__(self):
+        return f'There was an error while computing the {self.operation} operation of type {self.prod_type} between ' \
+               f'\'{self.a}\' and \'{self.b}\'. {self.message}'
+
+
+class ConcatOperationError(OperationError):
+
+    def __init__(self, operation, axis, message=None):
+        super().__init__(operation, message)
+        self.operation = operation
+        self.axis = axis
+        self.message = message
+
+    def __str__(self):
+        return f'There was an error while computing the {self.operation} operation using axis = {self.axis}. ' \
+               f'{self.message}'
+
+
+class ConvolutionOperationError(OperationError):
+
+    def __init__(self, operation, message=None):
+        super().__init__(operation, message)
+        self.operation = operation
+        self.message = message
+
+    def __str__(self):
+        return f'There was an error while computing the {self.operation} operation. ' \
+               f'{self.message}'
+
+
+class LossFunctionException(IgnnitionException):
+
+    def __init__(self, loss, message=None):
+        super().__init__(message)
+        self.loss = loss
+        self.message = message
+
+    def __str__(self):
+        return f'Error with the {self.loss} defined as loss. ' \
+               f'{self.message}'
 
 
 def handle_exception(f) -> Callable:

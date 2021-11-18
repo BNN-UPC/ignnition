@@ -28,7 +28,7 @@ import yaml
 from jsonschema import validate
 
 from ignnition.mp_classes import InterleaveAggr, Entity, MessagePassing
-from ignnition.operation_classes import PoolingOperation, ProductOperation, ExtendAdjacencies, Concat, \
+from ignnition.operation_classes import PoolingOperation, ProductOperation, Concat, \
     FeedForwardOperation
 from ignnition.utils import print_failure, print_info, read_yaml
 from ignnition.error_handling import KeywordException, EntityError
@@ -402,9 +402,6 @@ class YamlPreprocessing:
 
             elif op_type == 'neural_network':
                 result.append(FeedForwardOperation(self.__add_readout_architecture(op), model_role='readout'))
-
-            elif op_type == 'extend_adjacencies':
-                result.append(ExtendAdjacencies(op))
 
             elif op_type == 'concat':
                 result.append(Concat(op))

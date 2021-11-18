@@ -236,14 +236,15 @@ class Generator:
 
             # Check that this name has not been defined both as node features and as edge_features
             if node_attr.size != 0 and edge_attr.size != 0 and len(graph_attr) != 0:
-                print_failure("The feature " + a + "was defined as node feature, edge feature and graph feature. "
-                                                   "Please use unique names.")
+                raise FeatureException(feature=a, message="This feature was defined as node feature, edge feature and "
+                                                          "graph feature. Please use unique names.")
+
             elif node_attr.size != 0 and edge_attr.size != 0:
-                print_failure("The feature " + a + "was defined both as node feature and as edge feature. Please use "
-                                                   "unique names in this case.")
+                raise FeatureException(feature=a, message="This feature was defined both as node feature and as edge "
+                                                          "feature. Please use unique names in this case.")
             elif node_attr.size != 0 and len(graph_attr) != 0:
-                print_failure("The feature " + a + "was defined both as node feature and as graph feature. Please use "
-                                                   "unique names in this case.")
+                raise FeatureException(feature=a, message="This feature was defined both as node feature and as graph "
+                                                          "feature. Please use unique names in this case.")
 
             # Return the correct value
             if node_attr.size != 0:
@@ -252,12 +253,6 @@ class Generator:
                 data[a] = edge_attr
             elif a in D_G.graph:
                 data[a] = graph_attr
-            else:
-                message = 'The data named "' + a + '" was used in the model_description.yaml file ' \
-                                                   'but was not defined in the dataset.'
-                if file is not None:
-                    message = "Error in the dataset file located in '" + file + ".\n" + message
-                raise Exception(message)
 
         if self.training:
             # collect the output (if there is more than one, concatenate them on axis=1
@@ -270,11 +265,9 @@ class Generator:
                         aux = D_G.graph[output]
                         aux = aux if isinstance(aux, list) else [aux]
 
-                except Exception:
-                    print_failure(
-                        f"Error when trying to get output with name: {output}. "
-                        "Check the data which corresponds to the output_label in the readout block."
-                    )
+                except KeyError:
+                    raise FeatureException(feature=output, message="This feature was defined as the output_label in "
+                                                                   "the readout block but was not found in the graph.")
 
                 # if it is a 1d array, transform it into a 2d array
                 if len(np.array(aux).shape) == 1:
@@ -411,10 +404,6 @@ class Generator:
 
             except KeyboardInterrupt:
                 sys.exit()
-
-            except Exception as inf:
-                print_failure("\n There was an unexpected error: \n" + str(
-                    inf) + "\n Please make sure that all the names used in the sample passed ")
 
     def generate_from_dataset(self,
                               dir,

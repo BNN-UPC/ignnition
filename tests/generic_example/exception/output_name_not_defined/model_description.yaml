@@ -23,11 +23,7 @@ message_passing:
                 nn_name: message_function
                 input: [source]
         aggregation:
-          - type: max
-            output_name: max_value
-          - type: neural_network
-            input: [max_values]
-            nn_name: aggregation_function
+          - type: sum
         update:
           type: neural_network
           nn_name: update_function
@@ -36,7 +32,7 @@ readout:
 - type: neural_network
   input: [entity0]
   nn_name: readout_model
-  output_label: [$label0]
+  output_label: [$wrong_label]
 
 neural_networks:
 - nn_name: readout_model
@@ -63,8 +59,3 @@ neural_networks:
 - nn_name: update_function
   nn_architecture:
     - type_layer: GRU
-
-- nn_name: aggregation_function
-  nn_architecture:
-  - type_layer: Dense
-    units: 16

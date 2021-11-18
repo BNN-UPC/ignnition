@@ -25,6 +25,7 @@ import tensorflow as tf
 from ignnition.operation_classes import RNNOperation
 from ignnition.aggregation_classes import ConcatAggr, InterleaveAggr
 from ignnition.utils import save_global_variable, print_failure, get_global_variable, get_global_var_or_input
+from ignnition.error_handling import ConvolutionOperationError
 
 
 class GnnModel(tf.keras.Model):
@@ -134,10 +135,13 @@ class GnnModel(tf.keras.Model):
 
                             elif aggregation.type == 'convolution':
                                 if F_dst != F_src:
-                                    print_failure('When doing the a convolution, both the dimension of the messages '
-                                                  'sent and the destination hidden states should match. '
-                                                  'In this case, however,the dimensions are ' + F_src + ' and '
-                                                  + F_dst + ' of the source and destination respectively.')
+                                    raise ConvolutionOperationError(operation='convolution',
+                                                                    message=f'When doing the a convolution, both the '
+                                                                            f'dimension of the messages sent and the '
+                                                                            f'destination hidden states should match. '
+                                                                            f'In this case, however, the dimensions '
+                                                                            f'are {F_src} and {F_dst} of the source '
+                                                                            f'and destination respectively.')
 
                                 self.conv_kernel = self.add_weight(shape=(F_dst, F_dst),
                                                                    initializer=aggregation.weight_initialization,
@@ -226,22 +230,18 @@ class GnnModel(tf.keras.Model):
                         dimensionality = dimensionality
 
                 elif operation.type == 'product':
-                    if operation.type_product == 'element_wise':
+                    if operation.type_product == 'element_wise' or operation.type_product == 'mat_mult':
                         dimensionality = self.dimensions.get(operation.input[0])
 
                     elif operation.type_product == 'dot_product':
                         dimensionality = 1
-
-                elif operation.type == 'extend_adjacencies':
-                    self.dimensions[operation.output_name[0]] = self.dimensions.get(operation.input[0])
-                    self.dimensions[operation.output_name[1]] = self.dimensions.get(operation.input[1])
 
                 elif operation.type == 'concat':
                     dimensionality = 0
                     for inp in operation.input:
                         dimensionality += self.dimensions.get(inp)
 
-                if operation.type != 'extend_adjacencies' and operation.output_name is not None:
+                if operation.output_name is not None:
                     self.dimensions[operation.output_name] = dimensionality
 
                 counter += 1

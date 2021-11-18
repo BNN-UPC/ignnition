@@ -23,7 +23,7 @@ message_passing:
                 nn_name: message_function
                 input: [source]
         aggregation:
-          - type: sum
+          - type: convolution
         update:
           type: neural_network
           nn_name: update_function
