@@ -153,7 +153,8 @@ class GnnModel(tf.keras.Model):
                             # Need to keep track of the output dimension of this one, in case we need it for a new model
                             if aggregation.output_name is not None:
                                 save_global_variable(self.calculations, aggregation.output_name + '_dim', output_shape)
-                                save_global_variable(self.calculations, aggregation.output_name + '_out_dim', output_shape)
+                                save_global_variable(self.calculations, aggregation.output_name + '_out_dim',
+                                                     output_shape)
 
                         save_global_variable(self.calculations,
                                              "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg), output_shape)
@@ -699,3 +700,26 @@ class GnnModel(tf.keras.Model):
         else:
             new_input = get_global_var_or_input(self.calculations, var_name, f_)
         return new_input
+
+    """def train_step(self, data):
+        # Unpack the data. Its structure depends on your model and
+        # on what you pass to `fit()`.
+        x, y = data
+
+        with tf.GradientTape() as tape:
+            y_pred = self(x, training=True)  # Forward pass
+            # Compute the loss value
+            # (the loss function is configured in `compile()`)
+            arg_names = self.compiled_loss._losses.__code__.co_varnames
+
+            loss = self.compiled_loss(y, y_pred, 1, 2, regularization_losses=self.losses)
+
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        # Update metrics (includes the metric that tracks the loss)
+        self.compiled_metrics.update_state(y, y_pred)
+        # Return a dict mapping metric names to current value
+        return {m.name: m.result() for m in self.metrics}"""

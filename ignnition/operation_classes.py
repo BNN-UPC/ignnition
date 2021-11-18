@@ -137,7 +137,6 @@ class Operation:
         f_:    dict
            Dictionary with the data of the current sample
         """
-
         first = True
         for i in self.input:
             if '_initial_state' in i:
@@ -413,8 +412,6 @@ class FeedForwardOperation(Operation):
         input_nn = self.compute_all_input(calculations, f_)
 
         input_nn = tf.ensure_shape(input_nn, [None, input_size])
-        print(model(input_nn))
-
         return model(input_nn)
 
     def apply_nn_msg(self, model, calculations, f_, src_msgs, dst_msgs):

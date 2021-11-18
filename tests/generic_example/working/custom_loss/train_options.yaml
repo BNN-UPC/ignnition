@@ -1,4 +1,5 @@
 # PATHS
+additional_functions_file: ./additional_functions_file.py
 train_dataset: ../../data/train
 validation_dataset: ../../data/validation
 predict_dataset: ../../data/test

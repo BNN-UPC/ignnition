@@ -33,7 +33,7 @@ from ignnition.gnn_model import GnnModel
 from ignnition.yaml_preprocessing import YamlPreprocessing
 from ignnition.data_generator import Generator
 from ignnition.error_handling import DatasetException, DatasetFormatException, KeywordNotFoundException, \
-    IgnnitionException
+    IgnnitionException, handle_exception
 from ignnition.utils import *
 from ignnition.custom_callbacks import *
 import sys
@@ -681,6 +681,7 @@ class IgnnitionModel:
 
     # FUNCTIONALITIES
     # --------------------------------------------------
+    @handle_exception
     def train_and_validate(self, training_samples=None, val_samples=None):
         """
         Parameters
@@ -780,6 +781,7 @@ class IgnnitionModel:
                            use_multiprocessing=True,
                            verbose=1)
 
+    @handle_exception
     def predict(self, prediction_samples=None, verbose=True, num_predictions=None):
         """
         Parameters
@@ -846,6 +848,7 @@ class IgnnitionModel:
 
         return all_predictions
 
+    @handle_exception
     def computational_graph(self):
         # Check if we can generate the computational graph without a dataset
         train_path = self.CONFIG.get('train_dataset', '')
@@ -906,6 +909,7 @@ class IgnnitionModel:
                 step=0,
                 profiler_outdir=path)
 
+    @handle_exception
     def evaluate(self, evaluation_samples=None, verbose=True):
         """
         Parameters

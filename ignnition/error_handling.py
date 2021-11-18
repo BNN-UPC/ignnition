@@ -1,4 +1,5 @@
 from typing import Callable
+import sys
 
 
 class IgnnitionException(Exception):
@@ -249,7 +250,15 @@ def handle_exception(f) -> Callable:
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except IgnnitionException as e:
-            print(f"Caught base exception!! \nMessage: {e}")
+        except Exception as e:
+            FAIL = '\033[91m'
+            ENDC = '\033[0m'
+            expect_error = str(e)
+            try:
+                expect_error = expect_error[:expect_error.index("Traceback")]
+            except ValueError:
+                pass
+            print(FAIL + expect_error + ENDC)
+            sys.exit(1)
 
     return wrapper

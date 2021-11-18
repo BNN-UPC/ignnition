@@ -176,7 +176,7 @@ class Generator:
                 entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
                 raise FeatureException(feature=f, message=f"This feature was found in several entities "
                                                           f"({entities_string}). The feature names must be "
-                                                          f"unique for each node.)")
+                                                          f"unique for each node.")
 
             # it should always be a 2d array
             if len(np.shape(feature_vals)) == 1:
@@ -198,9 +198,10 @@ class Generator:
             # of the entities that have that feature
 
             if len(entity_names) > 1:
+                entities_string = functools.reduce(lambda x, y: str(x) + ',' + str(y), entity_names)
                 raise FeatureException(feature=f, message=f"This feature was found in several entities "
                                                           f"({entities_string}). The feature names must be "
-                                                          f"unique for each node.)")
+                                                          f"unique for each node.")
 
             # it should always be a 2d array
             if len(np.shape(node_attr)) == 1:
