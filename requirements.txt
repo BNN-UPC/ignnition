@@ -3,3 +3,4 @@ jsonschema==3.2.*
 tensorflow==2.4.*
 networkx==2.5.*
 pyyaml==5.4.*
+loguru==0.5.*
