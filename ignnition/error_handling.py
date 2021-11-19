@@ -11,7 +11,7 @@ class IgnnitionException(Exception):
     """
 
     def __init__(self, message):
-        super().__init__(message)
+        super(IgnnitionException, self).__init__(message)
         self.message = message
 
     def __str__(self):
@@ -29,7 +29,7 @@ class KeywordNotFoundException(IgnnitionException):
     """
 
     def __init__(self, keyword, file, message):
-        super().__init__(message)
+        super(KeywordNotFoundException, self).__init__(message)
         self.keyword = keyword
         self.file = file
         self.message = message
@@ -47,7 +47,7 @@ class DatasetException(IgnnitionException):
     """
 
     def __init__(self, data_path, message):
-        super().__init__(message)
+        super(DatasetException, self).__init__(message)
         self.data_path = data_path
         self.message = message
 
@@ -64,7 +64,7 @@ class DatasetFormatException(DatasetException):
     """
 
     def __init__(self, data_path, message):
-        super().__init__(data_path, message)
+        super(DatasetFormatException, self).__init__(data_path, message)
         self.data_path = data_path
         self.message = message
 
@@ -79,7 +79,7 @@ class DatasetNodeException(DatasetFormatException):
         """
 
     def __init__(self, node_name, data_path, message):
-        super().__init__(data_path, message)
+        super(DatasetNodeException, self).__init__(data_path, message)
         self.message = message
         self.node_name = node_name
         self.data_path = data_path
@@ -98,7 +98,7 @@ class DatasetNotFoundException(DatasetException):
     """
 
     def __init__(self, dataset, path, message):
-        super().__init__(message, dataset)
+        super(DatasetNotFoundException, self).__init__(message, dataset)
         self.dataset = dataset
         self.message = message
         self.path = path
@@ -117,7 +117,7 @@ class AdditionalFunctionNotFoundException(IgnnitionException):
     """
 
     def __init__(self, path, message):
-        super().__init__(message)
+        super(AdditionalFunctionNotFoundException, self).__init__(message)
         self.message = message
         self.path = path
 
@@ -134,7 +134,7 @@ class ModelDescriptionException(IgnnitionException):
     """
 
     def __init__(self, message):
-        super().__init__(message)
+        super(ModelDescriptionException, self).__init__(message)
         self.message = message
 
 
@@ -147,7 +147,7 @@ class FeatureException(IgnnitionException):
     """
 
     def __init__(self, feature, message):
-        super().__init__(message)
+        super(FeatureException, self).__init__(message)
         self.feature = feature
         self.message = message
 
@@ -164,7 +164,7 @@ class KeywordException(IgnnitionException):
     """
 
     def __init__(self, keyword, message):
-        super().__init__(message)
+        super(KeywordException, self).__init__(message)
         self.keyword = keyword
         self.message = message
 
@@ -181,7 +181,7 @@ class EntityError(IgnnitionException):
     """
 
     def __init__(self, entity, entity_type, message):
-        super().__init__(message)
+        super(EntityError, self).__init__(message)
         self.entity = entity
         self.entity_type = entity_type
         self.message = message
@@ -199,7 +199,7 @@ class YAMLFormatError(IgnnitionException):
     """
 
     def __init__(self, file, file_path, message):
-        super().__init__(message)
+        super(YAMLFormatError, self).__init__(message)
         self.file = file
         self.file_path = file_path
         self.message = message
@@ -217,7 +217,7 @@ class YAMLNotFoundError(IgnnitionException):
     """
 
     def __init__(self, file, file_path, message=None):
-        super().__init__(message)
+        super(YAMLNotFoundError, self).__init__(message)
         self.file = file
         self.file_path = file_path
         self.message = message
@@ -235,7 +235,7 @@ class KerasError(IgnnitionException):
     """
 
     def __init__(self, parameter, variable, message=None):
-        super().__init__(message)
+        super(KerasError, self).__init__(message)
         self.variable = variable
         self.parameter = parameter
         self.message = message
@@ -248,7 +248,7 @@ class KerasError(IgnnitionException):
 class CombinedAggregationError(IgnnitionException):
 
     def __init__(self, message=None):
-        super().__init__(message)
+        super(CombinedAggregationError, self).__init__(message)
         self.message = message
 
     def __str__(self):
@@ -258,7 +258,7 @@ class CombinedAggregationError(IgnnitionException):
 class OperationError(IgnnitionException):
 
     def __init__(self, operation, message=None):
-        super().__init__(message)
+        super(OperationError, self).__init__(message)
         self.message = message
         self.operation = operation
 
@@ -269,7 +269,7 @@ class OperationError(IgnnitionException):
 class ProductOperationError(OperationError):
 
     def __init__(self, operation, prod_type, a, b, message=None):
-        super().__init__(operation, message)
+        super(ProductOperationError, self).__init__(operation, message)
         self.operation = operation
         self.prod_type = prod_type
         self.a = a
@@ -284,7 +284,7 @@ class ProductOperationError(OperationError):
 class ConcatOperationError(OperationError):
 
     def __init__(self, operation, axis, message=None):
-        super().__init__(operation, message)
+        super(ConcatOperationError, self).__init__(operation, message)
         self.operation = operation
         self.axis = axis
         self.message = message
@@ -297,7 +297,7 @@ class ConcatOperationError(OperationError):
 class ConvolutionOperationError(OperationError):
 
     def __init__(self, operation, message=None):
-        super().__init__(operation, message)
+        super(ConvolutionOperationError, self).__init__(operation, message)
         self.operation = operation
         self.message = message
 
@@ -309,7 +309,7 @@ class ConvolutionOperationError(OperationError):
 class LossFunctionException(IgnnitionException):
 
     def __init__(self, loss, message=None):
-        super().__init__(message)
+        super(LossFunctionException, self).__init__(message)
         self.loss = loss
         self.message = message
 
@@ -331,7 +331,7 @@ def handle_exception(f) -> Callable:
     def wrapper(*args, **kwargs):
         try:
             return f(*args, **kwargs)
-        except Exception as e:
+        except IgnnitionException as e:
             FAIL = '\033[91m'
             ENDC = '\033[0m'
             expect_error = str(e)

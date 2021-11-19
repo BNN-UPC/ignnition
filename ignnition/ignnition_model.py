@@ -850,7 +850,7 @@ class IgnnitionModel:
 
         return all_predictions
 
-    # @handle_exception
+    @handle_exception
     def computational_graph(self):
         # Check if we can generate the computational graph without a dataset
         train_path = self.CONFIG.get('train_dataset', '')
