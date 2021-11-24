@@ -20,6 +20,76 @@ class IgnnitionException(Exception):
     pass
 
 
+class NormalizationException(IgnnitionException):
+    """Exception for normalization errors
+
+    Attributes:
+        dataset -- dataset (training, validation or predict) where the exception occurs.
+        message -- explanation of the error
+    """
+
+    def __init__(self, norm_function, message):
+        super(NormalizationException, self).__init__(message)
+        self.norm_function = norm_function
+        self.message = message
+
+    def __str__(self):
+        return f'There was an while applying the {self.dataset} function. {self.message}'
+
+    pass
+
+class CheckpointException(IgnnitionException):
+    """Exception for normalization errors
+
+    Attributes:
+        dataset -- dataset (training, validation or predict) where the exception occurs.
+        message -- explanation of the error
+    """
+
+    def __init__(self, message):
+        super(CheckpointException, self).__init__(message)
+        self.message = message
+
+    def __str__(self):
+        return f'{self.message}'
+
+    pass
+
+class CheckpointNotFoundException(CheckpointException):
+    """Exception for normalization errors
+
+    Attributes:
+        dataset -- dataset (training, validation or predict) where the exception occurs.
+        message -- explanation of the error
+    """
+
+    def __init__(self, path, message):
+        super(CheckpointNotFoundException, self).__init__(message)
+        self.path = path
+        self.message = message
+
+    def __str__(self):
+        return f'Could not find a valid checkpoint file at {self.path}. {self.message}'
+
+    pass
+
+class CheckpointRequiredException(IgnnitionException):
+    """Exception for normalization errors
+
+    Attributes:
+        dataset -- dataset (training, validation or predict) where the exception occurs.
+        message -- explanation of the error
+    """
+
+    def __init__(self, message):
+        super(CheckpointRequiredException, self).__init__(message)
+        self.message = message
+
+    def __str__(self):
+        return f'{self.message}'
+
+    pass
+
 class KeywordNotFoundException(IgnnitionException):
     """Exception raised for errors in datasets.
 
@@ -35,7 +105,7 @@ class KeywordNotFoundException(IgnnitionException):
         self.message = message
 
     def __str__(self):
-        return f'Could not fin the keyword \'{self.keyword}\' in the \'{self.file}\'. {self.message}'
+        return f'Could not find the keyword \'{self.keyword}\' in the \'{self.file}\'. {self.message}'
 
 
 class DatasetException(IgnnitionException):
@@ -68,6 +138,22 @@ class DatasetFormatException(DatasetException):
         self.data_path = data_path
         self.message = message
 
+class TarFileException(DatasetException):
+    """Exception raised for formatting errors in datasets
+
+    Attributes:
+        dataset -- dataset (training, validation or predict) where the exception occurs
+        message -- explanation of the exception
+    """
+
+    def __init__(self, data_path, filename, message):
+        super(TarFileException, self).__init__(data_path, message)
+        self.data_path = data_path
+        self.filename = filename
+        self.message = message
+
+    def __str__(self):
+        return f'Error found in the tar file {self.filename}. {self.message}'
 
 class DatasetNodeException(DatasetFormatException):
     """Exception raised when the path of the dataset is not found

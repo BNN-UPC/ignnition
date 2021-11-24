@@ -33,7 +33,8 @@ from ignnition.gnn_model import GnnModel
 from ignnition.yaml_preprocessing import YamlPreprocessing
 from ignnition.data_generator import Generator
 from ignnition.error_handling import DatasetException, DatasetFormatException, KeywordNotFoundException, \
-    IgnnitionException, AdditionalFunctionNotFoundException, LossFunctionException, handle_exception
+    IgnnitionException, AdditionalFunctionNotFoundException, LossFunctionException, NormalizationException, \
+    CheckpointNotFoundException, CheckpointRequiredException, TarFileException, handle_exception
 from ignnition.utils import *
 from ignnition.custom_callbacks import *
 import sys
@@ -354,9 +355,9 @@ class IgnnitionModel:
             for f_name in feature_list:
                 try:
                     x[f_name] = tf.py_function(func=norm_func, inp=[x.get(f_name), f_name], Tout=tf.float32)
-                except:
-                    print_failure('The normalization function failed with feature ' + f_name + '.')
-
+                except Exception:
+                    raise NormalizationException(norm_function=f_name,
+                                                 message='Please check that it is correctly defined.')
             # output
             if y is not None:
                 # if len(output_name) == 1:
@@ -555,6 +556,8 @@ class IgnnitionModel:
         """
 
         checkpoint_path = self.CONFIG.get('load_model_path', None)
+        print("Restoring model from: {}".format(checkpoint_path))
+        print("require warm start: {}".format(require_warm_start))
         if checkpoint_path is not None:
             if os.path.isfile(checkpoint_path) and os.path.splitext(checkpoint_path)[1] == '.hdf5':
                 print_info(
@@ -569,17 +572,14 @@ class IgnnitionModel:
 
             try:
                 gnn_model.load_weights(checkpoint_path)
-                print("Restoring saved model from", checkpoint_path)
+                print_info("Restoring saved model from {}".format(checkpoint_path))
             except (tf.errors.NotFoundError, ValueError):
-                print_info(
-                    "The file in the directory " + checkpoint_path +
-                    ' does not exists or is not a valid checkpoint file.')
+                raise CheckpointNotFoundException(path=checkpoint_path,
+                                                  message="The checkpoint path does not exist or is not a valid checkpoint.")
 
         elif require_warm_start:
-            print_failure(
-                "There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this "
-                "path, so that model that will compute the predictions can be recovered.")
-            return gnn_model
+            raise CheckpointRequiredException(message="The load_model_path is required when evaluating/predicting. "
+                                                      "Make sure you defined it.")
 
         return gnn_model
 
@@ -614,8 +614,11 @@ class IgnnitionModel:
                     member = tar.getmembers()[0]
                     file_samples = tar.extractfile(member)
                     tar_file = True
-                except:
-                    print_failure('The tar file ' + sample_path + ' could not be opened')
+                except tarfile.ReadError:
+                    raise TarFileException(data_path=path,
+                                           filename=sample_path,
+                                           message="The tar file could not be read. Please make sure the tar file is "
+                                                   "valid.")
 
             # if it is already a json file
             else:
