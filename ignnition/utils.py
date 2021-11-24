@@ -18,10 +18,14 @@
 
 # -*- coding: utf-8 -*-
 
+import re
+import os
 import sys
 import json
-
+import yaml
 import tensorflow as tf
+
+from ignnition.error_handling import YAMLNotFoundError, YAMLFormatError
 
 
 class BColors:
@@ -165,3 +169,23 @@ def get_global_var_or_input(calculations, var_name, f_):
         return get_global_variable(calculations, var_name)
     except KeyError:
         return f_[var_name]
+
+
+def read_yaml(path, file_name=''):
+    """
+    Parameters
+    ----------
+    path:    str
+        Path of the json file with the model description
+    file_name: str
+        Name of the file we aim to read
+    """
+    if os.path.isfile(path):
+        with open(path, 'r') as stream:
+            try:
+                return yaml.safe_load(stream)
+            except yaml.YAMLError as exc:
+                message = re.sub(' +', ' ', str(exc).replace('\n', ' ')) + '.'
+                raise YAMLFormatError(file=file_name, file_path=path, message=message[:1].upper() + message[1:])
+    else:
+        raise YAMLNotFoundError(file=file_name, file_path=path)

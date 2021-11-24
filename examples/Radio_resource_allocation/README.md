@@ -62,7 +62,7 @@ with the variables specified in the [global_variables](global_variables.yaml) fi
 ### 3) Evaluate
 Once the training process finished, we can evaluate our model on a different topology than the one used during training. To do this, we need to ensure that the *predict_dataset* from *train_options.yaml* points to the desired dataset. In addition, the *load_model_path* from the same file should point to the directory where the trained model is stored. For example:
 ```python
-load_model_path: ./CheckPoint/experiment_2021_10_14_15_56_21/ckpt/weights.10--0.87.hdf5
+load_model_path: ./CheckPoint/experiment_2021_10_14_15_56_21/ckpt/weights.10--0.87
 predict_dataset: ./data/validation_100
 ```
 

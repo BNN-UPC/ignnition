@@ -1,0 +1,29 @@
+# PATHS
+train_dataset: ./data/train
+validation_dataset: ./data/eval
+#predict_dataset:
+#warm_start_path:
+#additional_functions_file: ./main.py
+output_path: ./
+
+# OPTIMIZATION OPTIONS
+loss: MeanSquaredError
+optimizer:
+  type: Adam
+  learning_rate:  # define a schedule
+    type: PolynomialDecay
+    initial_learning_rate: 0.001
+    power: 1.0
+    decay_steps: 80000
+
+metrics: [MeanAbsoluteError, Precision, Recall]
+
+# TRAINING OPTIONS
+batch_size: 100
+epochs: 5000
+epoch_size: 5000
+shuffle_training_set: True
+shuffle_validation_set: False
+val_samples: 100
+val_frequency: 1
+execute_gpu: False

@@ -87,4 +87,4 @@ neural_networks:
 - nn_name: aggregation_function
   nn_architecture:
   - type_layer: Dense
-    units: hidden_state_dim
+    units: 32
