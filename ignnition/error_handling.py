@@ -34,7 +34,26 @@ class NormalizationException(IgnnitionException):
         self.message = message
 
     def __str__(self):
-        return f'There was an while applying the {self.dataset} function. {self.message}'
+        return f'There was an while applying the {self.norm_function} function for normalizing the data. {self.message}'
+
+    pass
+
+class DenormalizationException(IgnnitionException):
+    """Exception for normalization errors
+
+    Attributes:
+        dataset -- dataset (training, validation or predict) where the exception occurs.
+        message -- explanation of the error
+    """
+
+    def __init__(self, denorm_function, message):
+        super(DenormalizationException, self).__init__(message)
+        self.denorm_function = denorm_function
+        self.message = message
+
+    def __str__(self):
+        return f'There was an while applying the {self.denorm_function} function for denormalizing the data.' \
+               f' {self.message}'
 
     pass
 
@@ -48,6 +67,23 @@ class CheckpointException(IgnnitionException):
 
     def __init__(self, message):
         super(CheckpointException, self).__init__(message)
+        self.message = message
+
+    def __str__(self):
+        return f'{self.message}'
+
+    pass
+
+class OutptuLabelException(IgnnitionException):
+    """Exception for normalization errors
+
+    Attributes:
+        dataset -- dataset (training, validation or predict) where the exception occurs.
+        message -- explanation of the error
+    """
+
+    def __init__(self, message):
+        super(OutptuLabelException, self).__init__(message)
         self.message = message
 
     def __str__(self):
@@ -73,6 +109,7 @@ class CheckpointNotFoundException(CheckpointException):
 
     pass
 
+
 class CheckpointRequiredException(IgnnitionException):
     """Exception for normalization errors
 
@@ -89,6 +126,7 @@ class CheckpointRequiredException(IgnnitionException):
         return f'{self.message}'
 
     pass
+
 
 class KeywordNotFoundException(IgnnitionException):
     """Exception raised for errors in datasets.
@@ -125,6 +163,22 @@ class DatasetException(IgnnitionException):
         return f'Error found in the dataset located at \'{self.data_path}\'. {self.message}'
 
 
+class NoDataFoundException(IgnnitionException):
+    """Exception raised for formatting errors in datasets
+
+    Attributes:
+        dataset -- dataset (training, validation or predict) where the exception occurs
+        message -- explanation of the exception
+    """
+
+    def __init__(self, message):
+        super(NoDataFoundException, self).__init__(message)
+        self.message = message
+
+    def __str__(self):
+        return f'{self.message}'
+
+
 class DatasetFormatException(DatasetException):
     """Exception raised for formatting errors in datasets
 
@@ -137,6 +191,7 @@ class DatasetFormatException(DatasetException):
         super(DatasetFormatException, self).__init__(data_path, message)
         self.data_path = data_path
         self.message = message
+
 
 class TarFileException(DatasetException):
     """Exception raised for formatting errors in datasets
@@ -154,6 +209,7 @@ class TarFileException(DatasetException):
 
     def __str__(self):
         return f'Error found in the tar file {self.filename}. {self.message}'
+
 
 class DatasetNodeException(DatasetFormatException):
     """Exception raised when the path of the dataset is not found
@@ -403,6 +459,15 @@ class LossFunctionException(IgnnitionException):
         return f'Error with the {self.loss} defined as loss. ' \
                f'{self.message}'
 
+class NeuralNetworkNameException(IgnnitionException):
+
+    def __init__(self, name, message=None):
+        super(NeuralNetworkNameException, self).__init__(message)
+        self.name = name
+        self.message = message
+
+    def __str__(self):
+        return f'There was an error with the NN named \'{self.name}\'. {self.message}'
 
 def handle_exception(f) -> Callable:
     """Handles any possible exception raised during the execution of the decorated function

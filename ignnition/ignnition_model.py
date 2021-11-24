@@ -34,7 +34,8 @@ from ignnition.yaml_preprocessing import YamlPreprocessing
 from ignnition.data_generator import Generator
 from ignnition.error_handling import DatasetException, DatasetFormatException, KeywordNotFoundException, \
     IgnnitionException, AdditionalFunctionNotFoundException, LossFunctionException, NormalizationException, \
-    CheckpointNotFoundException, CheckpointRequiredException, TarFileException, handle_exception
+    CheckpointNotFoundException, CheckpointRequiredException, TarFileException, NoDataFoundException, \
+    DenormalizationException, handle_exception
 from ignnition.utils import *
 from ignnition.custom_callbacks import *
 import sys
@@ -134,6 +135,7 @@ class IgnnitionModel:
         model_dir:    str
            Path to the model directory
         """
+        self.weights_loaded = False
         path = os.path.normpath(model_dir)
         self.model_dir = os.path.abspath(path)
         self.mode = None  # 0 for training, 1 for evaluating, 2 for predicting
@@ -556,8 +558,7 @@ class IgnnitionModel:
         """
 
         checkpoint_path = self.CONFIG.get('load_model_path', None)
-        print("Restoring model from: {}".format(checkpoint_path))
-        print("require warm start: {}".format(require_warm_start))
+
         if checkpoint_path is not None:
             if os.path.isfile(checkpoint_path) and os.path.splitext(checkpoint_path)[1] == '.hdf5':
                 print_info(
@@ -575,11 +576,12 @@ class IgnnitionModel:
                 print_info("Restoring saved model from {}".format(checkpoint_path))
             except (tf.errors.NotFoundError, ValueError):
                 raise CheckpointNotFoundException(path=checkpoint_path,
-                                                  message="The checkpoint path does not exist or is not a valid checkpoint.")
+                                                  message="The checkpoint path does not exist or is not a valid "
+                                                          "checkpoint.")
 
         elif require_warm_start:
-            raise CheckpointRequiredException(message="The load_model_path is required when evaluating/predicting. "
-                                                      "Make sure you defined it.")
+            raise CheckpointRequiredException(message="The load_model_path defined in train_options.yaml is required "
+                                                      "when evaluating/predicting. Make sure you defined it.")
 
         return gnn_model
 
@@ -774,6 +776,8 @@ class IgnnitionModel:
 
         callbacks = self.__get_model_callbacks(output_path=output_path)
 
+        self.weights_loaded = True
+
         self.gnn_model.fit(train_dataset,
                            epochs=num_epochs,
                            initial_epoch=self.CONFIG.get('initial_epoch', 0),
@@ -802,9 +806,9 @@ class IgnnitionModel:
         if prediction_samples is None:
             try:
                 data_path = self.__process_path(self.CONFIG['predict_dataset'])
-            except:
-                print_failure('Make sure to either pass an array of samples or to define in the train_options.yaml '
-                              'the path to the predict dataset')
+            except KeyError:
+                raise NoDataFoundException(message='Make sure to either pass an array of samples or to define in the '
+                                                   'train_options.yaml the path to the predict dataset')
 
         # create the GNN model --and load the previous checkpoint-- if it does not exist already
         if not hasattr(self, 'gnn_model'):
@@ -812,6 +816,12 @@ class IgnnitionModel:
                 self.__create_gnn(path=data_path, verbose=verbose, require_warm_start=True)
             else:
                 self.__create_gnn(samples=prediction_samples, verbose=verbose, require_warm_start=True)
+        else:
+            if not self.weights_loaded:
+                dimensions, sample = self.find_dataset_dimensions(samples=prediction_samples, path=data_path)
+                self.gnn_model = self.__restore_model(self.gnn_model, sample=sample, require_warm_start=True)
+
+        self.weights_loaded = True
 
         if verbose:
             print()
@@ -840,7 +850,8 @@ class IgnnitionModel:
                     try:
                         pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
                     except:
-                        print_failure('The denormalization function failed')
+                        raise DenormalizationException(denorm_function=denorm_func,
+                                                       message='Please check that it is correctly defined.')
 
                 all_predictions.append(pred)
 
@@ -937,12 +948,17 @@ class IgnnitionModel:
         if evaluation_samples is None:
             data_path = self.__process_path(self.CONFIG['validation_dataset'])
 
-        # Generate the model if it doesn't exist
         if not hasattr(self, 'gnn_model'):
             if evaluation_samples is None:  # look for the dataset path
-                self.__create_gnn(path=data_path)
+                self.__create_gnn(path=data_path, verbose=verbose, require_warm_start=True)
             else:
-                self.__create_gnn(samples=evaluation_samples)
+                self.__create_gnn(samples=evaluation_samples, verbose=verbose, require_warm_start=True)
+        else:
+            if not self.weights_loaded:
+                dimensions, sample = self.find_dataset_dimensions(samples=evaluation_samples, path=data_path)
+                self.gnn_model = self.__restore_model(self.gnn_model, sample=sample, require_warm_start=True)
+
+        self.weights_loaded = True
 
         if verbose:
             print()

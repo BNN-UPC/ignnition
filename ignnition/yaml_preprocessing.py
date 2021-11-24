@@ -31,7 +31,7 @@ from ignnition.mp_classes import InterleaveAggr, Entity, MessagePassing
 from ignnition.operation_classes import PoolingOperation, ProductOperation, Concat, \
     FeedForwardOperation
 from ignnition.utils import print_failure, print_info, read_yaml
-from ignnition.error_handling import KeywordException, EntityError
+from ignnition.error_handling import KeywordException, EntityError, OutptuLabelException, NeuralNetworkNameException
 
 
 class YamlPreprocessing:
@@ -221,16 +221,24 @@ class YamlPreprocessing:
                 aggregations = mp.get('aggregation')
                 for aggr in aggregations:
                     if aggr.get('type') == 'neural_network':
+                        called_nn_names.append(aggr.get('nn_name'))
                         input_names += aggr.get('input')
 
                     if 'output_name' in aggr:
                         output_names.append(aggr.get('output_name'))
 
+                # check the update functions
+                update = mp.get('update')
+                if update.get('type') == 'neural_network':
+                    called_nn_names.append(update.get('nn_name'))
+
+
         readout_op = data.get('readout')
         called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == 'neural_network']
 
         if 'output_label' not in readout_op[-1]:
-            print_failure('The last operation of the readout MUST contain the definition of the output_label')
+            raise OutptuLabelException(message='The last operation of the readout MUST contain the definition of the '
+                                               'output_label')
         else:
             input_names += readout_op[-1]['output_label']
 
@@ -239,14 +247,17 @@ class YamlPreprocessing:
         nn_names = [n.get('nn_name') for n in data.get('neural_networks')]
         # check if the name of two NN defined match
         if len(nn_names) != len(set(nn_names)):
-            print_failure("The names of two NN are repeated. Please ensure that each NN has a unique name.")
+            raise NeuralNetworkNameException(name=next(iter(set([x for x in nn_names if nn_names.count(x) > 1]))),
+                                             message='This name references more than one nerual network. Please '
+                                                     'ensure that each element has a unique name.')
 
         # check the source entities
         for a in src_names:
             if a not in entity_names:
-                print_failure(
-                    'The source entity "' + a + '" was used in a message passing. However, there is no such entity. \n '
-                                                'Please check the spelling or define a new entity.')
+                raise EntityError(entity=a,
+                                  entity_type='source',
+                                  message='This entity was used in a message passing. However, there is no such '
+                                          'entity. Please check the spelling or define a new entity.')
 
         # check the destination entities
         for d in dst_names:
@@ -259,12 +270,11 @@ class YamlPreprocessing:
         # check the nn_names
         for name in called_nn_names:
             if name not in nn_names:
-                print_failure(
-                    'The name "' + name + '" is used as a reference to a neural network (nn_name), even though the '
-                                          'neural network was not defined. \n Please make sure the name is correctly '
-                                          'spelled or define a neural network named ' + name)
+                raise NeuralNetworkNameException(name=name,
+                                                 message='This name is used as a reference to a neural network ('
+                                                         'nn_name), even though the neural network was not defined.')
 
-        # ensure that all the inputs (that are not output of another operation) start with a $
+                # ensure that all the inputs (that are not output of another operation) start with a $
         for i in output_names:
             if i[0] == '$':
                 raise KeywordException(keyword=i,
@@ -277,8 +287,6 @@ class YamlPreprocessing:
                                        message='If this keyword references data from the dataset make sure that it '
                                                'starts with a $. If it does not, make sure it is properly defined as '
                                                'an output of an operation.')
-
-
 
     def __get_nn_mapping(self, models):
         """

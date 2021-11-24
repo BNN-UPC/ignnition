@@ -22,7 +22,7 @@ import ignnition
 
 
 def main():
-    model = ignnition.create_model(model_dir='exception/training_dataset_not_specified')
+    model = ignnition.create_model(model_dir='exception/load_model_path_required')
     model.computational_graph()
     model.evaluate()
 

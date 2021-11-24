@@ -15,7 +15,7 @@ message_passing:
   num_iterations: 4
   stages:
     - stage_message_passings:
-      - destination_entity: entity01
+      - destination_entity: entity0
         source_entities:
           - name: entity1
             message:
@@ -26,7 +26,7 @@ message_passing:
           - type: sum
         update:
           type: neural_network
-          nn_name: update_function
+          nn_name: notDefined
 
 readout:
 - type: neural_network
