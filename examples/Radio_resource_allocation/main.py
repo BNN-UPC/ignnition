@@ -63,8 +63,7 @@ def sum_rate_loss(y_true, y_pred):
         reference wmmse allocated power aproximation to compare with computed.
     """
     N = tf.shape(y_pred)[0]
-    weights = y_pred[:, -2]
-    power = tf.expand_dims(y_pred[:, -3], axis=0)
+    power = tf.expand_dims(y_pred[:, -2], axis=0)
     sum_rate = compute_sum_rate(power, y_true, N)
     return tf.negative(sum_rate)
 
@@ -89,8 +88,7 @@ def sum_rate_metric(y_true, y_pred):
     """
     N = tf.shape(y_pred)[0]
     power_wmmse = tf.expand_dims(y_pred[:, -1], axis=0)
-    weights = y_pred[:, -2]
-    power = tf.expand_dims(y_pred[:, -3], axis=0)
+    power = tf.expand_dims(y_pred[:, -2], axis=0)
     sum_rate_wmmse = compute_sum_rate(power_wmmse, y_true, N)
     sum_rate = compute_sum_rate(power, y_true, N)
     return tf.multiply(tf.divide(sum_rate, sum_rate_wmmse), tf.constant(100, dtype=tf.float32))
