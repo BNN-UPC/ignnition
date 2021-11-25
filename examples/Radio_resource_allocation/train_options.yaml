@@ -1,5 +1,5 @@
 # PATHS
-additional_functions_file: ./main.py
+additional_functions_file: ./additional_functions.py
 train_dataset: ./data/train_10
 validation_dataset: ./data/validation_10
 #predict_dataset: ./data/validation_10

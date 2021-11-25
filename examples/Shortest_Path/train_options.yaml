@@ -2,7 +2,7 @@
 train_dataset: ./data/train
 validation_dataset: ./data/validation
 predict_dataset: ./data/test
-#load_model_path: ./CheckPoint/<path_to_hdf5_file>
+#load_model_path: ./CheckPoint/<chekpoint_file>
 output_path: ./
 
 # OPTIMIZATION OPTIONS
