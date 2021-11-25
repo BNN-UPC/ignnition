@@ -7,7 +7,6 @@ entities:
       input:
         - $receiver_distance
         - $channel_loss
-        - $power
       output_name: normalized_state
     - type: build_state
       input: [$normalized_state]
@@ -35,7 +34,7 @@ message_passing:
 readout:
 - type: neural_network
   nn_name: readout_function
-  input: [transmitter_receiver_pair, $weights, $wmmse_power]
+  input: [transmitter_receiver_pair, $wmmse_power]
   output_label: [$path_loss]
 
 neural_networks:
