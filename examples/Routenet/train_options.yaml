@@ -1,9 +1,9 @@
 # PATHS
 train_dataset: ./data/train
 validation_dataset: ./data/eval
-#predict_dataset: ./gbnMigrated/eval
-#load_model_path: ./CheckPoint/experiment_2021_10_07_16_22_30/ckpt/weights.37-0.00
-additional_functions_file: ./main.py
+#predict_dataset: ./data/predict
+#load_model_path: ./CheckPoint/<checkpoint_file>
+additional_functions_file: ./additional_functions.py
 output_path: ./
 
 # OPTIMIZATION OPTIONS

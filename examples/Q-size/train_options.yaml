@@ -3,8 +3,8 @@ train_dataset: ./data/train
 validation_dataset: ./data/eval
 #predict_dataset:
 #load_model_path:
-additional_functions_file: ./main.py
-output_path: ./examples/Q-size/
+additional_functions_file: ./additional_functions.py
+output_path: ./
 
 # OPTIMIZATION OPTIONS
 loss: MeanSquaredError

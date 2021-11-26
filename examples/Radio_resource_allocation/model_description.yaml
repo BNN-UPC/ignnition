@@ -32,8 +32,8 @@ message_passing:
           nn_name: update_function
 
 readout:
-- type: neural_network
-  nn_name: readout_function
+- type: concat
+  axis: 1
   input: [transmitter_receiver_pair, $wmmse_power]
   output_label: [$path_loss]
 
@@ -70,8 +70,3 @@ neural_networks:
   - type_layer: nn_layer
     activation: sigmoid
     units: hidden_state_dimension
-
-- nn_name: readout_function
-  nn_architecture:
-  - type_layer: Activation
-    activation: relu
