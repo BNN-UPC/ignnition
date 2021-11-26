@@ -5,6 +5,7 @@ import tensorflow as tf
 from ignnition.model_classes import FeedForwardModel, Recurrent_Update_Cell
 from ignnition.utils import print_failure
 from ignnition.utils import get_global_var_or_input
+from ignnition.error_handling import FeatureException, KeywordException, ProductOperationError, ConcatOperationError
 
 
 class Operation:
@@ -60,10 +61,11 @@ class Operation:
         if 'input' in op:
             for input_item in op.get('input'):
                 if '$source' == input_item or '$destination' == input_item:
-                    print_failure(
-                        'The keywords source and destination are reserved keywords. Thus, they cannot name feature '
-                        'from the dataset. Check that you really meant to use $, indicating that its a feature '
-                        'from the dataset')
+                    raise FeatureException(feature=input_item,
+                                           message='The keywords source and destination are reserved keywords. Thus, '
+                                                   'they cannot name a feature from the dataset. Check that you '
+                                                   'really meant to use $, indicating that its a feature from the '
+                                                   'dataset.')
                 else:
                     self.input.append(input_item.split('$')[-1])  # delete the $ from the inputs (if any)
 
@@ -79,7 +81,6 @@ class Operation:
         if self.input is not None:
             input_nn = self.input
             input_dim = 0
-            dimension = None
             for i in input_nn:
                 if '_initial_state' in i:
                     i = i.split('_initial_state')[0]
@@ -89,7 +90,9 @@ class Operation:
                 elif i + '_out_dim' in calculations:
                     dimension = calculations[i + '_out_dim']  # take the dimension from here or from self.dimensions
                 else:
-                    print_failure("Keyword " + i + " used in the model definition was not recognized")
+                    raise KeywordException(keyword=i,
+                                           message="This keyword was used but was not recognized. Please make sure "
+                                                   "you defined it properly.")
 
                 input_dim += dimension
             return input_dim
@@ -120,7 +123,8 @@ class Operation:
             elif i + '_dim' in calculations:
                 input_dim += dimensions
             else:
-                print_failure("Keyword " + i + " used in the message passing was not recognized.")
+                raise KeywordException(keyword=i, message="This keyword was used but was not recognized. Please make "
+                                                          "sure you defined it properly.")
 
         return input_dim
 
@@ -133,7 +137,6 @@ class Operation:
         f_:    dict
            Dictionary with the data of the current sample
         """
-
         first = True
         for i in self.input:
             if '_initial_state' in i:
@@ -301,10 +304,12 @@ class ProductOperation(Operation):
 
             return result
 
-        except:
-            print_failure(
-                'The product operation between ' + product_input1 + ' and ' + product_input2 +
-                ' failed. Check that the dimensions are compatible.')
+        except Exception:
+            raise ProductOperationError(operation='product',
+                                        prod_type=self.type_product,
+                                        a=self.input[0],
+                                        b=self.input[1],
+                                        message="Check that the inputs have a correct shape for the selected type.")
 
 
 class PoolingOperation(Operation):
@@ -404,9 +409,10 @@ class FeedForwardOperation(Operation):
             Dictionary with the data of the current sample
         """
 
+        input_size = model.input_shape[-1]
+
         input_nn = self.compute_all_input(calculations, f_)
 
-        input_size = model.input_shape[-1]
         input_nn = tf.ensure_shape(input_nn, [None, input_size])
         return model(input_nn)
 
@@ -460,68 +466,6 @@ class RNNOperation(Operation):
         self.input = op.get('input', None)
 
 
-# TODO: check that it works
-class ExtendAdjacencies(Operation):
-    """
-    Subclass of oPERATION that represents the extend_adjacencies operation
-
-    Attributes:
-    ----------
-    adj_list:    str
-        Adjacency list to be used
-    output_name:    int
-        Name to save the output of the operation with
-
-    Methods:
-    --------
-    calculate(self, src_states, adj_src, dst_states, adj_dst)
-        Applies the extend_adjacency operation to two inputs
-    """
-
-    def __init__(self, op):
-        """
-        Parameters
-        ----------
-        op:    dict
-            Dictionary with the data defining this product operation
-        """
-
-        super(ExtendAdjacencies, self).__init__({'type': op['type'], 'input': op['input']})
-        self.adj_list = op['adj_list']
-        self.output_name = [op.get('output_name_src'), op.get('output_name_dst')]
-
-    def calculate(self, src_states, adj_src, dst_states, adj_dst):
-        """
-        Parameters
-        ----------
-        src_states:    tensor
-           Input 1
-        adj_src:    tensor
-            Adj src -> dest
-        dst_states:     tensor
-            Input 2
-        adj_dst:    tensor
-            Adj dst -> src
-        """
-
-        # obtain the extended input (by extending it to the number of adjacencies between them)
-        try:
-            extended_src = tf.gather(src_states, adj_src)
-        except Exception:
-            print_failure('Extending the adjacency list ' + str(self.adj_list) +
-                          ' was not possible. Check that the indexes of the source of the adjacency '
-                          'list match the input given.')
-
-        try:
-            extended_dst = tf.gather(dst_states, adj_dst)
-        except Exception:
-            print_failure('Extending the adjacency list ' + str(self.adj_list) +
-                          ' was not possible. Check that the indexes of the destination of '
-                          'the adjacency list match the input given.')
-
-        return extended_src, extended_dst
-
-
 class Concat(Operation):
     """
     Subclass of Operation class that represents the product operation between two tensors (also considers
@@ -563,6 +507,6 @@ class Concat(Operation):
             return result
 
         except Exception:
-            print_failure(
-                'The concat operation failed. Check that the dimensions are compatible.')
-            sys.exit(1)
+            raise ConcatOperationError(operation='concat',
+                                       axis=self.axis,
+                                       message="Check that the inputs have a proper shape for the selected axis.")

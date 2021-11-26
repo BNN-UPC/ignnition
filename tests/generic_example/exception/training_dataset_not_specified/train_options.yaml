@@ -1,0 +1,23 @@
+# PATHS
+train_dataset:
+validation_dataset: ../../data/validation
+predict_dataset: ../../data/test
+#load_model_path: ./CheckPoint/<path_to_hdf5_file>
+output_path: ./
+
+# OPTIMIZATION OPTIONS
+loss: MeanSquaredError
+optimizer:
+  type: Adam
+  learning_rate:  0.001
+metrics: [MeanAbsoluteError, MeanAbsolutePercentageError, MeanSquaredError]
+
+# TRAINING OPTIONS
+batch_size: 1
+epochs: 5
+epoch_size: 20
+shuffle_training_set: True
+shuffle_validation_set: False
+val_samples: 10
+val_frequency: 1
+execute_gpu: False

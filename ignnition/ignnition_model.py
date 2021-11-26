@@ -32,6 +32,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 from ignnition.gnn_model import GnnModel
 from ignnition.yaml_preprocessing import YamlPreprocessing
 from ignnition.data_generator import Generator
+from ignnition.error_handling import DatasetException, DatasetFormatException, KeywordNotFoundException, \
+    IgnnitionException, AdditionalFunctionNotFoundException, LossFunctionException, NormalizationException, \
+    CheckpointNotFoundException, CheckpointRequiredException, TarFileException, NoDataFoundException, \
+    DenormalizationException, handle_exception
 from ignnition.utils import *
 from ignnition.custom_callbacks import *
 import sys
@@ -131,17 +135,15 @@ class IgnnitionModel:
         model_dir:    str
            Path to the model directory
         """
+        self.weights_loaded = False
         path = os.path.normpath(model_dir)
         self.model_dir = os.path.abspath(path)
-
+        self.mode = None  # 0 for training, 1 for evaluating, 2 for predicting
         train_options_path = os.path.join(self.model_dir, 'train_options.yaml')
 
         # read the train_options file
-        with open(train_options_path, 'r') as stream:
-            try:
-                self.CONFIG = yaml.safe_load(stream)
-            except yaml.YAMLError:
-                print("The training options file was not found in " + train_options_path)
+
+        self.CONFIG = read_yaml(train_options_path, file_name='training options')
 
         tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
         warnings.filterwarnings("ignore")
@@ -150,7 +152,9 @@ class IgnnitionModel:
         if 'additional_functions_file' in self.CONFIG:
             additional_path = Path(self.__process_path(self.CONFIG['additional_functions_file']))
             if not additional_path.exists():
-                print_failure(f"Additional functions file in {additional_path} does not exists.")
+                raise AdditionalFunctionNotFoundException(path=additional_path,
+                                                          message='Check that the path defined at the '
+                                                                  'train_options.yaml is correct.')
             sys.path.insert(1, str(additional_path.resolve().parent))
             self.module = import_module(additional_path.stem)
         else:
@@ -177,10 +181,10 @@ class IgnnitionModel:
         elif hasattr(self.module, loss_name):
             return getattr(self.module, loss_name)
         else:
-            print_failure(
-                "Loss name is neither a Tensorflow Keras Loss nor an objective function in the "
-                "additional functions file."
-            )
+            raise LossFunctionException(loss=loss_name,
+                                        message='The loss name is neither a Tensorflow Keras Loss ('
+                                                'https://www.tensorflow.org/api_docs/python/tf/keras/losses) nor a '
+                                                'function in the additional functions file.')
 
     def __denormalized_metric(self, metric, metric_name, denorm_func):
         def denorm_metric(y_true, y_pred):
@@ -353,9 +357,9 @@ class IgnnitionModel:
             for f_name in feature_list:
                 try:
                     x[f_name] = tf.py_function(func=norm_func, inp=[x.get(f_name), f_name], Tout=tf.float32)
-                except:
-                    print_failure('The normalization function failed with feature ' + f_name + '.')
-
+                except Exception:
+                    raise NormalizationException(norm_function=f_name,
+                                                 message='Please check that it is correctly defined.')
             # output
             if y is not None:
                 # if len(output_name) == 1:
@@ -367,8 +371,6 @@ class IgnnitionModel:
                         tf.py_function(func=norm_func, inp=[y[pos:pos + x['__ignnition_{}_len'.format(o)]], o],
                                        Tout=tf.float32))
                     pos += x['__ignnition_{}_len'.format(o)]
-                    # except:
-                    #    print_failure('The normalization function computing the output label' + o + ' failed.')
                 y = tf.concat(out_list, axis=0)
                 return x, y
             return x
@@ -378,7 +380,8 @@ class IgnnitionModel:
         return x
 
     @tf.autograph.experimental.do_not_convert
-    def __input_fn_generator(self, filenames=None, repeat=False, shuffle=False, training=True, data_samples=None, iterator=False):
+    def __input_fn_generator(self, filenames=None, repeat=False, shuffle=False, training=True, data_samples=None,
+                             iterator=False):
         """
         Parameters
         ----------
@@ -555,6 +558,7 @@ class IgnnitionModel:
         """
 
         checkpoint_path = self.CONFIG.get('load_model_path', None)
+
         if checkpoint_path is not None:
             if os.path.isfile(checkpoint_path) and os.path.splitext(checkpoint_path)[1] == '.hdf5':
                 print_info(
@@ -569,17 +573,15 @@ class IgnnitionModel:
 
             try:
                 gnn_model.load_weights(checkpoint_path)
-                print("Restoring saved model from", checkpoint_path)
+                print_info("Restoring saved model from {}".format(checkpoint_path))
             except (tf.errors.NotFoundError, ValueError):
-                print_info(
-                    "The file in the directory " + checkpoint_path +
-                    ' does not exists or is not a valid checkpoint file.')
+                raise CheckpointNotFoundException(path=checkpoint_path,
+                                                  message="The checkpoint path does not exist or is not a valid "
+                                                          "checkpoint.")
 
         elif require_warm_start:
-                print_failure(
-                    "There was no 'load_model_path' specified in the train_options.yaml file. Please indicate this "
-                    "path, so that model that will compute the predictions can be recovered.")
-                return gnn_model
+            raise CheckpointRequiredException(message="The load_model_path defined in train_options.yaml is required "
+                                                      "when evaluating/predicting. Make sure you defined it.")
 
         return gnn_model
 
@@ -601,8 +603,10 @@ class IgnnitionModel:
         else:
             sample_paths = (glob.glob(path + '/*.tar.gz') + glob.glob(path + '/*.json'))
 
-            if sample_paths == []:
-                print_failure("No dataset found. Please make sure the paths of the datasets are correct.")
+            if not sample_paths:
+                raise DatasetException(data_path=path,
+                                       message="No dataset files found. Please make sure the path of the datasets is "
+                                               "correct and is not empty.")
             else:
                 sample_path = sample_paths[0]  # choose one single file to extract the dimensions
 
@@ -612,8 +616,11 @@ class IgnnitionModel:
                     member = tar.getmembers()[0]
                     file_samples = tar.extractfile(member)
                     tar_file = True
-                except:
-                    print_failure('The tar file ' + sample_path + ' could not be opened')
+                except tarfile.ReadError:
+                    raise TarFileException(data_path=path,
+                                           filename=sample_path,
+                                           message="The tar file could not be read. Please make sure the tar file is "
+                                                   "valid.")
 
             # if it is already a json file
             else:
@@ -625,16 +632,18 @@ class IgnnitionModel:
                     ch1 = file_samples.read(1).decode("utf-8")
                 else:
                     ch1 = file_samples.read(1)
-                
+
                 if ch1 != '[':
-                    print_failure(
-                        "Error because the dataset files must be an array of json objects, and not single json objects")
+                    raise DatasetFormatException(data_path=sample_path,
+                                                 message="The dataset must be an array of JSON objects.")
 
                 aux = stream_read_json(file_samples)
                 sample = next(aux)  # read one single example #json.load(file_samples)[0]  # one single sample
 
-            except:
-                print_failure('Failed to read the data file ' + sample_path)
+            except json.JSONDecodeError:
+                raise DatasetException(data_path=sample_path,
+                                       message="There was an error reading the dataset. Please check it is one of the "
+                                               "valid formats.")
 
             # Now that we have the sample, we can process the dimensions
             dimensions = {}  # for each key, we have a tuple of (length, num_elements)
@@ -679,6 +688,7 @@ class IgnnitionModel:
 
     # FUNCTIONALITIES
     # --------------------------------------------------
+    # @handle_exception
     def train_and_validate(self, training_samples=None, val_samples=None):
         """
         Parameters
@@ -688,8 +698,23 @@ class IgnnitionModel:
         val_samples:    [array]
             Array of input validation samples, if no dataset is used.
         """
-
+        self.mode = 0
         # Create the GNN model
+        train_dataset = self.CONFIG.get('train_dataset', None)
+        validation_dataset = self.CONFIG.get('validation_dataset', None)
+
+        if training_samples is None and train_dataset is None:
+            raise KeywordNotFoundException(keyword="train_dataset",
+                                           file='train_options',
+                                           message="This keyword must be defined when calling the train_and_validate "
+                                                   "method and no training_samples is specified.")
+
+        if val_samples is None and validation_dataset is None:
+            raise KeywordNotFoundException(keyword="validation_dataset",
+                                           file='train_options',
+                                           message="This keyword must be defined when calling the train_and_validate "
+                                                   "method and no val_samples is specified.")
+
         if not hasattr(self, 'gnn_model'):
             if training_samples is None:  # look for the dataset path
                 training_path = self.__process_path(self.CONFIG['train_dataset'])
@@ -701,10 +726,10 @@ class IgnnitionModel:
             'Starting the training and validation process...\n----------------------------------'
             '-----------------------------------------\n')
 
-        filenames_train = self.__process_path(self.CONFIG['train_dataset'])
-        filenames_val = self.__process_path(self.CONFIG['validation_dataset'])
+        filenames_train = self.__process_path(train_dataset)
+        filenames_val = self.__process_path(validation_dataset)
 
-        output_path = self.__process_path(self.CONFIG['output_path'])
+        output_path = self.__process_path(self.CONFIG.get('output_path', None))
         output_path = os.path.join(output_path, 'CheckPoint')
 
         if not os.path.isdir(output_path):
@@ -751,6 +776,8 @@ class IgnnitionModel:
 
         callbacks = self.__get_model_callbacks(output_path=output_path)
 
+        self.weights_loaded = True
+
         self.gnn_model.fit(train_dataset,
                            epochs=num_epochs,
                            initial_epoch=self.CONFIG.get('initial_epoch', 0),
@@ -763,6 +790,7 @@ class IgnnitionModel:
                            use_multiprocessing=True,
                            verbose=1)
 
+    @handle_exception
     def predict(self, prediction_samples=None, verbose=True, num_predictions=None):
         """
         Parameters
@@ -778,9 +806,9 @@ class IgnnitionModel:
         if prediction_samples is None:
             try:
                 data_path = self.__process_path(self.CONFIG['predict_dataset'])
-            except:
-                print_failure('Make sure to either pass an array of samples or to define in the train_options.yaml '
-                              'the path to the predict dataset')
+            except KeyError:
+                raise NoDataFoundException(message='Make sure to either pass an array of samples or to define in the '
+                                                   'train_options.yaml the path to the predict dataset')
 
         # create the GNN model --and load the previous checkpoint-- if it does not exist already
         if not hasattr(self, 'gnn_model'):
@@ -788,6 +816,12 @@ class IgnnitionModel:
                 self.__create_gnn(path=data_path, verbose=verbose, require_warm_start=True)
             else:
                 self.__create_gnn(samples=prediction_samples, verbose=verbose, require_warm_start=True)
+        else:
+            if not self.weights_loaded:
+                dimensions, sample = self.find_dataset_dimensions(samples=prediction_samples, path=data_path)
+                self.gnn_model = self.__restore_model(self.gnn_model, sample=sample, require_warm_start=True)
+
+        self.weights_loaded = True
 
         if verbose:
             print()
@@ -816,7 +850,8 @@ class IgnnitionModel:
                     try:
                         pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
                     except:
-                        print_failure('The denormalization function failed')
+                        raise DenormalizationException(denorm_function=denorm_func,
+                                                       message='Please check that it is correctly defined.')
 
                 all_predictions.append(pred)
 
@@ -829,21 +864,39 @@ class IgnnitionModel:
 
         return all_predictions
 
+    @handle_exception
     def computational_graph(self):
         # Check if we can generate the computational graph without a dataset
+        train_path = self.CONFIG.get('train_dataset', '')
 
-        train_path = self.__process_path(self.CONFIG['train_dataset']) if 'train_dataset' in self.CONFIG else ''
-        pred_path = self.__process_path(self.CONFIG['predict_dataset']) if 'predict_dataset' in self.CONFIG else ''
-        data_path = ''
+        if train_path is not None:
+            train_path = self.__process_path(train_path)
+        else:
+            train_path = ''
+
+        val_path = self.CONFIG.get('validation_dataset', '')
+        if val_path is not None:
+            val_path = self.__process_path(val_path)
+        else:
+            val_path = ''
+
+        pred_path = self.CONFIG.get('pred_path', '')
+        if pred_path is not None:
+            pred_path = self.__process_path(pred_path)
+        else:
+            pred_path = ''
+
         if os.path.isdir(train_path):
             data_path = train_path
+        elif os.path.isdir(val_path):
+            data_path = val_path
         elif os.path.isdir(pred_path):
             data_path = pred_path
         else:
-            print_failure(
-                'In order to build the computational graph of your model, you must specify valid path to the train '
-                'dataset or the predict dataset in the train_options.yaml file. Please revise that you have specified '
-                'at least one of them, and that they point to a valid dataset.')
+            raise IgnnitionException(message='In order to build the computational graph of your model, you must '
+                                             'specify at least one of the train, validation or predict dataset paths in'
+                                             ' the train_options.yaml file. Please check that you have specified at '
+                                             'least one of them, and that they point to a valid dataset.')
 
         if not hasattr(self, 'gnn_model'):
             self.__create_gnn(path=data_path)
@@ -872,6 +925,7 @@ class IgnnitionModel:
                 step=0,
                 profiler_outdir=path)
 
+    @handle_exception
     def evaluate(self, evaluation_samples=None, verbose=True):
         """
         Parameters
@@ -884,63 +938,41 @@ class IgnnitionModel:
 
         # Extract the path to the validation dataset, if any
         data_path = None
-        if evaluation_samples is None:
-            try:
-                data_path = self.__process_path(self.CONFIG['predict_dataset'])
-            except:
-                print_failure(
-                    'Make sure to either pass an array of samples or to define in the train_options.yaml the path '
-                    'to the validation dataset')
+        validation_dataset = self.CONFIG.get('validation_dataset', None)
+        if evaluation_samples is None and validation_dataset is None:
+            raise KeywordNotFoundException(keyword="validation_dataset",
+                                           file='train_options',
+                                           message="This keyword must be defined when calling the train_and_validate "
+                                                   "method and no val_samples is specified.")
 
-        # Generate the model if it doesn't exist
+        if evaluation_samples is None:
+            data_path = self.__process_path(self.CONFIG['validation_dataset'])
+
         if not hasattr(self, 'gnn_model'):
             if evaluation_samples is None:  # look for the dataset path
-                self.__create_gnn(path=data_path)
+                self.__create_gnn(path=data_path, verbose=verbose, require_warm_start=True)
             else:
-                self.__create_gnn(samples=evaluation_samples)
+                self.__create_gnn(samples=evaluation_samples, verbose=verbose, require_warm_start=True)
+        else:
+            if not self.weights_loaded:
+                dimensions, sample = self.find_dataset_dimensions(samples=evaluation_samples, path=data_path)
+                self.gnn_model = self.__restore_model(self.gnn_model, sample=sample, require_warm_start=True)
+
+        self.weights_loaded = True
 
         if verbose:
             print()
             print_header('Starting to make evaluations...\n---------------------------------------------------------\n')
 
-        sample_it = self.__input_fn_generator(data_path, training=True, data_samples=evaluation_samples, iterator=True)
+        validation_dataset = self.__input_fn_generator(data_path, training=True, data_samples=evaluation_samples,
+                                                       iterator=False)
 
-        all_metrics = []
-        try:
-            try:
-                denorm_func = getattr(self.module, 'denormalization')
-            except:
-                denorm_func = None
-
-            # metric for the evaluation
-            try:
-                metric_func = getattr(self.module, 'evaluation_metric')
-
-            except:
-                print_failure('The evaluation metric function failed. '
-                              'Please make sure you define a valid python function taking as input the label '
-                              'and the prediction, and returning one single numerical value.')
-
-            # while there are predictions
-            while True:
-                features, label = sample_it.get_next()
-                pred = self.gnn_model(features, training=False)
-                pred = tf.squeeze(pred)
-                output_name = self.model_info.get_output_info()  # for now suppose we only have one output layer_type
-                if denorm_func is not None:
-                    try:
-                        pred = tf.py_function(func=denorm_func, inp=[pred, output_name], Tout=tf.float32)
-                        label = tf.py_function(func=denorm_func, inp=[label, output_name], Tout=tf.float32)
-                    except:
-                        print_failure('The denormalization function failed')
-
-                # compute the metric value
-                value = tf.py_function(func=metric_func, inp=[label, pred], Tout=tf.float32)
-                all_metrics.append(value)
-
-        except tf.errors.OutOfRangeError:
-            pass
-        return all_metrics
+        return self.gnn_model.evaluate(validation_dataset,
+                                       batch_size=self.CONFIG.get('batch_size', 1),
+                                       use_multiprocessing=True,
+                                       verbose=1,
+                                       steps=int(self.CONFIG['val_samples']),
+                                       return_dict=True)
 
     def batch_training(self, input_samples):
         """
