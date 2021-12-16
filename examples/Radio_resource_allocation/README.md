@@ -27,39 +27,49 @@ weighted sum rate of the network, by using the predicted power value together wi
 losses with other pairs and the power of the additive noise. For more details, check the paper's
 discussion in [[1]](#scalable-radio).
 
-## Running the example
-
-For this example you can find the directory _data_ containing a very small subset of the dataset. In
-particular, 1000 molecules for training and 100 for validation. In addition, we have included the
-rest of framework files properly filled, and thus there are no prerequisites to execute it.
-
-To train the corresponding Radio Resource Management GNN with the default settings, just run:
-
-```bash
-    python main.py
-```
-
-This command will create the GNN specified in [model_description](model_description.yaml) file,
-with the variables specified in the [global_variables](global_variables.yaml) file. To learn more
-about the implementation details, refer to the
-[framework documentation](https://ignnition.net/doc/generate_your_gnn/).
-
-If you want to execute any other functionality that is not train and validate, simply change the
-[main](main.py) file, see [the documentation page](https://ignnition.net/doc/train_and_evaluate/)
-for more details.
-
-## Generate the dataset
+### 1) Generate the dataset
 
 Although minimal example data is provided, one can generate bigger datasets by executing the
 [generate_dataset](generate_dataset.py) Python script. This generates synthetic wireless networks
 with the model specifications to create the associated NetworkX graphs, writing them as arrays
 in JSON files.
 
-Through changing the global variables in the top of the script one can change the amount of
+```python
+    python generate_dataset.py
+```
+
+Through modifying the global variables in the top of the script one can change the amount of
 training/validation samples, and other properties of the generated wireless networks.
 
 Please note that the script requires specific dependencies to generate some atomical features
 which the model requires, see the script's docstring for more details.
+
+### 2) Running the example: Training
+
+For this example you can find the directory _data_ containing a very small subset of the dataset. In
+particular, 1000 samples for training and 100 for validation. In addition, we have included the
+rest of framework files properly filled, and thus there are no prerequisites to execute it.
+
+To train the corresponding Radio Resource Management GNN with the default settings, just run:
+
+```python
+    python main.py
+```
+
+This command will create the GNN specified in [model_description](model_description.yaml) file,
+with the variables specified in the [global_variables](global_variables.yaml) file. If you want to execute any other functionality beyond train and validate, you can change the main file. Please, check the [the documentation page](https://ignnition.net/doc/) for more details.
+
+### 3) Evaluate
+Once the training process finished, we can evaluate our model on a different topology than the one used during training. To do this, we need to ensure that the *predict_dataset* from *train_options.yaml* points to the desired dataset. In addition, the *load_model_path* from the same file should point to the directory where the trained model is stored. For example:
+```python
+load_model_path: ./CheckPoint/experiment_2021_10_14_15_56_21/ckpt/weights.10--0.87
+predict_dataset: ./data/validation_100
+```
+
+Then, execute the following to start the evaluation process:
+```python
+    python predict.py
+```
 
 ## References
 

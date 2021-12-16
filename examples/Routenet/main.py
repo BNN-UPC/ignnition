@@ -15,31 +15,7 @@
  * limitations under the License.
  *
 """
-
-# -*- coding: utf-8 -*-
-
-import os
-
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-
-import tensorflow as tf
 import ignnition
-
-
-def normalization(feature, feature_name):
-    if feature_name == 'traffic':
-        feature = (feature - 170) / 130
-    elif feature_name == 'capacity':
-        feature = (feature - 25000) / 40000
-    elif feature_name == 'delay':
-        feature = tf.math.log(feature)
-    return feature
-
-
-def denormalization(feature, feature_name):
-    if feature_name == 'delay':
-        feature = tf.math.exp(feature)
-    return feature
 
 
 def main():

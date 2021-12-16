@@ -25,6 +25,7 @@ import tensorflow as tf
 from ignnition.operation_classes import RNNOperation
 from ignnition.aggregation_classes import ConcatAggr, InterleaveAggr
 from ignnition.utils import save_global_variable, print_failure, get_global_variable, get_global_var_or_input
+from ignnition.error_handling import ConvolutionOperationError
 
 
 class GnnModel(tf.keras.Model):
@@ -89,7 +90,6 @@ class GnnModel(tf.keras.Model):
                                                                                              self.calculations,
                                                                                              dst_name, src)
                                         model, output_shape = operation.model.construct_tf_model(input_dim=input_dim)
-
                                         save_global_variable(self.calculations, var_name, model)
 
                                         # Need to keep track of the output dimension of this one,
@@ -115,13 +115,14 @@ class GnnModel(tf.keras.Model):
 
                         for aggregation in aggregations:
                             # what is the shape if we are using ordered / interleave??
-                            output_shape = F_dst  # by default we don't change the shape of the final output
-
+                            # output_shape = F_dst  # by default we don't change the shape of the final output
                             if aggregation.type == 'attention':
                                 self.node_kernel = self.add_weight(shape=(F_src, F_src),
-                                                                   initializer=aggregation.weight_initialization)
+                                                                   initializer=aggregation.weight_initialization,
+                                                                   name='attention_node_kernel')
                                 self.attn_kernel = self.add_weight(shape=(2 * F_dst, 1),
-                                                                   initializer=aggregation.weight_initialization)
+                                                                   initializer=aggregation.weight_initialization,
+                                                                   name='attention_attn_kernel')
 
                             elif aggregation.type == 'edge_attention':
                                 # create a neural network that takes the concatenation of the source and dst message
@@ -134,25 +135,30 @@ class GnnModel(tf.keras.Model):
 
                             elif aggregation.type == 'convolution':
                                 if F_dst != F_src:
-                                    print_failure('When doing the a convolution, both the dimension of the messages '
-                                                  'sent and the destination hidden states should match. '
-                                                  'In this case, however,the dimensions are ' + F_src + ' and '
-                                                  + F_dst + ' of the source and destination respectively.')
+                                    raise ConvolutionOperationError(operation='convolution',
+                                                                    message=f'When doing the a convolution, both the '
+                                                                            f'dimension of the messages sent and the '
+                                                                            f'destination hidden states should match. '
+                                                                            f'In this case, however, the dimensions '
+                                                                            f'are {F_src} and {F_dst} of the source '
+                                                                            f'and destination respectively.')
 
                                 self.conv_kernel = self.add_weight(shape=(F_dst, F_dst),
-                                                                   initializer=aggregation.weight_initialization)
+                                                                   initializer=aggregation.weight_initialization,
+                                                                   name='conv_kernel')
 
                             elif aggregation.type == 'neural_network':
                                 var_name = 'aggr_nn'
                                 input_dim = aggregation.find_total_input_dim(self.dimensions, self.calculations)
 
                                 model, output_shape = aggregation.model.construct_tf_model(input_dim=input_dim)
-
                                 save_global_variable(self.calculations, var_name, model)
 
                             # Need to keep track of the output dimension of this one, in case we need it for a new model
                             if aggregation.output_name is not None:
                                 save_global_variable(self.calculations, aggregation.output_name + '_dim', output_shape)
+                                save_global_variable(self.calculations, aggregation.output_name + '_out_dim',
+                                                     output_shape)
 
                         save_global_variable(self.calculations,
                                              "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg), output_shape)
@@ -166,16 +172,11 @@ class GnnModel(tf.keras.Model):
                         # create the recurrent update models
                         if update_model is not None and isinstance(update_model, RNNOperation):
                             recurrent_cell = update_model.model
-                            try:
-                                recurrent_instance = recurrent_cell.get_tensorflow_object(self.dimensions.get(dst_name))
-                                save_global_variable(self.calculations, dst_name + '_update', recurrent_instance)
-                            except Exception:
-                                print_failure('The definition of the recurrent cell in message passing to '
-                                              + message.destination_entity + ' is not correctly defined. Check keras '
-                                              'documentation to make sure all the parameters are correct.')
+                            recurrent_instance = recurrent_cell.get_tensorflow_object(self.dimensions.get(dst_name))
+                            save_global_variable(self.calculations, dst_name + '_update', recurrent_instance)
 
                         # ----------------------------------
-                        # create the feed-forward upddate models
+                        # create the feed-forward update models
                         # This only makes sense with aggregation functions that preserve one single input (not sequence)
                         elif update_model is not None:
                             model = update_model.model
@@ -229,22 +230,18 @@ class GnnModel(tf.keras.Model):
                         dimensionality = dimensionality
 
                 elif operation.type == 'product':
-                    if operation.type_product == 'element_wise':
+                    if operation.type_product == 'element_wise' or operation.type_product == 'mat_mult':
                         dimensionality = self.dimensions.get(operation.input[0])
 
                     elif operation.type_product == 'dot_product':
                         dimensionality = 1
-
-                elif operation.type == 'extend_adjacencies':
-                    self.dimensions[operation.output_name[0]] = self.dimensions.get(operation.input[0])
-                    self.dimensions[operation.output_name[1]] = self.dimensions.get(operation.input[1])
 
                 elif operation.type == 'concat':
                     dimensionality = 0
                     for inp in operation.input:
                         dimensionality += self.dimensions.get(inp)
 
-                if operation.type != 'extend_adjacencies' and operation.output_name is not None:
+                if operation.output_name is not None:
                     self.dimensions[operation.output_name] = dimensionality
 
                 counter += 1
@@ -410,6 +407,7 @@ class GnnModel(tf.keras.Model):
                                                                                                   '_' + str(idx_msg)))
 
                                                             shape = tf.stack([num_dst, max_len, message_dim])
+
                                                             s = tf.scatter_nd(ids, final_messages,
                                                                               shape)
                                                             # find the input ordering it by sequence
@@ -702,3 +700,26 @@ class GnnModel(tf.keras.Model):
         else:
             new_input = get_global_var_or_input(self.calculations, var_name, f_)
         return new_input
+
+    """def train_step(self, data):
+        # Unpack the data. Its structure depends on your model and
+        # on what you pass to `fit()`.
+        x, y = data
+
+        with tf.GradientTape() as tape:
+            y_pred = self(x, training=True)  # Forward pass
+            # Compute the loss value
+            # (the loss function is configured in `compile()`)
+            arg_names = self.compiled_loss._losses.__code__.co_varnames
+
+            loss = self.compiled_loss(y, y_pred, 1, 2, regularization_losses=self.losses)
+
+        # Compute gradients
+        trainable_vars = self.trainable_variables
+        gradients = tape.gradient(loss, trainable_vars)
+        # Update weights
+        self.optimizer.apply_gradients(zip(gradients, trainable_vars))
+        # Update metrics (includes the metric that tracks the loss)
+        self.compiled_metrics.update_state(y, y_pred)
+        # Return a dict mapping metric names to current value
+        return {m.name: m.result() for m in self.metrics}"""

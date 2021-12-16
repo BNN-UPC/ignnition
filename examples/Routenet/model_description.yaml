@@ -1,13 +1,13 @@
 # Definition of the entities
 entities:
 - name: link
-  state_dimension: hidden_state_dim
+  state_dimension: 16
   initial_state:
     - type: build_state
       input: [$capacity]
 
 - name: path
-  state_dimension: hidden_state_dim
+  state_dimension: 32
   initial_state:
     - type: build_state
       input: [$traffic]
@@ -29,7 +29,7 @@ message_passing:
           - type: ordered
         update:
           type: neural_network
-          nn_name: recurrent1
+          nn_name: path_update
 
     # STAGE 2:
     - stage_message_passings:
@@ -40,10 +40,20 @@ message_passing:
           message:
           - type: direct_assignment
         aggregation:
+          - type: max
+            output_name: max_value
+          - type: min
+            output_name: min_value
           - type: sum
+            output_name: sum_value
+          - type: mean
+            output_name: mean_value
+          - type: neural_network
+            input: [max_value, min_value, sum_value, mean_value]
+            nn_name: aggregation_function
         update:
           type: neural_network
-          nn_name: recurrent1
+          nn_name: link_update
 
 # Definition of the readout
 readout:
@@ -58,15 +68,23 @@ neural_networks:
   nn_architecture:
   - type_layer: Dense
     units: readout_units
-    kernel_regularizer: r_l2
     activation: selu
   - type_layer: Dense
     units: readout_units
+    activation: selu
   - type_layer: Dense
     units: output_units
-    kernel_regularizer: r_l2_2
     activation: None
 
-- nn_name: recurrent1
+- nn_name: path_update
   nn_architecture:
     - type_layer: GRU
+
+- nn_name: link_update
+  nn_architecture:
+    - type_layer: GRU
+
+- nn_name: aggregation_function
+  nn_architecture:
+  - type_layer: Dense
+    units: 32

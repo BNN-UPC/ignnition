@@ -21,15 +21,17 @@ import os
 import importlib
 import copy
 import json
+import re
 from functools import reduce
 
 import yaml
 from jsonschema import validate
 
 from ignnition.mp_classes import InterleaveAggr, Entity, MessagePassing
-from ignnition.operation_classes import PoolingOperation, ProductOperation, ExtendAdjacencies, Concat, \
+from ignnition.operation_classes import PoolingOperation, ProductOperation, Concat, \
     FeedForwardOperation
-from ignnition.utils import print_failure, print_info
+from ignnition.utils import print_failure, print_info, read_yaml
+from ignnition.error_handling import KeywordException, EntityError, OutptuLabelException, NeuralNetworkNameException
 
 
 class YamlPreprocessing:
@@ -112,7 +114,7 @@ class YamlPreprocessing:
 
         # read and validate the json file
         model_description_path = os.path.join(model_dir, 'model_description.yaml')
-        self.data = self.__read_yaml(model_description_path, 'model description')
+        self.data = read_yaml(model_description_path, 'model description')
 
         # validate with the schema
         with importlib.resources.path('ignnition', "schema.json") as schema_file:
@@ -121,7 +123,7 @@ class YamlPreprocessing:
         # add the global variables (if any)
         global_variables_path = os.path.join(model_dir, 'global_variables.yaml')
         if os.path.exists(global_variables_path):
-            global_variables = self.__read_yaml(global_variables_path, 'global variables')
+            global_variables = read_yaml(global_variables_path, 'global variables')
             self.data = self.__add_global_variables(self.data, global_variables)
 
         else:
@@ -148,24 +150,6 @@ class YamlPreprocessing:
 
         with open(path) as json_file:
             return json.load(json_file)
-
-    def __read_yaml(self, path, file_name=''):
-        """
-        Parameters
-        ----------
-        path:    str
-            Path of the json file with the model description
-        file_name: str
-            Name of the file we aim to read
-        """
-        if os.path.isfile(path):
-            with open(path, 'r') as stream:
-                try:
-                    return yaml.safe_load(stream)
-                except yaml.YAMLError as exc:
-                    print_failure("There was the following error in the " + file_name + " file.\n" + str(exc))
-        else:
-            print_failure("The " + file_name + " file was not found in: " + path)
 
     def __add_global_variables(self, data, global_variables):
         """
@@ -237,16 +221,24 @@ class YamlPreprocessing:
                 aggregations = mp.get('aggregation')
                 for aggr in aggregations:
                     if aggr.get('type') == 'neural_network':
+                        called_nn_names.append(aggr.get('nn_name'))
                         input_names += aggr.get('input')
 
                     if 'output_name' in aggr:
                         output_names.append(aggr.get('output_name'))
 
+                # check the update functions
+                update = mp.get('update')
+                if update.get('type') == 'neural_network':
+                    called_nn_names.append(update.get('nn_name'))
+
+
         readout_op = data.get('readout')
         called_nn_names += [op.get('nn_name') for op in readout_op if op.get('type') == 'neural_network']
 
         if 'output_label' not in readout_op[-1]:
-            print_failure('The last operation of the readout MUST contain the definition of the output_label')
+            raise OutptuLabelException(message='The last operation of the readout MUST contain the definition of the '
+                                               'output_label')
         else:
             input_names += readout_op[-1]['output_label']
 
@@ -255,39 +247,46 @@ class YamlPreprocessing:
         nn_names = [n.get('nn_name') for n in data.get('neural_networks')]
         # check if the name of two NN defined match
         if len(nn_names) != len(set(nn_names)):
-            print_failure("The names of two NN are repeated. Please ensure that each NN has a unique name.")
+            raise NeuralNetworkNameException(name=next(iter(set([x for x in nn_names if nn_names.count(x) > 1]))),
+                                             message='This name references more than one nerual network. Please '
+                                                     'ensure that each element has a unique name.')
 
         # check the source entities
         for a in src_names:
             if a not in entity_names:
-                print_failure(
-                    'The source entity "' + a + '" was used in a message passing. However, there is no such entity. \n '
-                                                'Please check the spelling or define a new entity.')
+                raise EntityError(entity=a,
+                                  entity_type='source',
+                                  message='This entity was used in a message passing. However, there is no such '
+                                          'entity. Please check the spelling or define a new entity.')
 
         # check the destination entities
         for d in dst_names:
             if d not in entity_names:
-                print_failure(
-                    'The destination entity "' + d + '" was used in a message passing. However, there is no such '
-                                                     'entity. \n Please check the spelling or define a new entity.')
+                raise EntityError(entity=d,
+                                  entity_type='destination',
+                                  message='This entity was used in a message passing. However, the model could not '
+                                          'find a definition of it. Please, make sure it was correctly defined.')
 
         # check the nn_names
         for name in called_nn_names:
             if name not in nn_names:
-                print_failure(
-                    'The name "' + name + '" is used as a reference to a neural network (nn_name), even though the '
-                                          'neural network was not defined. \n Please make sure the name is correctly '
-                                          'spelled or define a neural network named ' + name)
+                raise NeuralNetworkNameException(name=name,
+                                                 message='This name is used as a reference to a neural network ('
+                                                         'nn_name), even though the neural network was not defined.')
 
-        # ensure that all the inputs (that are not output of another operation) start with a $
-        for i in input_names:
-            if i not in output_names and i[0] != '$':
-                print_failure('The input name ' + i + ' references data from the dataset but does not start with $')
-
+                # ensure that all the inputs (that are not output of another operation) start with a $
         for i in output_names:
             if i[0] == '$':
-                print_failure(
-                    'The keyword ' + i + ' starts with $ even though it does not represent data from the dataset.')
+                raise KeywordException(keyword=i,
+                                       message='It looks like you defined an output name of an operation using a $. '
+                                               'This symbol is specifically suited for data found in the dataset.')
+
+        for i in input_names:
+            if i not in output_names and i[0] != '$':
+                raise KeywordException(keyword=i,
+                                       message='If this keyword references data from the dataset make sure that it '
+                                               'starts with a $. If it does not, make sure it is properly defined as '
+                                               'an output of an operation.')
 
     def __get_nn_mapping(self, models):
         """
@@ -411,9 +410,6 @@ class YamlPreprocessing:
 
             elif op_type == 'neural_network':
                 result.append(FeedForwardOperation(self.__add_readout_architecture(op), model_role='readout'))
-
-            elif op_type == 'extend_adjacencies':
-                result.append(ExtendAdjacencies(op))
 
             elif op_type == 'concat':
                 result.append(Concat(op))

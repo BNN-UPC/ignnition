@@ -1,22 +1,21 @@
 # PATHS
 train_dataset: ./data/train
-validation_dataset: ./data/test
-#predict_dataset: ./data/test
-#load_model_path:
-additional_functions_file: ./main.py
+validation_dataset: ./data/validation
+predict_dataset: ./data/test
+#load_model_path: ./CheckPoint/<chekpoint_file>
 output_path: ./
 
 # OPTIMIZATION OPTIONS
 loss: BinaryCrossentropy
 optimizer:
   type: Adam
-  learning_rate: 0.01
-metrics: [BinaryAccuracy, Precision, Recall, AUC]
+  learning_rate:  0.001
+metrics: [BinaryAccuracy, Precision, Recall]
 
 # TRAINING OPTIONS
 batch_size: 1
-epochs: 1000
-epoch_size: 100
+epochs: 60
+epoch_size: 200
 shuffle_training_set: True
 shuffle_validation_set: False
 val_samples: 100

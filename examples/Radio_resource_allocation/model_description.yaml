@@ -1,4 +1,3 @@
-# QM9 model definition for iGNNition model
 entities:
 - name: transmitter_receiver_pair
   state_dimension: hidden_state_dimension
@@ -8,7 +7,6 @@ entities:
       input:
         - $receiver_distance
         - $channel_loss
-        - $power
       output_name: normalized_state
     - type: build_state
       input: [$normalized_state]
@@ -34,9 +32,9 @@ message_passing:
           nn_name: update_function
 
 readout:
-- type: neural_network
-  nn_name: readout_function
-  input: [transmitter_receiver_pair, $weights, $wmmse_power]
+- type: concat
+  axis: 1
+  input: [transmitter_receiver_pair, $wmmse_power]
   output_label: [$path_loss]
 
 neural_networks:
@@ -72,8 +70,3 @@ neural_networks:
   - type_layer: nn_layer
     activation: sigmoid
     units: hidden_state_dimension
-
-- nn_name: readout_function
-  nn_architecture:
-  - type_layer: Activation
-    activation: relu

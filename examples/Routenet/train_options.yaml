@@ -1,28 +1,22 @@
 # PATHS
 train_dataset: ./data/train
 validation_dataset: ./data/eval
-#predict_dataset:
-#load_model_path:
-additional_functions_file: ./main.py
+#predict_dataset: ./data/predict
+#load_model_path: ./CheckPoint/<checkpoint_file>
+additional_functions_file: ./additional_functions.py
 output_path: ./
 
 # OPTIMIZATION OPTIONS
 loss: MeanSquaredError
 optimizer:
   type: Adam
-  learning_rate:  # define a schedule
-    type: ExponentialDecay
-    initial_learning_rate: 0.001
-    decay_steps: 80000
-    decay_rate: 0.6
 metrics: [MeanAbsoluteError]
 
 # TRAINING OPTIONS
-batch_size: 1
-epochs: 1000
-epoch_size: 1000
+batch_size: 16
+epochs: 100
+epoch_size: 3000
 shuffle_training_set: True
 shuffle_validation_set: False
-val_samples: 100
+val_samples: 1000
 val_frequency: 1
-batch_norm: mean
