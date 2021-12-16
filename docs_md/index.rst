@@ -6,17 +6,18 @@ communication networks, where many problems are formulated as graphs
 with complex relationships (e.g., topology, routing, wireless channels).
 However, implementing a GNN model is nowadays a complex and
 time-consuming task, especially for scientists and engineers of the
-networking field, which often lack a deep background in neural network
+networking field, which often lack a deep background on neural network
 programming (e.g., TensorFlow or PyTorch). This arguably prevents
 networking experts to apply this type of neural networks to their
-specific problems. *IGNNITION* is a TensorFlow-based framework for fast prototyping of GNNs. It provides a codeless programming interface, where
+specific problems. *IGNNITION* is a TensorFlow-based framework for fast
+prototyping of GNNs. It provides a codeless programming interface, where
 users can implement their own GNN models in a YAML file, without writing
 a single line of TensorFlow. With this tool, network engineers are able
 to create their own GNN models in a matter of few hours. *IGNNITION*
 also incorporates a set of tools and functionalities that guide users
 during the design and implementation process of the GNN. Check out our
-:ref:`quick start tutorial <quick-step-by-step-tutorial>` to start using IGNNITION.
-Also, you can visit our :ref:`examples library <examples>` with some
+`quick start tutorial <quick_tutorial>`__ to start using IGNNITION.
+Also, you can visit our `examples library <examples>`__ with some
 of the most popular GNN models applied to communication networks already
 implemented.
 
@@ -32,13 +33,13 @@ Getting started
 Installation
 ~~~~~~~~~~~~
 
-Visit :ref:`installation <installation>` to have a detailed tutorial
+Visit `installation <installation>`__ to have a detailed tutorial
 on how to install *IGNNITION* and all its necessary dependencies.
 
 IGNNITION at a glance
 ~~~~~~~~~~~~~~~~~~~~~
 
-In the section :ref:`ignnition at a glance <ignnition_at_a_glance>`, we
+In the section `ignnition at a glance <ignnition_at_glance>`__, we
 provide an overview of the benefits of using *IGNNITION* with respect of
 traditional tools for the implementation of custom GNN models.
 
@@ -46,21 +47,22 @@ Quick step-by-step tutorial
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Because we believe that the best way to learn is by practicing, we
-provide in :ref:`quick step-by-step tutorial <quick-step-by-step-tutorial>` an
-example of how to implement a *GNN* from scratch, which should be a good starting point for any user.
+provide in `quick step-by-step tutorial <quick_tutorial/>`__ an
+example of how to implement a *GNN* from scratch, which should be a good
+starting point for any user.
 
 About
 -----
 
-Learn more in :ref:`About us <about>`, about *Barcelona Neural
+Learn more in `About us <about/>`__, about *Barcelona Neural
 Networking Center* team which has carried out the development of
 *IGNNITION*.
 
-License
+Licence
 -------
 
 Despite being an open-source project, in section
-:ref:`License <license>` we provide the details on the released
+`License <license/>`__ we provide the details on the released
 license.
 
 .. toctree::
@@ -78,16 +80,15 @@ license.
    :caption: Background On GNNs
 
    motivation
-   what_is_a_gnn
+   what_are_gnns
 
 .. toctree::
-   :maxdepth: 5
+   :maxdepth: 2
    :hidden:
    :caption: User Guide
 
    intro
    model_description
-   keyword_definition
    generate_your_dataset
    train_and_evaluate
    debugging_assistant
