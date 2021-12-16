@@ -48,8 +48,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
-    'sphinx.ext.autosectionlabel',
-    'button'
+    'myst_parser'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -87,5 +86,7 @@ html_context = {
 html_static_path = ['_static']
 
 source_suffix = {
-    '.rst': 'restructuredtext'
+    '.rst': 'restructuredtext',
+    '.txt': 'markdown',
+    '.md': 'markdown',
 }
