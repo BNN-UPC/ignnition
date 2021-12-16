@@ -36,6 +36,6 @@ consists of:
 
 .. button::
    :text: Try Radio Resource Allocation
-   :link: https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Radio_resource_allocation
+   :link: https://github.com/knowledgedefinednetworking/ignnition/tree/main/examples/Radio_resource_allocation
 
 |

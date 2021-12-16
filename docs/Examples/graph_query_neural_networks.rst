@@ -60,7 +60,7 @@ Try Graph Query Neural Network
 
 To execute this example, please download the source files at `Graph
 Query Neural
-Network <https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Graph_query_networks>`__.
+Network <https://github.com/knowledgedefinednetworking/ignnition/tree/main/examples/Graph_query_networks>`__.
 In this directory, you will find all the necessary material regarding
 *Graph Query Neural Network*, including a minimal dataset along with all
 the files composing the implementation of this GNN model --model
@@ -70,6 +70,6 @@ this process.
 
 .. button::
    :text: Try Graph Query Neural Networks
-   :link: https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Graph_query_networks
+   :link: https://github.com/knowledgedefinednetworking/ignnition/tree/main/examples/Graph_query_networks
 
 |

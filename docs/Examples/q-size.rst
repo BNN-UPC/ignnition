@@ -50,6 +50,6 @@ observe the message passing that they perform into two separate stages.
 
 .. button::
    :text: Q-size
-   :link: <https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Q-size
+   :link: <https://github.com/knowledgedefinednetworking/ignnition/tree/main/examples/Q-size
 
 |

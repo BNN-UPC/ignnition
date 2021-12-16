@@ -50,6 +50,6 @@ the message passing that they perform into two separate stages.
 
 .. button::
    :text: Try RouteNet
-   :link: https://github.com/knowledgedefinednetworking/ignnition/tree/master/examples/Routenet
+   :link: https://github.com/knowledgedefinednetworking/ignnition/tree/main/examples/Routenet
 
 |
