@@ -11,9 +11,9 @@ To train the corresponding RouteNet GNN to learn to make predictions of the end-
     python main.py
 ```
 
-This command will create the GNN specified in *model_description.yaml* file. We have also included the *global_variables* file, even though right now is not used by the *model_description* file. To learn to use them, we refer the user to (https://ignnition.net/doc/global_variables/).
+This command will create the GNN specified in *model_description.yaml* file. We have also included the *global_variables* file, even though right now is not used by the *model_description* file. To learn to use them, we refer the user to (https://ignnition.org/doc/global_variables/).
 
-If you want to execute any other functionality that is not train and validate, simply change the *main.py* file, to specify the new functionality. Visit (https://ignnition.net/doc/train_and_evaluate/) for more information.
+If you want to execute any other functionality that is not train and validate, simply change the *main.py* file, to specify the new functionality. Visit (https://ignnition.org/doc/train_and_evaluate/) for more information.
 
 ## Train using the full dataset
 In the previous section we presented the process to train RouteNet with the minimal dataset that we provide, even though this is clearly insufficient to obtain an accurate model. To obtain an accurate model, users may want to use the full dataset by following these steps:

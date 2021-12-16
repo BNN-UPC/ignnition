@@ -32,7 +32,7 @@ jobs:
     - name: Upload docs
       uses: SamKirkland/FTP-Deploy-Action@2.0.0
       env:
-        FTP_SERVER: ignnition.net
+        FTP_SERVER: ignnition.org
         FTP_USERNAME: ${{ secrets.SCP_USERNAME }}
         FTP_PASSWORD: ${{ secrets.SCP_PASSWORD }}
         PORT: 13000

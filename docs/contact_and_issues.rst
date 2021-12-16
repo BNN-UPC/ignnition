@@ -9,7 +9,7 @@ our common goal of encouraging scientific and commercial break-throughs through 
 Consequently, we welcome any kind of feedback that can help us make
 this tool more useful to the community and to all its potential users.
 For this reason, we invite you to contact us at
-**contactus@ignnition.net**.
+**contactus@ignnition.org**.
 
 To report any issue regarding *IGNITTION* as well as to suggest the
 addition of new features, please refer to

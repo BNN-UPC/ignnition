@@ -26,7 +26,7 @@ setup(
   long_description_content_type="text/markdown",
   author='Barcelona Neural Networking Center',                   # Type in your name
   author_email='ignnition@contactus.net',      # Type in your E-Mail
-  url='https://ignnition.net/',   # Provide either the link to your github or to your website
+  url='https://ignnition.org/',   # Provide either the link to your github or to your website
   package_data={'ignnition': ['schema.json']},
   keywords=['Machine Learning', 'Graph Neural Networks', 'Networking', 'Artificial Intelligence'],   # Keywords that define your package best
   install_requires=requirements,
