@@ -1,0 +1,45 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Pujol-Perich"
+  given-names: "David"
+- family-names: "Suárez-Varela"
+  given-names: "José"
+- family-names: "Ferriol-Galmés"
+  given-names: "Miquel"
+- family-names: "Xiao"
+  given-names: "Shihan"
+- family-names: "Wu"
+  given-names: "Bo"
+- family-names: "Cabellos-Aparicio"
+  given-names: "Albert"
+- family-names: "Barlet-Ros"
+  given-names: "Pere"
+title: "IGNNITION: Bridging the Gap between Graph Neural Networks and Networking Systems"
+doi: 10.1109/MNET.001.2100266
+date-released: 2021
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Pujol-Perich"
+    given-names: "David"
+  - family-names: "Suárez-Varela"
+    given-names: "José"
+  - family-names: "Ferriol-Galmés"
+    given-names: "Miquel"
+  - family-names: "Xiao"
+    given-names: "Shihan"
+  - family-names: "Wu"
+    given-names: "Bo"
+  - family-names: "Cabellos-Aparicio"
+    given-names: "Albert"
+  - family-names: "Barlet-Ros"
+    given-names: "Pere"
+  doi: "10.1109/MNET.001.2100266"
+  journal: "IEEE Network"
+  start: 171 # First page number
+  end: 177 # Last page number
+  title: "IGNNITION: Bridging the Gap between Graph Neural Networks and Networking Systems"
+  issue: 6
+  volume: 35
+  year: 2021
