@@ -32,10 +32,10 @@ To train the corresponding QM9 GNN with the default settings, just run:
 This command will create the GNN specified in [model_description](model_description.yaml) file,
 with the variables specified in the [global_variables](global_variables.yaml) file. To learn more
 about the implementation details, refer to the
-[framework documentation](https://ignnition.net/doc/generate_your_gnn/).
+[framework documentation](https://ignnition.org/doc/generate_your_gnn/).
 
 If you want to execute any other functionality that is not train and validate, simply change the
-[main](main.py) file, see [the documentation page](https://ignnition.net/doc/train_and_evaluate/)
+[main](main.py) file, see [the documentation page](https://ignnition.org/doc/train_and_evaluate/)
 for more details.
 
 ## Generate the dataset

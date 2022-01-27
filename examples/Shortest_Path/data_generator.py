@@ -11,7 +11,7 @@ def generate_random_graph(min_nodes, max_nodes, min_edge_weight, max_edge_weight
         G = nx.erdos_renyi_graph(random.randint(min_nodes, max_nodes), p)
         complement = list(nx.k_edge_augmentation(G, k=1, partial=True))
         G.add_edges_from(complement)
-        nx.set_node_attributes(G, 0, 'src-tgt')
+        nx.set_node_attributes(G, 0, 'src_tgt')
         nx.set_node_attributes(G, 0, 'sp')
         nx.set_node_attributes(G, 'node', 'entity')
 
@@ -22,8 +22,8 @@ def generate_random_graph(min_nodes, max_nodes, min_edge_weight, max_edge_weight
         # Select a source and target nodes to compute the shortest path
         src, tgt = random.sample(list(G.nodes), 2)
 
-        G.nodes[src]['src-tgt'] = 1
-        G.nodes[tgt]['src-tgt'] = 1
+        G.nodes[src]['src_tgt'] = 1
+        G.nodes[tgt]['src_tgt'] = 1
 
         # Compute all the shortest paths between source and target nodes
         try:

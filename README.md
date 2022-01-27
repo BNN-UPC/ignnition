@@ -2,14 +2,14 @@
 
 *IGNNITION* is the ideal framework for users with no experience in neural network programming (e.g., TensorFlow, PyTorch). With this framework, users can design and run their own Graph Neural Networks (GNN) in a matter of a few hours.
 
-#### Website: https://ignnition.net
-#### Documentation: https://ignnition.net/doc/
+#### Website: https://ignnition.org
+#### Documentation: https://ignnition.org/doc/
 
 *IGNNITION* is especially for you if:
 
 You are a scientist or engineer that wants to build custom GNNs adapted to your problem (e.g., computer networks, biology, physics, chemistry, recommender systems…)
 
-Learn more at [IGNNITION at a Glance](https://ignnition.net/doc/ignnition_at_glance/).
+Learn more at [IGNNITION at a Glance](https://ignnition.org/doc/ignnition_at_glance/).
 
  ## How it works?
  <p align="center"> 
@@ -51,17 +51,17 @@ wget 'https://github.com/knowledgedefinednetworking/ignnition'
 pip install -r requirements.txt
 python setup.py install
 ```
-Please, find more details in our [installation guide](https://ignnition.net/doc/installation/).
+Please, find more details in our [installation guide](https://ignnition.org/doc/installation/).
 
 ### Tutorial
 To get started with *IGNNITION*, we have prepared a step-by-step tutorial that explains in detail how to design a basic GNN from scratch.
-Click [here to start this tutorial](https://ignnition.net/doc/quick_tutorial/).
+Click [here to start this tutorial](https://ignnition.org/doc/quick_tutorial/).
 
 After this tutorial, you should be prepared to:
-- Start designing [your own GNN model from scratch](https://ignnition.net/doc/intro/).
-- Reuse any model from our [examples library](https://ignnition.net/doc/examples/) and adapt it to your needs.
+- Start designing [your own GNN model from scratch](https://ignnition.org/doc/intro/).
+- Reuse any model from our [examples library](https://ignnition.org/doc/examples/) and adapt it to your needs.
 
-Please, follow the [documentation](https://ignnition.net/doc/) to know all the details of this framework.
+Please, follow the [documentation](https://ignnition.org/doc/) to know all the details of this framework.
 
 ## Main Contributors
 #### D. Pujol-Perich, J. Suárez-Varela, Miquel Ferriol, A. Cabellos-Aparicio, P. Barlet-Ros.
@@ -75,9 +75,30 @@ This software is part of a project that has received funding from the European U
   <img src="/assets/ngi_european_flag.png" width="400" alt>
 </p>
 
+## Citing
+Please, use the following reference to cite IGNNITION.
+
+**<u>Plain text:</u>**
+
+David Pujol-Perich, José Suárez-Varela, Miquel Ferriol, Shihan Xiao, Bo Wu, Albert Cabellos-Aparicio, and Pere Barlet-Ros. 2021. IGNNITION: Bridging the Gap between Graph Neural Networks and NetworkingSystems. IEEE Network35, 6 (2021), 171–177.
+
+**<u>BibTeX:</u>**
+```
+@article{pujol2021ignnition,
+  title={IGNNITION: Bridging the Gap between Graph Neural Networks and Networking Systems},
+  author={Pujol-Perich, David and Su{\'a}rez-Varela, Jos{\'e} and Ferriol, Miquel and Xiao, Shihan and Wu, Bo and Cabellos-Aparicio, Albert and Barlet-Ros, Pere},
+  journal={IEEE Network},
+  volume={35},
+  number={6},
+  pages={171--177},
+  year={2021},
+  publisher={IEEE},
+  doi={10.1109/MNET.001.2100266}
+}
+```
+
 ## License
 See [LICENSE](LICENSE) for full of the license text.
-
 
 ```
 Copyright Copyright 2020 Universitat Politècnica de Catalunya
