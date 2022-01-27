@@ -105,3 +105,4 @@ license.
    contributing
    community_bylaws
    license
+   citing

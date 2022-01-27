@@ -48,9 +48,9 @@ this document will be updated to reflect the outcome of those
 discussions when the PMC feels that consensus is reached.
 
 The current members of the PMC are:
-
--  Miquel Ferriol-Galmés (mferriol@ac.upc.edu)
+-  David Pujol-Perich (david.pujol.perich@upc.edu)
 -  José Suárez-Varela (jose-rafael.suarez-varela@upc.edu)
+-  Miquel Ferriol-Galmés (miquel.ferriol@upc.edu)
 -  Albert Cabellos-Aparicio (alberto.cabellos@upc.edu)
 -  Pere Barlet-Ros (pbarlet@ac.upc.edu)
 
