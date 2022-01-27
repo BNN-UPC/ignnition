@@ -78,10 +78,11 @@ This software is part of a project that has received funding from the European U
 ## Citing
 Please, use the following reference to cite IGNNITION.
 
-Plain text:
+**<u>Plain text:</u>**
+
 David Pujol-Perich, José Suárez-Varela, Miquel Ferriol, Shihan Xiao, Bo Wu, Albert Cabellos-Aparicio, and Pere Barlet-Ros. 2021. IGNNITION: Bridging the Gap between Graph Neural Networks and NetworkingSystems. IEEE Network35, 6 (2021), 171–177.
 
-BibTeX:
+**<u>BibTeX:</u>**
 ```
 @article{pujol2021ignnition,
   title={IGNNITION: Bridging the Gap between Graph Neural Networks and Networking Systems},
