@@ -80,7 +80,7 @@ Please, use the following reference to cite IGNNITION.
 
 **<u>Plain text:</u>**
 
-David Pujol-Perich, José Suárez-Varela, Miquel Ferriol, Shihan Xiao, Bo Wu, Albert Cabellos-Aparicio, and Pere Barlet-Ros. 2021. IGNNITION: Bridging the Gap between Graph Neural Networks and NetworkingSystems. IEEE Network35, 6 (2021), 171–177.
+David Pujol-Perich, José Suárez-Varela, Miquel Ferriol, Shihan Xiao, Bo Wu, Albert Cabellos-Aparicio, and Pere Barlet-Ros. 2021. IGNNITION: Bridging the Gap between Graph Neural Networks and Networking Systems. IEEE Network, 35, 6 (2021), 171–177.
 
 **<u>BibTeX:</u>**
 ```
