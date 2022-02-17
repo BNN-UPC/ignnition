@@ -275,8 +275,7 @@ class GnnModel(tf.keras.Model):
                                     hs_creator = get_global_variable(self.calculations, var_name)
                                     output = op.apply_nn(hs_creator, self.calculations, f_)
 
-                                    save_global_variable(self.calculations, entity.name, output)
-                                    save_global_variable(self.calculations, entity.name + '_initial_state', output)
+                                    save_global_variable(self.calculations, op.output_name, output)
 
                             elif op.type == 'build_state':
                                 with tf.name_scope('build_state' + str(counter)) as _:

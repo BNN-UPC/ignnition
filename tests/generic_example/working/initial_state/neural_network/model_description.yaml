@@ -5,6 +5,9 @@ entities:
     - type: neural_network
       nn_name: embedding_enitity0
       input: [$feature0,$feature1,$feature2]
+      output_name: entity0_embedding
+    - type: build_state
+      input: [$entity0_embedding]
 
 - name: entity1
   state_dimension: 32
@@ -12,6 +15,9 @@ entities:
     - type: neural_network
       nn_name: embedding_enitity1
       input: [$feature3,$feature4]
+      output_name: entity1_embedding
+    - type: build_state
+      input: [$entity1_embedding]
 
 message_passing:
   num_iterations: 4
