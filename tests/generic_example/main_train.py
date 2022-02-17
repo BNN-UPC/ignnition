@@ -22,7 +22,7 @@ import ignnition
 
 
 def main():
-    model = ignnition.create_model(model_dir='./working/baseline')
+    model = ignnition.create_model(model_dir='working/initial_state/initial_state_neural_network')
     model.computational_graph()
     model.train_and_validate()
 
