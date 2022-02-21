@@ -1,4 +1,8 @@
 # Graph Query Neural Network (GQNN)
+
+This model is describe at the following paper: <br>
+F. Geyer, G. Carle, "Learning and generating distributed routing protocols using graph-based deep learning", Proceedings of ACM SIGCOMM BigDAMA, 2018.
+
 For this example you can find the directory *data* containing a very small subset of the dataset that we used, so that the user can get a general idea of what the dataset looks like --and maybe even reproduce it. Notice however that this dataset is enough to obtain an accurate model.
  
 In addition to this dataset, we have included the rest of files properly filled, and thus it requires only to be executed. In fact, to train the corresponding GNN model to implement the GQNN, simply run:
