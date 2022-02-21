@@ -1,16 +1,19 @@
-# Executing Shortest-Path example
+# Computing the Shortest Path in graphs with GNNs (Quick-start tutorial)
 
-For this example you can find the directory *data* containing the dataset that we used. In addition, we have included the rest of files properly filled, and thus require only to be executed.
+This is a basic example of a Message-Passing Neural Network applied to compute the shortest path in graphs. Please, follow our quick-start tutorial at this link for further details:
+https://ignnition.org/doc/quick_tutorial.html
 
-To train the corresponding GNN to learn to solve the Shortest-Path routing problem, simply run:
+For this example you can find a dataset in the directory *data*. In addition, we have included the rest of files properly filled, and all is ready for direct execution.
+
+To train the GNN model you can simply run:
 
 ```python
     python main.py
 ```
 
-This command will create the GNN specified in *model_description.yaml* file. We have also included a *model_description_global_var.yaml* file, which contains the same model but using global variables instead. To use this other implementation, simply rename this file to be named *model_description.yaml*.
+This command build the GNN model described in *model_description.yaml* file. We have also included a *model_description_global_var.yaml* file, which contains the same model but using global variables instead. To use this other implementation, simply rename this file to be named *model_description.yaml*.
 
-If you want to execute any other functionality that is not train and validate, simply change the *main.py* file, to specify the new functionality. Visit (https://ignnition.org/doc/train_and_evaluate/) for more information.
+You can change the *main.py* file to execute any other functionality apart from train and validate. Please, visit the documentation for more details (https://ignnition.org/doc).
 
-Finally, we recommend you to visit [our documentation](https://ignnition.org/doc/quick_tutorial/) for further details regarding this model and the complete pipeline to execute it.
+
 
