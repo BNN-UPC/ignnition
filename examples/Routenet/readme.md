@@ -1,4 +1,4 @@
-# Executing RouteNet example
+# RouteNet
 
 In this example we reproduce the GNN from the paper <a href="https://arxiv.org/pdf/1901.08113.pdf" target="_blank" rel="noopener noreferrer">Unveiling the potential of Graph Neural Networks for network modeling and optimization in SDN</a>. Specifically, we implemented the model described in the paper but instead of using a sum in the aggregation function we use four different aggregations (i.e., max, min, sum, mean). We adopted this kind of aggregation as we observed better convergence and generalization properties. In addition, we removed dropout and L2 regularization. More details can be found in the *model_description.yaml* file.  The original datasets are extracted from the paper <a href="https://arxiv.org/pdf/1910.01508.pdf" target="_blank" rel="noopener noreferrer">RouteNet: Leveraging Graph Neural Networks for network modeling and optimization in SDN</a>. Below you can find the instructions to train the GNN from scratch. Notice that some pre-processing scripts might take some time (up to hours) due to the large datasets.
 
