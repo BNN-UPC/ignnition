@@ -130,16 +130,23 @@ class IgnnitionModel:
         No verbosite is set.
     """
 
-    def __init__(self, model_dir):
+    def __init__(self, model_dir, training_data = None, validation_data = None):
         """
         Parameters
         ----------
         model_dir:    str
            Path to the model directory
+        training_data:
+        Training dataset. Either a generator of networkx graphs or the networkx graphs already loaded
+        validation_data:
+        Validation dataset. Either a generator of networkx graphs or the networkx graphs already loaded
         """
         self.weights_loaded = False
         path = os.path.normpath(model_dir)
         self.model_dir = os.path.abspath(path)
+        self.training_data = training_data
+        self.validation_data = validation_data
+        self.pred_data = None  # TODO update this with testing data
         self.mode = None  # 0 for training, 1 for evaluating, 2 for predicting
         train_options_path = os.path.join(self.model_dir, 'train_options.yaml')
 
@@ -395,7 +402,7 @@ class IgnnitionModel:
             Bool indicating if we need to shuffle the input data.
         training:    bool
             Bool indicating if we are performing a training operation (and thus a label is expected)
-        data_samples:    [array]
+        data_samples:    Union[array, GeneratorType]
             List of samples to be used as input (if any)
         iterator: bool
             Indicates if we need to transform the dataset to an iterator
@@ -458,7 +465,6 @@ class IgnnitionModel:
                     if repeat:
                         ds = ds.repeat()
                 else:
-                    data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
                                                                    output_names, adj_names,
@@ -478,7 +484,6 @@ class IgnnitionModel:
                         output_shapes=shapes)
 
                 else:
-                    data_samples = [json.dumps(t) for t in data_samples]
                     ds = tf.data.Dataset.from_generator(
                         lambda: self.generator.generate_from_array(data_samples, entity_names, feature_names,
                                                                    output_names, adj_names,
@@ -540,11 +545,11 @@ class IgnnitionModel:
             print_header(
                 "Creating the GNN model...\n--------------------------------------------------------"
                 "-------------------\n")
-
         dimensions, sample = self.find_dataset_dimensions(samples=samples, path=path)
         self.model_info.add_dimensions(dimensions)
 
         gnn_model = self.__get_compiled_model(self.model_info)
+
 
         # restore a warm-start Checkpoint (if any)
         self.gnn_model = self.__restore_model(gnn_model, sample=sample, require_warm_start=require_warm_start)
@@ -594,13 +599,18 @@ class IgnnitionModel:
         ----------
         path:    str
           Path to find the dataset
-        samples: [array]
-            Array of samples to be used as input (if any)
+        samples: Union[array, GeneratorType]
+            Array or geneartor of samples to be used as input (if any)
         """
         tar_file = False
 
         if samples is not None:
-            sample = samples[0]  # take the first one to find the dimensions
+            if isinstance(samples, list):
+                G = samples[0]  # take the first one to find the dimensions
+                sample = json_graph.node_link_data(G.to_directed())
+            else:
+                G = next(samples)
+                sample = json_graph.node_link_data(G.to_directed())
 
         else:
             sample_paths = (glob.glob(path + '/*.tar.gz') + glob.glob(path + '/*.json'))
@@ -647,46 +657,46 @@ class IgnnitionModel:
                                        message="There was an error reading the dataset. Please check it is one of the "
                                                "valid formats.")
 
-            # Now that we have the sample, we can process the dimensions
-            dimensions = {}  # for each key, we have a tuple of (length, num_elements)
-
-            # COMPUTE THE DIMENSIONS USING ONE OF THE SAMPLES
-            # 1) Transform it to networkx
-            # 2) Obtain all the nodes attributes
-            # 3) Obtain all the edge attributes
-            # 4) Obtain all the graph attributes
-
-            # 1) Obtain the corresponding graph
+            # Obtain the corresponding graph
             G = json_graph.node_link_graph(sample)
 
-            # 1) Node attributes
-            node_attrs = list(set(chain.from_iterable(d.keys() for _, d in G.nodes(data=True))))
-            for n in node_attrs:
-                if n != 'entity:':
-                    features = list(nx.get_node_attributes(G, n).values())
-                    elem = features[0]
-                    # if features has dimension 1, then dim = 1.
-                    if isinstance(elem, list):
-                        dimensions[n] = len(elem)
-                    else:
-                        dimensions[n] = 1
+        # Now that we have the sample, we can process the dimensions
+        dimensions = {}  # for each key, we have a tuple of (length, num_elements)
 
-            # 2) Edge attributes
-            edge_attrs = list(set(chain.from_iterable(d.keys() for *_, d in G.edges(data=True))))
-            for e in edge_attrs:
-                features = list(nx.get_edge_attributes(G, e).values())
-                if isinstance(features[0], list):
-                    dimensions[e] = len(features[0])
+        # COMPUTE THE DIMENSIONS USING ONE OF THE SAMPLES
+        # 1) Transform it to networkx or take the networkx input graph directly (list or generator)
+        # 2) Obtain all the nodes attributes
+        # 3) Obtain all the edge attributes
+        # 4) Obtain all the graph attributes
+
+        # 1) Node attributes
+        node_attrs = list(set(chain.from_iterable(d.keys() for _, d in G.nodes(data=True))))
+        for n in node_attrs:
+            if n != 'entity:':
+                features = list(nx.get_node_attributes(G, n).values())
+                elem = features[0]
+                # if features has dimension 1, then dim = 1.
+                if isinstance(elem, list):
+                    dimensions[n] = len(elem)
                 else:
-                    dimensions[e] = 1
+                    dimensions[n] = 1
 
-            # 3) Graph attributes
-            graph_attrs = list(G.graph.keys())
-            for g in graph_attrs:
-                feature = G.graph[g]
-                dimensions[g] = len(feature) if isinstance(feature, list) else 1
+        # 2) Edge attributes
+        edge_attrs = list(set(chain.from_iterable(d.keys() for *_, d in G.edges(data=True))))
+        for e in edge_attrs:
+            features = list(nx.get_edge_attributes(G, e).values())
+            if isinstance(features[0], list):
+                dimensions[e] = len(features[0])
+            else:
+                dimensions[e] = 1
 
-            return dimensions, sample
+        # 3) Graph attributes
+        graph_attrs = list(G.graph.keys())
+        for g in graph_attrs:
+            feature = G.graph[g]
+            dimensions[g] = len(feature) if isinstance(feature, list) else 1
+
+        return dimensions, sample
 
     # FUNCTIONALITIES
     # --------------------------------------------------
@@ -786,6 +796,7 @@ class IgnnitionModel:
 
         self.weights_loaded = True
 
+        breakpoint()
         self.gnn_model.fit(train_dataset,
                            epochs=num_epochs,
                            initial_epoch=self.CONFIG.get('initial_epoch', 0),
@@ -874,40 +885,47 @@ class IgnnitionModel:
 
     @handle_exception
     def computational_graph(self):
+
+
         # Check if we can generate the computational graph without a dataset
-        train_path = self.CONFIG.get('train_dataset', '')
+        train_path = ''
+        if not self.training_data:
+            train_path = self.CONFIG.get('train_dataset', '')
 
-        if train_path is not None:
-            train_path = self.__process_path(train_path)
-        else:
-            train_path = ''
+            if train_path is not None:
+                train_path = self.__process_path(train_path)
 
-        val_path = self.CONFIG.get('validation_dataset', '')
-        if val_path is not None:
-            val_path = self.__process_path(val_path)
-        else:
-            val_path = ''
+        val_path = ''
+        if not self.validation_data:
+            val_path = self.CONFIG.get('validation_dataset', '')
+            if val_path is not None:
+                val_path = self.__process_path(val_path)
 
+        # TODO testing dataset?
         pred_path = self.CONFIG.get('pred_path', '')
         if pred_path is not None:
             pred_path = self.__process_path(pred_path)
         else:
             pred_path = ''
 
-        if os.path.isdir(train_path):
-            data_path = train_path
-        elif os.path.isdir(val_path):
-            data_path = val_path
-        elif os.path.isdir(pred_path):
-            data_path = pred_path
-        else:
+        data = self.training_data if self.training_data else os.path.isdir(train_path)
+        if not data:
+            data = self.validation_data if self.validation_data else os.path.isdir(val_path)
+        if not data:
+            data = self.pred_data if self.pred_data else os.path.isdir(pred_path)
+
+        if not os.path.isdir(train_path) and not self.training_data and not os.path.isdir(val_path) \
+                and not self.validation_data and not os.path.isdir(pred_path) and not self.training_data:
             raise IgnnitionException(message='In order to build the computational graph of your model, you must '
                                              'specify at least one of the train, validation or predict dataset paths in'
                                              ' the train_options.yaml file. Please check that you have specified at '
                                              'least one of them, and that they point to a valid dataset.')
 
         if not hasattr(self, 'gnn_model'):
-            self.__create_gnn(path=data_path)
+            if isinstance(data, (list, GeneratorType)):
+                self.__create_gnn(samples=data)
+            else:
+                self.__create_gnn(path=data)
         print_header(
             'Generating the computational graph... \n----------------------------------------------------'
             '-----------------------\n')
@@ -921,8 +939,11 @@ class IgnnitionModel:
         writer = tf.summary.create_file_writer(path)
         tf.summary.trace_on(graph=True, profiler=True)
 
+        if isinstance(data, (list, GeneratorType)):
+            sample_it = self.__input_fn_generator(training=False, data_samples=data, iterator=True)
+        else:
+            sample_it = self.__input_fn_generator(data, training=False, data_samples=None, iterator=True)
         # evaluate one single input
-        sample_it = self.__input_fn_generator(data_path, training=False, data_samples=None, iterator=True)
         sample = sample_it.get_next()
         # Call only one tf.function when tracing.
         _ = self.gnn_model(sample, training=False)
@@ -996,8 +1017,3 @@ class IgnnitionModel:
         dataset = self.__input_fn_generator(None, training=True, data_samples=input_samples, iterator=False)
         self.gnn_model.fit(dataset, batch_size=len(input_samples), verbose=0)
 
-
-
-def random_graphs():
-    for _ in range(5):
-        yield nx.generators.random_graphs.gnp_random_graph(10, 0.5)

@@ -372,7 +372,7 @@ class Generator:
         """
         Parameters
         ----------
-        data_samples:    [array]
+        data_samples:    Union[array, GeneratorType]
            Array of samples to be processed
         entity_names: [array]
             Name of the entities to be found in the dataset
@@ -390,7 +390,6 @@ class Generator:
            Shuffle parameter of the dataset
         """
 
-        data_samples = [json.loads(x) for x in data_samples]
         self.entity_names = [x for x in entity_names]
         self.feature_names = [x for x in feature_names]
         self.output_names = output_names
@@ -423,7 +422,7 @@ class Generator:
         """
         Parameters
         ----------
-        dir:    Union[str, Generator[nx.Graph]]
+        dir:    str
            Path of the input dataset
         entity_names: [array]
             Name of the entities to be found in the dataset
