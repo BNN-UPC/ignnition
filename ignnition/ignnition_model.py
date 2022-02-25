@@ -25,6 +25,8 @@ import glob
 import tarfile
 from importlib import import_module
 from pathlib import Path
+from typing import Union, Generator
+from types import GeneratorType
 import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -693,9 +695,9 @@ class IgnnitionModel:
         """
         Parameters
         ----------
-        training_samples:    [array]
+        training_samples:    Union[array, Generator[nx.Graph]]
             Array of input training samples, if no dataset is used.
-        val_samples:    [array]
+        val_samples:    Union[array, Generator[nx.Graph]]
             Array of input validation samples, if no dataset is used.
         """
         self.mode = 0
@@ -726,8 +728,14 @@ class IgnnitionModel:
             'Starting the training and validation process...\n----------------------------------'
             '-----------------------------------------\n')
 
-        filenames_train = self.__process_path(train_dataset)
-        filenames_val = self.__process_path(validation_dataset)
+        if isinstance(training_samples, GeneratorType):
+            filenames_train = training_samples
+        else:
+            filenames_train = self.__process_path(train_dataset)
+        if isinstance(val_samples, GeneratorType):
+            filenames_val = val_samples
+        else:
+            filenames_val = self.__process_path(validation_dataset)
 
         output_path = self.__process_path(self.CONFIG.get('output_path', None))
         output_path = os.path.join(output_path, 'CheckPoint')
@@ -987,3 +995,9 @@ class IgnnitionModel:
 
         dataset = self.__input_fn_generator(None, training=True, data_samples=input_samples, iterator=False)
         self.gnn_model.fit(dataset, batch_size=len(input_samples), verbose=0)
+
+
+
+def random_graphs():
+    for _ in range(5):
+        yield nx.generators.random_graphs.gnp_random_graph(10, 0.5)

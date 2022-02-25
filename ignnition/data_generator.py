@@ -25,6 +25,7 @@ import math
 import random
 import functools
 import json
+import types
 
 import numpy as np
 import networkx as nx
@@ -106,13 +107,17 @@ class Generator:
         """
         Parameters
         ----------
-        sample:    dict
+        sample:    Union[dict, networkx.Graph]
             Input sample which is a serialized version (in JSON) of a networkx graph.
         file:    str
             Path to these file (which is useful for error-checking purposes)
         """
+        # sample is already an nx graph
+        if isinstance(sample, nx.Graph):
+            G = sample
         # load the model
-        G = json_graph.node_link_graph(sample)
+        else:
+            G = json_graph.node_link_graph(sample)
 
         # Only directed graphs are supported. Error checking message if the graph is undirected
         if not G.is_directed():
@@ -418,7 +423,7 @@ class Generator:
         """
         Parameters
         ----------
-        dir:    str
+        dir:    Union[str, Generator[nx.Graph]]
            Path of the input dataset
         entity_names: [array]
             Name of the entities to be found in the dataset
@@ -447,38 +452,44 @@ class Generator:
         self.additional_input = additional_input
         self.training = training
 
-        files = glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz') + glob.glob(str(dir) + '/*.gml')
+        if isinstance(dir, str):
+            files = glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz') + glob.glob(str(dir) + '/*.gml')
 
-        # no elements found
-        if not files:
-            raise Exception('The dataset located in  ' + dir + ' seems to contain no valid elements (json or .tar.gz)')
+            # no elements found
+            if not files:
+                raise Exception('The dataset located in  ' + dir + ' seems to contain no valid elements (json or .tar.gz)')
 
-        if shuffle:
-            random.shuffle(files)
+            if shuffle:
+                random.shuffle(files)
 
-        for sample_file in files:
-            tar_file = False
-            try:
-                if 'tar.gz' in sample_file:
-                    tar = tarfile.open(sample_file, 'r:gz')  # read the tar files
-                    try:
-                        file_name = tar.getmembers()[0]
-                        file_samples = tar.extractfile(file_name)
-                        tar_file = True
-                    except:
-                        raise Exception('There was an error when trying to read the file ', file_name)
-                else:
-                    file_samples = open(sample_file, 'r', encoding="utf-8")
+            for sample_file in files:
+                tar_file = False
+                try:
+                    if 'tar.gz' in sample_file:
+                        tar = tarfile.open(sample_file, 'r:gz')  # read the tar files
+                        try:
+                            file_name = tar.getmembers()[0]
+                            file_samples = tar.extractfile(file_name)
+                            tar_file = True
+                        except:
+                            raise Exception('There was an error when trying to read the file ', file_name)
+                    else:
+                        file_samples = open(sample_file, 'r', encoding="utf-8")
 
-                data = self.stream_read_json(file_samples, tar_file)
+                    data = self.stream_read_json(file_samples, tar_file)
 
-                while True:
-                    processed_sample = self.__process_sample(next(data), sample_file)
-                    yield processed_sample
+                    while True:
+                        processed_sample = self.__process_sample(next(data), sample_file)
+                        yield processed_sample
 
-            except StopIteration:
-                pass
+                except StopIteration:
+                    pass
 
-            except KeyboardInterrupt:
-                sys.exit()
+                except KeyboardInterrupt:
+                    sys.exit()
 
+        else:
+            # generator of networkx graphs
+            for sample in dir:
+                processed_sample = self.__process_sample(sample)
+                yield processed_sample
