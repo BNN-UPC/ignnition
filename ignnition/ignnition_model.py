@@ -796,7 +796,6 @@ class IgnnitionModel:
 
         self.weights_loaded = True
 
-        breakpoint()
         self.gnn_model.fit(train_dataset,
                            epochs=num_epochs,
                            initial_epoch=self.CONFIG.get('initial_epoch', 0),
