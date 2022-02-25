@@ -907,11 +907,11 @@ class IgnnitionModel:
         else:
             pred_path = ''
 
-        data = self.training_data if self.training_data else os.path.isdir(train_path)
+        data = self.training_data if self.training_data else train_path
         if not data:
-            data = self.validation_data if self.validation_data else os.path.isdir(val_path)
+            data = self.validation_data if self.validation_data else val_path
         if not data:
-            data = self.pred_data if self.pred_data else os.path.isdir(pred_path)
+            data = self.pred_data if self.pred_data else pred_path
 
         if not os.path.isdir(train_path) and not self.training_data and not os.path.isdir(val_path) \
                 and not self.validation_data and not os.path.isdir(pred_path) and not self.training_data:
