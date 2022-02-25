@@ -277,6 +277,18 @@ class GnnModel(tf.keras.Model):
 
                                     save_global_variable(self.calculations, op.output_name, output)
 
+                            if op.type == 'product':
+                                with tf.name_scope('product' + str(counter)) as _:
+                                    # careful. This name could overlap with another model
+                                    var_name = entity.name + "_hs_creation_" + str(counter)
+                                    hs_creator = get_global_variable(self.calculations, var_name)
+                                    print("hs_creator")
+                                    print(hs_creator)
+                                    print("f_")
+                                    print(f_)
+
+                                    save_global_variable(self.calculations, op.output_name, output)
+
                             elif op.type == 'build_state':
                                 with tf.name_scope('build_state' + str(counter)) as _:
                                     state = op.calculate_hs(self.calculations, f_)
