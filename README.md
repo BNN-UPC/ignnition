@@ -47,7 +47,7 @@ pip install ignnition
 ```
 Alternatively, you can install it from the source code, using the following commands. These commands first download the source code, then prepare the environment, and finally install the library:
 ```
-wget 'https://github.com/knowledgedefinednetworking/ignnition'
+wget 'https://github.com/BNN-UPC/ignnition'
 pip install -r requirements.txt
 python setup.py install
 ```
