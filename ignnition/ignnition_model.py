@@ -394,7 +394,7 @@ class IgnnitionModel:
         """
         Parameters
         ----------
-        filenames:    string
+        filenames:    list
             Tensor with the filenames of the input (if using dataset input only)
         repeat:     bool
             Bool indicating if we need to repeat the dataset.
@@ -981,7 +981,10 @@ class IgnnitionModel:
                                                    "method and no val_samples is specified.")
 
         if evaluation_samples is None:
-            data_path = self.__process_path(self.CONFIG['validation_dataset'])
+            data_path = self.CONFIG['validation_dataset']
+            if isinstance(data_path, str):
+                data_path = [data_path]
+            data_path = list(map(self.__process_path, data_path))
 
         if not hasattr(self, 'gnn_model'):
             if evaluation_samples is None:  # look for the dataset path

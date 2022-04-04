@@ -422,8 +422,8 @@ class Generator:
         """
         Parameters
         ----------
-        dir:    str
-           Path of the input dataset
+        dir:    list
+           Path or paths of the input datasets
         entity_names: [array]
             Name of the entities to be found in the dataset
         feature_names:    [array]
@@ -488,6 +488,7 @@ class Generator:
                     sys.exit()
 
         else:
+            # TODO differentiate between list of graphs and list of paths
             # generator of networkx graphs
             for sample in dir:
                 processed_sample = self.__process_sample(sample)
