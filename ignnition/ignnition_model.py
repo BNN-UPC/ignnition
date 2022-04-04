@@ -535,8 +535,8 @@ class IgnnitionModel:
         ----------
         samples:    [array]
             Array of samples to be used as input (if any)
-        path:
-            Path to find the input data (applicable only if using dataset input)
+        path:    list
+            Path or paths to find the input data (applicable only if using dataset input)
         verbose:    bool
             Indicates if we want verbosity in the prints of the terminal
         """
@@ -597,10 +597,10 @@ class IgnnitionModel:
         """
         Parameters
         ----------
-        path:    str
-          Path to find the dataset
+        path:    list
+          Path or paths to find the dataset
         samples: Union[array, GeneratorType]
-            Array or geneartor of samples to be used as input (if any)
+            Array or generator of samples to be used as input (if any)
         """
         tar_file = False
 
@@ -613,7 +613,7 @@ class IgnnitionModel:
                 sample = json_graph.node_link_data(G.to_directed())
 
         else:
-            sample_paths = (glob.glob(path + '/*.tar.gz') + glob.glob(path + '/*.json'))
+            sample_paths = (glob.glob(path[0] + '/*.tar.gz') + glob.glob(path[0] + '/*.json'))
 
             if not sample_paths:
                 raise DatasetException(data_path=path,
@@ -884,26 +884,33 @@ class IgnnitionModel:
 
     @handle_exception
     def computational_graph(self):
-
-
         # Check if we can generate the computational graph without a dataset
+        files = False
         train_path = ''
         if not self.training_data:
-            train_path = self.CONFIG.get('train_dataset', '')
-
+            train_path = self.CONFIG.get('train_dataset')
             if train_path is not None:
-                train_path = self.__process_path(train_path)
+                files = True
+                if isinstance(train_path, str):
+                    train_path = [train_path]
+                train_path = list(map(self.__process_path, train_path))
 
         val_path = ''
         if not self.validation_data:
-            val_path = self.CONFIG.get('validation_dataset', '')
+            val_path = self.CONFIG.get('validation_dataset')
             if val_path is not None:
-                val_path = self.__process_path(val_path)
+                files = True
+                if isinstance(val_path, str):
+                    val_path = [val_path]
+                val_path = list(map(self.__process_path, val_path))
 
         # TODO testing dataset?
-        pred_path = self.CONFIG.get('pred_path', '')
+        pred_path = self.CONFIG.get('pred_path')
         if pred_path is not None:
-            pred_path = self.__process_path(pred_path)
+            files = True
+            if isinstance(pred_path, str):
+                pred_path = [pred_path]
+            pred_path = list(map(self.__process_path, pred_path))
         else:
             pred_path = ''
 
@@ -921,9 +928,9 @@ class IgnnitionModel:
                                              'least one of them, and that they point to a valid dataset.')
 
         if not hasattr(self, 'gnn_model'):
-            if isinstance(data, (list, GeneratorType)):
+            if not files:  # samples are used as a list or generator of graphs
                 self.__create_gnn(samples=data)
-            else:
+            else:  # list of paths (one or more)
                 self.__create_gnn(path=data)
         print_header(
             'Generating the computational graph... \n----------------------------------------------------'
@@ -938,9 +945,9 @@ class IgnnitionModel:
         writer = tf.summary.create_file_writer(path)
         tf.summary.trace_on(graph=True, profiler=True)
 
-        if isinstance(data, (list, GeneratorType)):
+        if not files:  # samples are used as a list or generator of graphs
             sample_it = self.__input_fn_generator(training=False, data_samples=data, iterator=True)
-        else:
+        else:  # list of paths (one or more)
             sample_it = self.__input_fn_generator(data, training=False, data_samples=None, iterator=True)
         # evaluate one single input
         sample = sample_it.get_next()
