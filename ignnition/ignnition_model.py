@@ -758,20 +758,22 @@ class IgnnitionModel:
 
         print_info(dev_string)
 
+        repeat = False
+        mini_epoch_size = self.CONFIG.get('epoch_size', None)
+        if mini_epoch_size is not None:
+            mini_epoch_size = int(mini_epoch_size)
+            repeat = True
+
         train_dataset = self.__input_fn_generator(filenames_train,
-                                                  repeat=True,
+                                                  repeat=repeat,
                                                   shuffle=str_to_bool(
                                                       self.CONFIG['shuffle_training_set']),
                                                   data_samples=training_samples)
+
         validation_dataset = self.__input_fn_generator(filenames_val,
                                                        shuffle=str_to_bool(
                                                            self.CONFIG['shuffle_validation_set']),
                                                        data_samples=val_samples)
-
-        mini_epoch_size = self.CONFIG.get('epoch_size', None)
-        if mini_epoch_size is not None:
-            mini_epoch_size = int(mini_epoch_size)
-
         num_epochs = int(self.CONFIG['epochs'])
 
         callbacks = self.__get_model_callbacks(output_path=output_path)
