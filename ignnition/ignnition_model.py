@@ -645,46 +645,46 @@ class IgnnitionModel:
                                        message="There was an error reading the dataset. Please check it is one of the "
                                                "valid formats.")
 
-            # Now that we have the sample, we can process the dimensions
-            dimensions = {}  # for each key, we have a tuple of (length, num_elements)
+        # Now that we have the sample, we can process the dimensions
+        dimensions = {}  # for each key, we have a tuple of (length, num_elements)
 
-            # COMPUTE THE DIMENSIONS USING ONE OF THE SAMPLES
-            # 1) Transform it to networkx
-            # 2) Obtain all the nodes attributes
-            # 3) Obtain all the edge attributes
-            # 4) Obtain all the graph attributes
+        # COMPUTE THE DIMENSIONS USING ONE OF THE SAMPLES
+        # 1) Transform it to networkx
+        # 2) Obtain all the nodes attributes
+        # 3) Obtain all the edge attributes
+        # 4) Obtain all the graph attributes
 
-            # 1) Obtain the corresponding graph
-            G = json_graph.node_link_graph(sample)
+        # 1) Obtain the corresponding graph
+        G = json_graph.node_link_graph(sample)
 
-            # 1) Node attributes
-            node_attrs = list(set(chain.from_iterable(d.keys() for _, d in G.nodes(data=True))))
-            for n in node_attrs:
-                if n != 'entity:':
-                    features = list(nx.get_node_attributes(G, n).values())
-                    elem = features[0]
-                    # if features has dimension 1, then dim = 1.
-                    if isinstance(elem, list):
-                        dimensions[n] = len(elem)
-                    else:
-                        dimensions[n] = 1
-
-            # 2) Edge attributes
-            edge_attrs = list(set(chain.from_iterable(d.keys() for *_, d in G.edges(data=True))))
-            for e in edge_attrs:
-                features = list(nx.get_edge_attributes(G, e).values())
-                if isinstance(features[0], list):
-                    dimensions[e] = len(features[0])
+        # 1) Node attributes
+        node_attrs = list(set(chain.from_iterable(d.keys() for _, d in G.nodes(data=True))))
+        for n in node_attrs:
+            if n != 'entity:':
+                features = list(nx.get_node_attributes(G, n).values())
+                elem = features[0]
+                # if features has dimension 1, then dim = 1.
+                if isinstance(elem, list):
+                    dimensions[n] = len(elem)
                 else:
-                    dimensions[e] = 1
+                    dimensions[n] = 1
 
-            # 3) Graph attributes
-            graph_attrs = list(G.graph.keys())
-            for g in graph_attrs:
-                feature = G.graph[g]
-                dimensions[g] = len(feature) if isinstance(feature, list) else 1
+        # 2) Edge attributes
+        edge_attrs = list(set(chain.from_iterable(d.keys() for *_, d in G.edges(data=True))))
+        for e in edge_attrs:
+            features = list(nx.get_edge_attributes(G, e).values())
+            if isinstance(features[0], list):
+                dimensions[e] = len(features[0])
+            else:
+                dimensions[e] = 1
 
-            return dimensions, sample
+        # 3) Graph attributes
+        graph_attrs = list(G.graph.keys())
+        for g in graph_attrs:
+            feature = G.graph[g]
+            dimensions[g] = len(feature) if isinstance(feature, list) else 1
+
+        return dimensions, sample
 
     # FUNCTIONALITIES
     # --------------------------------------------------
@@ -758,20 +758,22 @@ class IgnnitionModel:
 
         print_info(dev_string)
 
+        repeat = False
+        mini_epoch_size = self.CONFIG.get('epoch_size', None)
+        if mini_epoch_size is not None:
+            mini_epoch_size = int(mini_epoch_size)
+            repeat = True
+
         train_dataset = self.__input_fn_generator(filenames_train,
-                                                  repeat=True,
+                                                  repeat=repeat,
                                                   shuffle=str_to_bool(
                                                       self.CONFIG['shuffle_training_set']),
                                                   data_samples=training_samples)
+
         validation_dataset = self.__input_fn_generator(filenames_val,
                                                        shuffle=str_to_bool(
                                                            self.CONFIG['shuffle_validation_set']),
                                                        data_samples=val_samples)
-
-        mini_epoch_size = self.CONFIG.get('epoch_size', None)
-        if mini_epoch_size is not None:
-            mini_epoch_size = int(mini_epoch_size)
-
         num_epochs = int(self.CONFIG['epochs'])
 
         callbacks = self.__get_model_callbacks(output_path=output_path)
