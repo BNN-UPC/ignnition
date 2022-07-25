@@ -6,3 +6,6 @@ A. Badia-Sampera, J. Suárez-Varela, P. Almasan, K. Rusek, P. Barlet-Ros, A. Cab
 This work extends the architecture of RouteNet to support different features on forwarding devices. The paper focuses on modeling networks where devices may have variable queue size.
 
 The datasets used in the paper are not publicly available. However, we provide the implementation of this model as a useful reference for future works.
+
+We have also included the *global_variables* file, even though right now is not used by the *model_description* file. To learn to use them, we refer the user to (https://ignnition.org/doc/global_variables/).
+

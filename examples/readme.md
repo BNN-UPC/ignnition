@@ -13,3 +13,4 @@ Note you first need to subscribe to this mailing list, otherwise emails are auto
 
 https://mail.ignnition.net/cgi-bin/mailman/listinfo/devel
 
+Notice that this library, however, is under continuous development, and thus we greatly appreciate suggestions or even contributions to help us grow this library of examples even more. Of course any contribution will be consequently noted in the contributors file. To contact us, please visit (https://ignnition.org/).

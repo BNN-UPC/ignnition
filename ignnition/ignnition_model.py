@@ -657,17 +657,17 @@ class IgnnitionModel:
                                        message="There was an error reading the dataset. Please check it is one of the "
                                                "valid formats.")
 
-            # Obtain the corresponding graph
-            G = json_graph.node_link_graph(sample)
-
         # Now that we have the sample, we can process the dimensions
         dimensions = {}  # for each key, we have a tuple of (length, num_elements)
 
         # COMPUTE THE DIMENSIONS USING ONE OF THE SAMPLES
-        # 1) Transform it to networkx or take the networkx input graph directly (list or generator)
+        # 1) Transform it to networkx
         # 2) Obtain all the nodes attributes
         # 3) Obtain all the edge attributes
         # 4) Obtain all the graph attributes
+
+        # 1) Obtain the corresponding graph
+        G = json_graph.node_link_graph(sample)
 
         # 1) Node attributes
         node_attrs = list(set(chain.from_iterable(d.keys() for _, d in G.nodes(data=True))))
@@ -776,20 +776,22 @@ class IgnnitionModel:
 
         print_info(dev_string)
 
+        repeat = False
+        mini_epoch_size = self.CONFIG.get('epoch_size', None)
+        if mini_epoch_size is not None:
+            mini_epoch_size = int(mini_epoch_size)
+            repeat = True
+
         train_dataset = self.__input_fn_generator(filenames_train,
-                                                  repeat=True,
+                                                  repeat=repeat,
                                                   shuffle=str_to_bool(
                                                       self.CONFIG['shuffle_training_set']),
                                                   data_samples=training_samples)
+
         validation_dataset = self.__input_fn_generator(filenames_val,
                                                        shuffle=str_to_bool(
                                                            self.CONFIG['shuffle_validation_set']),
                                                        data_samples=val_samples)
-
-        mini_epoch_size = self.CONFIG.get('epoch_size', None)
-        if mini_epoch_size is not None:
-            mini_epoch_size = int(mini_epoch_size)
-
         num_epochs = int(self.CONFIG['epochs'])
 
         callbacks = self.__get_model_callbacks(output_path=output_path)

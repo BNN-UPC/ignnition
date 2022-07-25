@@ -1,5 +1,7 @@
 # IGNNITION: Fast prototyping of Graph Neural Networks for Communication Networks
 
+[![Downloads](https://pepy.tech/badge/ignnition)](https://pepy.tech/project/ignnition)
+
 *IGNNITION* is the ideal framework for users with no experience in neural network programming (e.g., TensorFlow, PyTorch). With this framework, users can design and run their own Graph Neural Networks (GNN) in a matter of a few hours.
 
 #### Website: https://ignnition.org
@@ -47,7 +49,7 @@ pip install ignnition
 ```
 Alternatively, you can install it from the source code, using the following commands. These commands first download the source code, then prepare the environment, and finally install the library:
 ```
-wget 'https://github.com/knowledgedefinednetworking/ignnition'
+wget 'https://github.com/BNN-UPC/ignnition'
 pip install -r requirements.txt
 python setup.py install
 ```

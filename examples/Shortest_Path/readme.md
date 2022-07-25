@@ -15,5 +15,7 @@ This command build the GNN model described in *model_description.yaml* file. We 
 
 You can change the *main.py* file to execute any other functionality apart from train and validate. Please, visit the documentation for more details (https://ignnition.org/doc).
 
+If you want to execute any other functionality that is not train and validate, simply change the *main.py* file, to specify the new functionality. Visit (https://ignnition.org/doc/train_and_evaluate/) for more information.
 
+Finally, we recommend you to visit [our documentation](https://ignnition.org/doc/quick_tutorial/) for further details regarding this model and the complete pipeline to execute it.
 
