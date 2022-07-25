@@ -922,8 +922,9 @@ class IgnnitionModel:
         if not data:
             data = self.pred_data if self.pred_data else pred_path
 
-        if not os.path.isdir(train_path) and not self.training_data and not os.path.isdir(val_path) \
-                and not self.validation_data and not os.path.isdir(pred_path) and not self.training_data:
+        if not (isinstance(train_path, list) or os.path.isdir(train_path)) and not self.training_data \
+                and not (isinstance(val_path, list) or os.path.isdir(val_path)) and not self.validation_data \
+                and not (isinstance(pred_path, list) or os.path.isdir(pred_path)):
             raise IgnnitionException(message='In order to build the computational graph of your model, you must '
                                              'specify at least one of the train, validation or predict dataset paths in'
                                              ' the train_options.yaml file. Please check that you have specified at '

@@ -452,44 +452,51 @@ class Generator:
         self.training = training
 
         if isinstance(dir, str):
-            files = glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz') + glob.glob(str(dir) + '/*.gml')
+            self.process_file(dir, shuffle)
 
-            # no elements found
-            if not files:
-                raise Exception('The dataset located in  ' + dir + ' seems to contain no valid elements (json or .tar.gz)')
+        elif isinstance(dir, list):
+            first_elem = dir[0]
+            if isinstance(first_elem, str):
+                for d in dir:
+                    self.process_file(d)
+            else:
+                # generator of networkx graphs
+                for sample in dir:
+                    processed_sample = self.__process_sample(sample)
+                    yield processed_sample
 
-            if shuffle:
-                random.shuffle(files)
+    def process_file(self, dir, shuffle=False):
+        files = glob.glob(str(dir) + '/*.json') + glob.glob(str(dir) + '/*.tar.gz') + glob.glob(str(dir) + '/*.gml')
 
-            for sample_file in files:
-                tar_file = False
-                try:
-                    if 'tar.gz' in sample_file:
-                        tar = tarfile.open(sample_file, 'r:gz')  # read the tar files
-                        try:
-                            file_name = tar.getmembers()[0]
-                            file_samples = tar.extractfile(file_name)
-                            tar_file = True
-                        except:
-                            raise Exception('There was an error when trying to read the file ', file_name)
-                    else:
-                        file_samples = open(sample_file, 'r', encoding="utf-8")
+        # no elements found
+        if not files:
+            raise Exception('The dataset located in  ' + dir + ' seems to contain no valid elements (json or .tar.gz)')
 
-                    data = self.stream_read_json(file_samples, tar_file)
+        if shuffle:
+            random.shuffle(files)
 
-                    while True:
-                        processed_sample = self.__process_sample(next(data), sample_file)
-                        yield processed_sample
+        for sample_file in files:
+            tar_file = False
+            try:
+                if 'tar.gz' in sample_file:
+                    tar = tarfile.open(sample_file, 'r:gz')  # read the tar files
+                    try:
+                        file_name = tar.getmembers()[0]
+                        file_samples = tar.extractfile(file_name)
+                        tar_file = True
+                    except:
+                        raise Exception('There was an error when trying to read the file ', file_name)
+                else:
+                    file_samples = open(sample_file, 'r', encoding="utf-8")
 
-                except StopIteration:
-                    pass
+                data = self.stream_read_json(file_samples, tar_file)
 
-                except KeyboardInterrupt:
-                    sys.exit()
+                while True:
+                    processed_sample = self.__process_sample(next(data), sample_file)
+                    yield processed_sample
 
-        else:
-            # TODO differentiate between list of graphs and list of paths
-            # generator of networkx graphs
-            for sample in dir:
-                processed_sample = self.__process_sample(sample)
-                yield processed_sample
+            except StopIteration:
+                pass
+
+            except KeyboardInterrupt:
+                sys.exit()
