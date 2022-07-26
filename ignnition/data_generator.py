@@ -458,7 +458,7 @@ class Generator:
             first_elem = dir[0]
             if isinstance(first_elem, str):
                 for d in dir:
-                    self.process_file(d)
+                    self.process_file(d, shuffle)
             else:
                 # generator of networkx graphs
                 for sample in dir:
