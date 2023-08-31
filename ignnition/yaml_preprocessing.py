@@ -136,12 +136,13 @@ class YamlPreprocessing:
         self.entities = self.__get_entities(self.data['entities'])
         if (self.data['messasge_passing'] is True):
             self.iterations_mp = int(self.data['message_passing']['num_iterations'])
+            self.mp_instances = self.__get_mp_instances(self.data['message_passing']['stages'])
         elif(self.data['st_loop'] is True):
             self.loops_st = int(self.data['st_loop']['num_iterations'])
 
         #aquesta es la idea que tinc per fer el loop, diferenciarlo dels sistemes normals
         # lo que faltaria a dia 27/8 es fer la funcio per cridar la gcn, per sort les altres es poden fre bé
-        self.mp_instances = self.__get_mp_instances(self.data['message_passing']['stages'])
+        
         self.readout_op = self.__get_readout_op(self.data['readout'])
 
     # PRIVATE

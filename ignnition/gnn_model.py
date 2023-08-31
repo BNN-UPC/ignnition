@@ -26,7 +26,7 @@ from ignnition.operation_classes import RNNOperation
 from ignnition.aggregation_classes import ConcatAggr, InterleaveAggr
 from ignnition.utils import save_global_variable, print_failure, get_global_variable, get_global_var_or_input
 from ignnition.error_handling import ConvolutionOperationError
-
+from ignnition.GCN import GraphConvLayer
 
 class GnnModel(tf.keras.Model):
     """
@@ -47,10 +47,29 @@ class GnnModel(tf.keras.Model):
         self.dimensions = self.model_info.get_input_dimensions()
         #aqui s'ha de fer el tall per fer les modificacions a gust
         self.mode = self.model_info.get_mode_operation()
-        if (self.mode="spatiotemporal"):
-            #bla, blah, blah 
+        if (self.mode=="spatiotemporal"):
+            self.calculations = {}
+            with tf.name_scope('model_initializations') as _:
+                entities = model_info.entities
+                for entity in entities:
+                    operations = entity.operations
+                    counter = 0
+                    for op in operations:
+                        if op.type == 'neural_network':
+                            var_name = entity.name + "_hs_creation_" + str(counter)
+                            input_dim = op.find_total_input_dim(self.dimensions, self.calculations)
 
+                            model, output_shape = op.model.construct_tf_model(input_dim=input_dim)
+                            save_global_variable(self.calculations, var_name, model)
 
+                            # Need to keep track of the output dimension of this one, in case we need it for a new model
+                            if op.output_name is not None:
+                                save_global_variable(self.calculations, op.output_name + '_dim', output_shape)
+                        counter += 1
+            #bla, blah, blah Aqui hauria d'anar les coses estil muntatge del model
+
+            
+            
             
             # --------------------------------
                 # Create the readout model
@@ -91,6 +110,8 @@ class GnnModel(tf.keras.Model):
                         self.dimensions[operation.output_name] = dimensionality
 
                     counter += 1
+
+        #aquesta es la secció on es fa la message passing
         else:
             self.instances_per_stage = self.model_info.get_mp_instances()
             self.calculations = {}
@@ -155,7 +176,7 @@ class GnnModel(tf.keras.Model):
 
                                 counter += 1
 
-                        with tf.name_scope('aggregation_models') as _:
+                        with tf.name_scope('aggregation_models') as _: 
                             aggregations = message.aggregations
                             F_dst = int(self.dimensions.get(dst_name))
                             F_src = int(output_shape)
