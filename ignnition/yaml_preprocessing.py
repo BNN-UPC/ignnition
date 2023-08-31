@@ -134,9 +134,9 @@ class YamlPreprocessing:
 
         self.nn_architectures = self.__get_nn_mapping(self.data['neural_networks'])
         self.entities = self.__get_entities(self.data['entities'])
-        if (self.data['messasge_passing'] is notNull):
+        if (self.data['messasge_passing'] is True):
             self.iterations_mp = int(self.data['message_passing']['num_iterations'])
-        elif(self.data['st_loop'] is notNull):
+        elif(self.data['st_loop'] is True):
             self.loops_st = int(self.data['st_loop']['num_iterations'])
 
         #aquesta es la idea que tinc per fer el loop, diferenciarlo dels sistemes normals
@@ -369,6 +369,19 @@ class YamlPreprocessing:
                 m['update']['architecture'] = info['nn_architecture']
 
         return m
+
+    def __get_mode_operation(self, inst):
+        """
+        Parameters
+        ----------
+        inst:   dict
+            Dictionary with the model information
+        """
+        if(inst['messasge_passing'] is True):
+            return("Message_passing")
+        else:
+            return("spatiotemporal")
+
 
     def __get_mp_instances(self, inst):
         """
