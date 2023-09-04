@@ -49,7 +49,7 @@ class GnnModel(tf.keras.Model):
         self.mode = self.model_info.get_mode_operation()
         if (self.mode=="spatiotemporal"):
             self.calculations = {}
-            with tf.name_scope('model_initializations') as _:
+            with tf.name_scope('preprocessing') as _:
                 entities = model_info.entities
                 for entity in entities:
                     operations = entity.operations
@@ -67,49 +67,198 @@ class GnnModel(tf.keras.Model):
                                 save_global_variable(self.calculations, op.output_name + '_dim', output_shape)
                         counter += 1
             #bla, blah, blah Aqui hauria d'anar les coses estil muntatge del model
+            #com que aqui es la construcció del model es pot simplement inicialitzar
 
+            with tf.name_scope('st_loop') as _:
+                entities = model_info.entities
+                for entity in entities:
+                    operations = entity.operations
+                    counter = 0
+                    for op in operations:
+                        if op.type == 'neural_network':
+                            var_name = entity.name + "_hs_creation_" + str(counter)
+                            input_dim = op.find_total_input_dim(self.dimensions, self.calculations)
+
+                            model, output_shape = op.model.construct_tf_model(input_dim=input_dim)
+                            save_global_variable(self.calculations, var_name, model)
+
+                            # Need to keep track of the output dimension of this one, in case we need it for a new model
+                            if op.output_name is not None:
+                                save_global_variable(self.calculations, op.output_name + '_dim', output_shape)
+                        counter += 1
+                
+                    with tf.name_scope('preprocessing') as _:
+                        for src in message.source_entities:
+                                operations = src.message_formation
+                                src_name = src.name
+                                counter = 0
+                                output_shape = int(
+                                    self.dimensions.get(src_name))  # default if operation is direct_assignation
+                                for operation in operations:
+                                    if operation is not None:
+                                        if operation.type == 'neural_network':
+                                            var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(counter)
+                                            input_dim = operation.obtain_total_input_dim_message(self.dimensions,
+                                                                                                self.calculations,
+                                                                                                dst_name, src)
+                                            model, output_shape = operation.model.construct_tf_model(input_dim=input_dim)
+                                            save_global_variable(self.calculations, var_name, model)
+
+                                            # Need to keep track of the output dimension of this one,
+                                            # in case we need it for a new model
+                                            if operation.output_name is not None:
+                                                save_global_variable(self.calculations, operation.output_name + '_dim',
+                                                                    output_shape)
+
+                                        elif operation.type == 'product':
+                                            if operation.type_product == 'dot_product':
+                                                output_shape = 1
+
+                                save_global_variable(self.calculations,
+                                                    "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg),
+                                                    output_shape)
+
+                                counter += 1
+                    
+                
+                    with tf.name_scope('spatial') as _:
+                        for src in message.source_entities:
+                                operations = src.message_formation
+                                src_name = src.name
+                                counter = 0
+                                output_shape = int(
+                                    self.dimensions.get(src_name))  # default if operation is direct_assignation
+                                for operation in operations:
+                                    if operation is not None:
+                                        if operation.type == 'neural_network':
+                                            var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(counter)
+                                            input_dim = operation.obtain_total_input_dim_message(self.dimensions,
+                                                                                                self.calculations,
+                                                                                                dst_name, src)
+                                            model, output_shape = operation.model.construct_tf_model(input_dim=input_dim)
+                                            save_global_variable(self.calculations, var_name, model)
+
+                                            # Need to keep track of the output dimension of this one,
+                                            # in case we need it for a new model
+                                            if operation.output_name is not None:
+                                                save_global_variable(self.calculations, operation.output_name + '_dim',
+                                                                    output_shape)
+
+                                        elif operation.type == 'product':
+                                            if operation.type_product == 'dot_product':
+                                                output_shape = 1
+
+                                save_global_variable(self.calculations,
+                                                    "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg),
+                                                    output_shape)
+
+                                counter += 1
+                    
+                    with tf.name_scope('temporal') as _:
+                        for src in message.source_entities:
+                                operations = src.message_formation
+                                src_name = src.name
+                                counter = 0
+                                output_shape = int(
+                                    self.dimensions.get(src_name))  # default if operation is direct_assignation
+                                for operation in operations:
+                                    if operation is not None:
+                                        if operation.type == 'neural_network':
+                                            var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(counter)
+                                            input_dim = operation.obtain_total_input_dim_message(self.dimensions,
+                                                                                                self.calculations,
+                                                                                                dst_name, src)
+                                            model, output_shape = operation.model.construct_tf_model(input_dim=input_dim)
+                                            save_global_variable(self.calculations, var_name, model)
+
+                                            # Need to keep track of the output dimension of this one,
+                                            # in case we need it for a new model
+                                            if operation.output_name is not None:
+                                                save_global_variable(self.calculations, operation.output_name + '_dim',
+                                                                    output_shape)
+
+                                        elif operation.type == 'product':
+                                            if operation.type_product == 'dot_product':
+                                                output_shape = 1
+
+                                save_global_variable(self.calculations,
+                                                    "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg),
+                                                    output_shape)
+
+                                counter += 1
             
-            
-            
+            with tf.name_scope('transform') as _:
+                    for src in message.source_entities:
+                            operations = src.message_formation
+                            src_name = src.name
+                            counter = 0
+                            output_shape = int(
+                                self.dimensions.get(src_name))  # default if operation is direct_assignation
+                            for operation in operations:
+                                if operation is not None:
+                                    if operation.type == 'neural_network':
+                                        var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(counter)
+                                        input_dim = operation.obtain_total_input_dim_message(self.dimensions,
+                                                                                            self.calculations,
+                                                                                            dst_name, src)
+                                        model, output_shape = operation.model.construct_tf_model(input_dim=input_dim)
+                                        save_global_variable(self.calculations, var_name, model)
+
+                                        # Need to keep track of the output dimension of this one,
+                                        # in case we need it for a new model
+                                        if operation.output_name is not None:
+                                            save_global_variable(self.calculations, operation.output_name + '_dim',
+                                                                output_shape)
+
+                                    elif operation.type == 'product':
+                                        if operation.type_product == 'dot_product':
+                                            output_shape = 1
+
+                            save_global_variable(self.calculations,
+                                                "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg),
+                                                output_shape)
+
+                            counter += 1
+
             # --------------------------------
-                # Create the readout model
-                readout_operations = self.model_info.get_readout_operations()
-                # print(readout_operations)
-                counter = 0
-                for operation in readout_operations:
-                    if operation.type == 'neural_network':
-                        with tf.name_scope("readout_architecture"):
-                            input_dim = operation.find_total_input_dim(self.dimensions, self.calculations)
-                            model, _ = operation.model.construct_tf_model(input_dim=input_dim,
-                                                                        is_readout=True)
-                            save_global_variable(self.calculations, 'readout_model_' + str(counter), model)
+            # Create the readout model
+            readout_operations = self.model_info.get_readout_operations()
+            # print(readout_operations)
+            counter = 0
+            for operation in readout_operations:
+                if operation.type == 'neural_network':
+                    with tf.name_scope("readout_architecture"):
+                        input_dim = operation.find_total_input_dim(self.dimensions, self.calculations)
+                        model, _ = operation.model.construct_tf_model(input_dim=input_dim,
+                                                                    is_readout=True)
+                        save_global_variable(self.calculations, 'readout_model_' + str(counter), model)
 
-                        # save the dimensions of the output
-                        dimensionality = model.layers[-1].output.shape[1]
+                    # save the dimensions of the output
+                    dimensionality = model.layers[-1].output.shape[1]
 
-                    elif operation.type == 'pooling':
+                elif operation.type == 'pooling':
+                    dimensionality = self.dimensions.get(operation.input[0])
+
+                    # add the new dimensionality to the input_dimensions tensor
+                    if operation.output_name is not None:
+                        dimensionality = dimensionality
+
+                elif operation.type == 'product':
+                    if operation.type_product == 'element_wise' or operation.type_product == 'mat_mult':
                         dimensionality = self.dimensions.get(operation.input[0])
 
-                        # add the new dimensionality to the input_dimensions tensor
-                        if operation.output_name is not None:
-                            dimensionality = dimensionality
+                    elif operation.type_product == 'dot_product':
+                        dimensionality = 1
 
-                    elif operation.type == 'product':
-                        if operation.type_product == 'element_wise' or operation.type_product == 'mat_mult':
-                            dimensionality = self.dimensions.get(operation.input[0])
+                elif operation.type == 'concat':
+                    dimensionality = 0
+                    for inp in operation.input:
+                        dimensionality += self.dimensions.get(inp)
 
-                        elif operation.type_product == 'dot_product':
-                            dimensionality = 1
+                if operation.output_name is not None:
+                    self.dimensions[operation.output_name] = dimensionality
 
-                    elif operation.type == 'concat':
-                        dimensionality = 0
-                        for inp in operation.input:
-                            dimensionality += self.dimensions.get(inp)
-
-                    if operation.output_name is not None:
-                        self.dimensions[operation.output_name] = dimensionality
-
-                    counter += 1
+                counter += 1
 
         #aquesta es la secció on es fa la message passing
         else:
