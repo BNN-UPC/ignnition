@@ -6,6 +6,10 @@ entities:
   - type: build_state
     input: [$Q_val]
 
+- name: array
+  state_dimensions: *
+  initial_state:
+  - type: empty
 
 # Definition of the message passing phase  
 
@@ -46,6 +50,11 @@ st_loop:
             type: neural_network
             nn_name: GRU
 
+transform:
+- type: neural_network
+  input: array
+  nn_name: transformer_block
+  output_label: [Q_val]
 
 # Definition of the readout
 readout:
@@ -98,13 +107,13 @@ neural_networks:
       rate: 0.2
     - type_layer: LayerNormalization
       epsilon: 1e-6
-    
-- nn_name: readout_model
-    nn_architecture:
-    - type_layer: GCN
+
+-nn_name: GCN
+  nn_architecture:
+    - type:layer: GCN
       units: 64
 
--nn_name: 
+-nn_name: GRU
   nn_architecture:
-  - type_layer: GRU
+    - type_layer: GRUcell
   
