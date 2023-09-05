@@ -186,39 +186,19 @@ class GnnModel(tf.keras.Model):
                                                     output_shape)
 
                                 counter += 1
-            
-            with tf.name_scope('transform') as _:
-                    for src in message.source_entities:
-                            operations = src.message_formation
-                            src_name = src.name
-                            counter = 0
-                            output_shape = int(
-                                self.dimensions.get(src_name))  # default if operation is direct_assignation
-                            for operation in operations:
-                                if operation is not None:
-                                    if operation.type == 'neural_network':
-                                        var_name = src_name + "_to_" + dst_name + '_message_creation_' + str(counter)
-                                        input_dim = operation.obtain_total_input_dim_message(self.dimensions,
-                                                                                            self.calculations,
-                                                                                            dst_name, src)
-                                        model, output_shape = operation.model.construct_tf_model(input_dim=input_dim)
-                                        save_global_variable(self.calculations, var_name, model)
+            transform = self.model_info.get_transformer_ops()
+            for operation in transform:
+                if operation.type == 'neural_network':
+                    with tf.name_scope("transform_block"):
+                        input_dim = operation.find_total_input_dim(self.dimensions, self.calculations)
+                        model, _ = operation.model.construct_tf_model(input_dim=input_dim,
+                                                                    is_readout=True)
+                        save_global_variable(self.calculations, 'transformer_block' + str(counter), model)
 
-                                        # Need to keep track of the output dimension of this one,
-                                        # in case we need it for a new model
-                                        if operation.output_name is not None:
-                                            save_global_variable(self.calculations, operation.output_name + '_dim',
-                                                                output_shape)
+                    # save the dimensions of the output
+                    dimensionality = model.layers[-1].output.shape[1]
 
-                                    elif operation.type == 'product':
-                                        if operation.type_product == 'dot_product':
-                                            output_shape = 1
-
-                            save_global_variable(self.calculations,
-                                                "final_message_dim_" + str(idx_stage) + '_' + str(idx_msg),
-                                                output_shape)
-
-                            counter += 1
+                counter += 1
 
             # --------------------------------
             # Create the readout model
@@ -500,6 +480,21 @@ class GnnModel(tf.keras.Model):
                                     save_global_variable(self.calculations, entity.name, state)
                                     save_global_variable(self.calculations, entity.name + '_initial_state', state)
                             counter += 1
+            #Tallar aqui i fer les modificacions necessaries?
+            """
+            
+            with names bla bla bla prep del primer element
+
+            with name st_loop
+                for x in range(getter del model st_iterations)
+                blah blah blah
+
+            with names transformer
+
+            with name readout
+            
+            """
+
 
             # -----------------------------------------------------------------------------------
             # MESSAGE PASSING PHASE
