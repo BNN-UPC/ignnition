@@ -242,8 +242,10 @@ class IgnnitionModel:
         model_info:    YamlPreprocessing object
             Object in charge of handling the information in the model_description.yaml file
         """
-
-        gnn_model = GnnModel(model_info)
+        if(model_info.get_mode_operation=="spatiotemporal"):
+            gnn_model= GnnModel.call_st(model_info)
+        else:
+            gnn_model = GnnModel.call(model_info)
 
         # dynamically define the optimizer
         optimizer_params = self.CONFIG['optimizer']

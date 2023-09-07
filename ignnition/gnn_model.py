@@ -480,21 +480,6 @@ class GnnModel(tf.keras.Model):
                                     save_global_variable(self.calculations, entity.name, state)
                                     save_global_variable(self.calculations, entity.name + '_initial_state', state)
                             counter += 1
-            #Tallar aqui i fer les modificacions necessaries?
-            """
-            
-            with names bla bla bla prep del primer element
-
-            with name st_loop
-                for x in range(getter del model st_iterations)
-                blah blah blah
-
-            with names transformer
-
-            with name readout
-            
-            """
-
 
             # -----------------------------------------------------------------------------------
             # MESSAGE PASSING PHASE
@@ -903,6 +888,190 @@ class GnnModel(tf.keras.Model):
                                 save_global_variable(self.calculations, operation.output_name, result)
 
                     counter += 1
+
+    @tf.function
+    def call_st(self, input, training):
+        """
+        Parameters
+        ----------
+        input:    dict
+            Dictionary with all the tensors with the input information of the model
+        """
+        with tf.name_scope('ignnition_model') as _:
+            f_ = input.copy()
+
+            # -----------------------------------------------------------------------------------
+            # HIDDEN STATE CREATION
+            entities = self.model_info.entities
+
+            # Initialize all the hidden states for all the nodes.
+            with tf.name_scope('states_creation') as _:
+                for entity in entities:
+                    with tf.name_scope(str(entity.name)) as _:
+                        counter = 0
+                        operations = entity.operations
+                        for op in operations:
+                            if op.type == 'neural_network':
+                                with tf.name_scope('apply_nn_' + str(counter)) as _:
+                                    # careful. This name could overlap with another model
+                                    var_name = entity.name + "_hs_creation_" + str(counter)
+                                    hs_creator = get_global_variable(self.calculations, var_name)
+                                    output = op.apply_nn(hs_creator, self.calculations, f_)
+
+                                    save_global_variable(self.calculations, op.output_name, output)
+
+                            elif op.type == 'build_state':
+                                with tf.name_scope('build_state' + str(counter)) as _:
+                                    state = op.calculate_hs(self.calculations, f_)
+                                    save_global_variable(self.calculations, entity.name, state)
+                                    save_global_variable(self.calculations, entity.name + '_initial_state', state)
+                            counter += 1
+
+            #ara k ja tenim els hidden creats tocaria montar les funcions de prepo, i posar el bucle  
+            # 
+            #prepos
+
+            for j in range(self.model_info.get_st_iterations()-1):
+
+                tf.autograph.experimental.set_loop_options(shape_invariants=[(x_full, tf.TensorShape([x_full.shape[0],None,x_full.shape[2]]))])
+                with tf.name_scope("prepo"):
+                    counter = 0
+                    operations = entity.operations
+                    for op in operations:
+                        if op.type == 'neural_network':
+                            with tf.name_scope('apply_nn_' + str(counter)) as _:
+                                # careful. This name could overlap with another model
+                                var_name = entity.name + "_hs_creation_" + str(counter)
+                                hs_creator = get_global_variable(self.calculations, var_name)
+                                output = op.apply_nn(hs_creator, self.calculations, f_)
+
+                                save_global_variable(self.calculations, op.output_name, output)
+
+                        elif op.type == 'build_state':
+                            with tf.name_scope('build_state' + str(counter)) as _:
+                                state = op.calculate_hs(self.calculations, f_)
+                                save_global_variable(self.calculations, entity.name, state)
+                                save_global_variable(self.calculations, entity.name + '_initial_state', state)
+                        counter += 1
+
+
+                with tf.name_scope("spatial"):
+                    counter = 0
+                    operations = entity.operations
+                    for op in operations:
+                        if op.type == 'neural_network':
+                            with tf.name_scope('apply_nn_' + str(counter)) as _:
+                                # careful. This name could overlap with another model
+                                var_name = entity.name + "_hs_creation_" + str(counter)
+                                hs_creator = get_global_variable(self.calculations, var_name)
+                                output = op.apply_nn(hs_creator, self.calculations, f_)
+
+                                save_global_variable(self.calculations, op.output_name, output)
+
+                        elif op.type == 'build_state':
+                            with tf.name_scope('build_state' + str(counter)) as _:
+                                state = op.calculate_hs(self.calculations, f_)
+                                save_global_variable(self.calculations, entity.name, state)
+                                save_global_variable(self.calculations, entity.name + '_initial_state', state)
+                        counter += 1
+
+                with tf.name_scope("temporal"):
+                    counter = 0
+                    operations = entity.operations
+                    for op in operations:
+                        if op.type == 'neural_network':
+                            with tf.name_scope('apply_nn_' + str(counter)) as _:
+                                # careful. This name could overlap with another model
+                                var_name = entity.name + "_hs_creation_" + str(counter)
+                                hs_creator = get_global_variable(self.calculations, var_name)
+                                output = op.apply_nn(hs_creator, self.calculations, f_)
+
+                                save_global_variable(self.calculations, op.output_name, output)
+
+                        elif op.type == 'build_state':
+                            with tf.name_scope('build_state' + str(counter)) as _:
+                                state = op.calculate_hs(self.calculations, f_)
+                                save_global_variable(self.calculations, entity.name, state)
+                                save_global_variable(self.calculations, entity.name + '_initial_state', state)
+                        counter += 1
+
+                with tf.name_scope("transform"):
+                    counter = 0
+                    operations = entity.operations
+                    for op in operations:
+                        if op.type == 'neural_network':
+                            with tf.name_scope('apply_nn_' + str(counter)) as _:
+                                # careful. This name could overlap with another model
+                                var_name = entity.name + "_hs_creation_" + str(counter)
+                                hs_creator = get_global_variable(self.calculations, var_name)
+                                output = op.apply_nn(hs_creator, self.calculations, f_)
+
+                                save_global_variable(self.calculations, op.output_name, output)
+
+                        elif op.type == 'build_state':
+                            with tf.name_scope('build_state' + str(counter)) as _:
+                                state = op.calculate_hs(self.calculations, f_)
+                                save_global_variable(self.calculations, entity.name, state)
+                                save_global_variable(self.calculations, entity.name + '_initial_state', state)
+                        counter += 1
+
+            with tf.name_scope('readout_predictions') as _:
+                readout_operations = self.model_info.get_readout_operations()
+                counter = 0
+                n = len(readout_operations)
+                for j in range(n):
+                    operation = readout_operations[j]
+                    with tf.name_scope(operation.type) as _:
+                        if operation.type == 'neural_network':
+                            var_name = 'readout_model_' + str(counter)
+                            readout_nn = get_global_variable(self.calculations, var_name)
+                            result = operation.apply_nn(readout_nn, self.calculations, f_)
+
+                        elif operation.type == "pooling":
+                            # obtain the input of the pooling operation
+                            first = True
+                            for input_name in operation.input:
+                                aux = get_global_var_or_input(self.calculations, input_name, f_)
+                                if first:
+                                    pooling_input = aux
+                                    first = False
+                                else:
+                                    pooling_input = tf.concat([pooling_input, aux], axis=0)
+
+                            result = operation.calculate(pooling_input)
+
+                        elif operation.type == 'product':
+                            product_input1 = get_global_var_or_input(self.calculations, operation.input[0], f_)
+                            product_input2 = get_global_var_or_input(self.calculations, operation.input[1], f_)
+                            result = operation.calculate(product_input1, product_input2)
+
+                        # extends the two inputs following the adjacency list that connects them both. CHECK!!
+                        elif operation.type == 'extend_adjacencies':  # CHECK!!!!!
+                            adj_src = f_.get('src_' + operation.adj_list)
+                            adj_dst = f_.get('dst_' + operation.adj_list)
+
+                            src_states = get_global_var_or_input(self.calculations, operation.input[0], f_)
+                            dst_states = get_global_var_or_input(self.calculations, operation.input[1], f_)
+
+                            extended_src, extended_dst = operation.calculate(src_states, adj_src, dst_states, adj_dst)
+                            save_global_variable(self.calculations, operation.output_name[0], extended_src)
+                            save_global_variable(self.calculations, operation.output_name[1], extended_dst)
+
+                        elif operation.type == 'concat':
+                            inputs = []
+                            for param in operation.input:
+                                inputs.append(get_global_var_or_input(self.calculations, param, f_))
+                            result = operation.calculate(inputs)
+                        # output of the readout
+                        if operation.type != 'extend_adjacencies':
+                            if j == n - 1:  # last one
+                                return result
+                            else:
+                                save_global_variable(self.calculations, operation.output_name, result)
+
+                    counter += 1
+
+
 
     def treat_message_function_input(self, var_name, f_):
         if var_name == 'source':
