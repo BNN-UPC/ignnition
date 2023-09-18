@@ -3,53 +3,41 @@ entities:
 - name: sensor
   state_dimensions: 1
   initial_state:
-  - type: build_state
-    input: [$Q_val]
-
-- name: array
-  state_dimensions: *
-  initial_state:
-  - type: empty
+  - type: neural_network
+    input: [Q_value]
+    nn_name: feed_forward
+    output_name: sensor
 
 # Definition of the message passing phase  
 
-preparation:
-  - preprocessing:
-    - destination_entity: array
-    source_entities:
-      - name: sensor
-        func:
-          type: neural_network
-          nn_name: preprocessing
-#// no esta ni de collons fet bé
-st_loop:
+spatial_message_passing: #la fase espaial, graph canvo i 
   num_iterations: N
-  prep:
-    - preprocessing:
+  stages:
+    - stage_message_passings:
       - destination_entity: array
-      source_entities:
-        - name: sensor
-          func:
-            type: neural_network
-            nn_name: preprocessing
-  spatial:
-    - GCN:
-      - destination_entity: sensor
-      source_enties: sensor
-        - name: sensor
-          func:
-            type: neural_network
-            nn_name: GCN
-  temporal:
-    - GRU:
-      - destination_entity: array
-      source_enties: 
-        - name: sensor
-          name: array
-          func:
-            type: neural_network
-            nn_name: GRU
+        source_entities:
+        - name: [sensor]
+          message:
+            - type: neural_network
+              nn_name: feed_Dorward
+              input: [Q_value]
+        aggregation:
+          -type: sum
+        update:
+          type: neural_network
+          nn_name: update_function
 
+temporal_message_passing:
+  num_iterations: 1
+  stages:
+    - stage_message_passings:
+      - destination_enitity: sensor
+        source_entities:
+          - name: array
+            update:
+              type: neural_network
+              nn_name: GRU
+ 
 transform:
 - type: neural_network
   input: array
@@ -76,7 +64,7 @@ neural_networks:
     units: 1
     activation: None
 
-- nn_name: preprocessing
+- nn_name: feed_forward
   nn_architecture:
     - type_layer: batch_normalization
     - loop: 64
@@ -108,12 +96,10 @@ neural_networks:
     - type_layer: LayerNormalization
       epsilon: 1e-6
 
--nn_name: GCN
-  nn_architecture:
-    - type:layer: GCN
-      units: 64
-
--nn_name: GRU
+- nn_name: GRU
   nn_architecture:
     - type_layer: GRUcell
   
+- nn_name: update_function
+  nn_architecture:
+    - type_layer: GRU
