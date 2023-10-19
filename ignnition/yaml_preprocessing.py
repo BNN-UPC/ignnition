@@ -135,13 +135,24 @@ class YamlPreprocessing:
         self.nn_architectures = self.__get_nn_mapping(self.data['neural_networks'])
         self.entities = self.__get_entities(self.data['entities'])
 
+        self.temporal = False
+        if('temporal_message_passing' in self.data):
+            self.iterations_mp_temp = int(self.data['temporal_message_passing']['num_iterations'])
+            self.mp_instances_temp = self.__get_mp_instances(self.data['temporal_message_passing']['stages'])
+            self.temporal = True
+            
         self.iterations_mp = int(self.data['message_passing']['num_iterations'])
-        self.mp_instances = self.__get_mp_instances(self.data['message_passing']['stages'])
+        aux = self.data['message_passing']['stages']
+        aux_list=[]
+        aux_list.append(aux[0])
+        self.mp_instances = self.__get_mp_instances(aux_list)
         self.readout_op = self.__get_readout_op(self.data['readout'])
+        self.temp_it = int(self.data["temporal_iter"])
 
     # PRIVATE
     def __read_json(self, path):
         """
+
         Parameters
         ----------
         path:    str
@@ -184,7 +195,10 @@ class YamlPreprocessing:
 
         entities = data['entities']
         stages = data['message_passing']['stages']
-
+        if('temporal_message_passing' in data):
+            stages.append(data['temporal_message_passing']['stages'])
+        else:
+            pass
         src_names, dst_names, called_nn_names, input_names = [], [], [], []
         output_names = ['source', 'destination']
 
@@ -199,7 +213,11 @@ class YamlPreprocessing:
 
         # check the message passing
         for stage in stages:
-            stage_mp = stage.get('stage_message_passings')
+            if(('temporal_message_passing' in data) and(type(stage) == list)):
+                stage_mp = stage[0].get('stage_message_passings')
+            else:
+                stage_mp = stage.get('stage_message_passings')
+
             for mp in stage_mp:  # for every message-passing
                 dst_names.append(mp.get('destination_entity'))
                 sources = mp.get('source_entities')
@@ -218,14 +236,15 @@ class YamlPreprocessing:
                                 output_names.append(op.get('output_name'))
 
                 # check the aggregation functions
-                aggregations = mp.get('aggregation')
-                for aggr in aggregations:
-                    if aggr.get('type') == 'neural_network':
-                        called_nn_names.append(aggr.get('nn_name'))
-                        input_names += aggr.get('input')
+                aggregations = mp.get('aggregation',None)
+                if aggregations is not None:
+                    for aggr in aggregations:
+                        if aggr.get('type') == 'neural_network':
+                            called_nn_names.append(aggr.get('nn_name'))
+                            input_names += aggr.get('input')
 
-                    if 'output_name' in aggr:
-                        output_names.append(aggr.get('output_name'))
+                        if 'output_name' in aggr:
+                            output_names.append(aggr.get('output_name'))
 
                 # check the update functions
                 update = mp.get('update')
@@ -348,13 +367,14 @@ class YamlPreprocessing:
                         op['architecture'] = info.get('nn_architecture')
 
         # add the aggregation nn architectures
-        aggregations = m.get('aggregation')
-        for aggr in aggregations:
-            aggr_type = aggr.get('type')
-            if aggr_type == 'edge_attention' or aggr_type == 'neural_network':
-                info = copy.deepcopy(self.nn_architectures[aggr['nn_name']])
-                del aggr['nn_name']
-                aggr['architecture'] = info.get('nn_architecture')
+        aggregations = m.get('aggregation',None)
+        if aggregations is not None:
+            for aggr in aggregations:
+                aggr_type = aggr.get('type')
+                if aggr_type == 'edge_attention' or aggr_type == 'neural_network':
+                    info = copy.deepcopy(self.nn_architectures[aggr['nn_name']])
+                    del aggr['nn_name']
+                    aggr['architecture'] = info.get('nn_architecture')
 
         # add the update nn architecture
         if 'update' in m:
@@ -372,7 +392,6 @@ class YamlPreprocessing:
         inst:    dict
            Dictionary with the definition of each message passing
         """
-
         return [['stage_' + str(step_number),
                  [MessagePassing(self.__add_nn_architecture_mp(m)) for m in stage['stage_message_passings']]] for
                 step_number, stage in enumerate(inst)]
@@ -446,6 +465,9 @@ class YamlPreprocessing:
     def get_mp_iterations(self):
         return self.iterations_mp
 
+    def get_mp_iterations_temp(self):
+        return self.iterations_mp_temp
+
     def get_interleave_tensors(self):
         return [[mp.aggregations.combination_definition, mp.destination_entity] for stage_name, mps in self.mp_instances
                 for mp in mps if isinstance(mp.aggregations, InterleaveAggr)]
@@ -453,8 +475,17 @@ class YamlPreprocessing:
     def get_mp_instances(self):
         return self.mp_instances
 
+    def get_mp_instances_temp(self):
+        return self.mp_instances_temp
+
     def get_readout_operations(self):
         return self.readout_op
+    
+    def get_temporal_architec(self):
+        return self.temporal
+
+    def get_temp_it(self):
+        return self.temp_it
 
     def get_output_info(self):
         output_names = self.readout_op[-1].output_label

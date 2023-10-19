@@ -765,21 +765,19 @@ class IgnnitionModel:
             repeat = True
 
         train_dataset = self.__input_fn_generator(filenames_train,
-                                                  repeat=repeat,
-                                                  shuffle=str_to_bool(
-                                                      self.CONFIG['shuffle_training_set']),
-                                                  data_samples=training_samples)
-
+                                                    repeat=repeat,
+                                                    shuffle=str_to_bool(
+                                                        self.CONFIG['shuffle_training_set']),
+                                                    data_samples=training_samples)
         validation_dataset = self.__input_fn_generator(filenames_val,
                                                        shuffle=str_to_bool(
                                                            self.CONFIG['shuffle_validation_set']),
                                                        data_samples=val_samples)
         num_epochs = int(self.CONFIG['epochs'])
-
         callbacks = self.__get_model_callbacks(output_path=output_path)
-
+        #aqui hi han jaleos de com surten les dades, el problema sembla més el train dataset
         self.weights_loaded = True
-
+        assert(train_dataset!=validation_dataset)
         self.gnn_model.fit(train_dataset,
                            epochs=num_epochs,
                            initial_epoch=self.CONFIG.get('initial_epoch', 0),
@@ -919,7 +917,7 @@ class IgnnitionModel:
         sample_it = self.__input_fn_generator(data_path, training=False, data_samples=None, iterator=True)
         sample = sample_it.get_next()
         # Call only one tf.function when tracing.
-        _ = self.gnn_model(sample, training=False)
+        _ = self.gnn_model(sample, training=False, mostra = True)
 
         with writer.as_default():
             tf.summary.trace_export(
@@ -986,6 +984,5 @@ class IgnnitionModel:
 
         if not hasattr(self, 'gnn_model'):
             self.__create_gnn(samples=input_samples)
-
         dataset = self.__input_fn_generator(None, training=True, data_samples=input_samples, iterator=False)
         self.gnn_model.fit(dataset, batch_size=len(input_samples), verbose=0)

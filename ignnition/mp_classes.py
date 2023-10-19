@@ -144,8 +144,8 @@ class MessagePassing:
 
         self.destination_entity = m.get('destination_entity')
         self.source_entities = [MpSourceEntity(s) for s in m.get('source_entities')]
-
-        self.aggregations, self.aggregations_global_type = self.create_aggregations(m.get('aggregation'))
+        if(m.get('aggregation',None)!=None):
+            self.aggregations, self.aggregations_global_type = self.create_aggregations(m.get('aggregation'))
         self.update = self.create_update(m.get('update', {'type': 'direct_assignment'}))
 
     def create_update(self, u):

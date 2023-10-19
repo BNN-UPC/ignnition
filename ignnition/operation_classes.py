@@ -412,7 +412,7 @@ class FeedForwardOperation(Operation):
         input_size = model.input_shape[-1]
 
         input_nn = self.compute_all_input(calculations, f_)
-
+        
         input_nn = tf.ensure_shape(input_nn, [None, input_size])
         return model(input_nn)
 

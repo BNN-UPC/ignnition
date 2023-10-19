@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import ignnition.transformerblock as tran
 from ignnition.utils import print_failure
 from ignnition.error_handling import KerasError
 
@@ -194,21 +194,29 @@ class FeedForwardLayer(CustomLayer):
         super(FeedForwardLayer, self).__init__(layer_type=layer_type, parameters=parameters)
 
     def get_tensorflow_object(self):
-        try:
-            c_ = getattr(tf.keras.layers, self.type)
-        except AttributeError:
-            raise KerasError(parameter=self.type,
-                             variable='layer',
-                             message="Please make sure it is a valid layer ("
-                                     "https://www.tensorflow.org/api_docs/python/tf/keras/layers).")
+        if self.type == "transformerblock":
+            layer = tran.TransformerBlock(
+            embed_dim= int(self.parameters["embed_dim"]), 
+            num_heads=int(self.parameters["num_heads"]), 
+            ff_dim=int(self.parameters["ff_dim"])
+        )
+        else:
 
-        try:
-            layer = c_(**self.parameters)
-        except TypeError:
-            raise KerasError(parameter=str(self.parameters),
-                             variable=self.type,
-                             message="Please make sure that you defined all mandatory parameters and all the optional "
-                                     "ones are correctly defined.")
+            try:
+                c_ = getattr(tf.keras.layers, self.type)
+            except AttributeError:
+                raise KerasError(parameter=self.type,
+                                variable='layer',
+                                message="Please make sure it is a valid layer ("
+                                        "https://www.tensorflow.org/api_docs/python/tf/keras/layers).")
+
+            try:
+                layer = c_(**self.parameters)
+            except TypeError:
+                raise KerasError(parameter=str(self.parameters),
+                                variable=self.type,
+                                message="Please make sure that you defined all mandatory parameters and all the optional "
+                                        "ones are correctly defined.")
 
         return layer
 
@@ -219,23 +227,30 @@ class FeedForwardLayer(CustomLayer):
         dst_units:    int
             Number of units that the recurrent cell will have
         """
-        try:
-            c_ = getattr(tf.keras.layers, self.type)
-        except AttributeError:
-            raise KerasError(parameter=self.type,
-                             variable='layer',
-                             message="Please make sure it is a valid layer ("
-                                     "https://www.tensorflow.org/api_docs/python/tf/keras/layers).")
+        if self.type == "transformerblock":
+            layer = tran.TransformerBlock(
+            embed_dim= self.type["embed_dim"], 
+            num_heads=self.type["num_heads"], 
+            ff_dim=self.type["ff_dim"]
+        )
+        else:
+            try:
+                c_ = getattr(tf.keras.layers, self.type)
+            except AttributeError:
+                raise KerasError(parameter=self.type,
+                                variable='layer',
+                                message="Please make sure it is a valid layer ("
+                                        "https://www.tensorflow.org/api_docs/python/tf/keras/layers).")
 
-        self.parameters['units'] = dst_units  # can we assume that it will always be units??
+            self.parameters['units'] = dst_units  # can we assume that it will always be units??
 
-        try:
-            layer = c_(**self.parameters)
-        except TypeError:
-            raise KerasError(parameter=str(self.parameters),
-                             variable=self.type,
-                             message="Please make sure that you defined all mandatory parameters and all the optional "
-                                     "ones are correctly defined.")
+            try:
+                layer = c_(**self.parameters)
+            except TypeError:
+                raise KerasError(parameter=str(self.parameters),
+                                variable=self.type,
+                                message="Please make sure that you defined all mandatory parameters and all the optional "
+                                        "ones are correctly defined.")
 
         return layer
 
@@ -312,21 +327,20 @@ class FeedForwardModel:
         dst_name:   str
             Name of the destination entity
         """
-
         model = tf.keras.models.Sequential()
         model.add(tf.keras.Input(shape=input_dim))
-
         layer_counter = 1
         n = len(self.layers)
-
+        
         for j in range(n):
             current_layer = self.layers[j]
+            
             # if it's the last layer and we have defined an output dimension
             if j == (n - 1) and dst_dim is not None:
                 layer_model = current_layer.get_tensorflow_object_last(dst_dim)
             else:
                 layer_model = current_layer.get_tensorflow_object()
-
+                
             model.add(layer_model)
 
             layer_counter += 1
