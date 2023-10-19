@@ -1,0 +1,23 @@
+# PATHS
+train_dataset: ./examples/STGNN/datasets/train
+validation_dataset: ./examples/STGNN/datasets/val
+predict_dataset: ./examples/STGNN/datasets/predict
+load_model_path: ./examples/STGNN/datasets/CheckPoint/experiment_2023_10_09_19_06_48/ckpt/weights.20-0.637
+output_path: ./examples/STGNN/datasets
+additional_functions_file: ./examples/Radio_resource_allocation/additional_functions.py
+# OPTIMIZATION OPTIONS
+loss: sum_rate_loss
+optimizer:
+  type: Adam
+  learning_rate:  0.001
+metrics: [MeanAbsoluteError, MeanAbsolutePercentageError, RootMeanSquaredError]
+
+# TRAINING OPTIONS
+batch_size: 1
+epochs: 20
+epoch_size: 100
+shuffle_training_set: False
+shuffle_validation_set: False
+val_samples: 50
+val_frequency: 1
+execute_gpu: False

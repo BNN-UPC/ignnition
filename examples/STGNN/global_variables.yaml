@@ -1,0 +1,6 @@
+hidden_state_dim: 64
+N: 11 # N es sempre tamany del array -1 
+readout_units: 64
+output_units: 1
+
+

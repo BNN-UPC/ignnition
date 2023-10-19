@@ -1,0 +1,84 @@
+# Definition of the entities
+entities:
+- name: sensor
+  state_dimension: 64
+  initial_state:
+  - type: neural_network
+    input: [$Q_value_0,$Q_value_1,$Q_value_2]
+    nn_name: feed_forward
+    output_name: sensor
+
+# Definition of the message passing phase  
+
+temporal_iter: 3 # set to 1 if not using temporal architecture
+
+message_passing: #la fase espaial, graph canvo i 
+  num_iterations: N
+  stages:
+    - stage_message_passings:
+      - destination_entity: sensor
+        source_entities:
+        - name: sensor
+          message:
+            - type: neural_network
+              nn_name: feed_forward
+              input: [source, destination,$weight]
+        aggregation:
+          - type: sum
+        update:
+          type: neural_network
+          nn_name: GRU
+
+temporal_message_passing:
+  num_iterations: 1
+  stages:
+    - stage_message_passings:
+      - destination_entity: sensor
+        source_entities:
+          - name: sensor
+        update:
+          type: neural_network
+          nn_name: GRU_tmp
+ 
+# Definition of the readout
+readout:
+- type: neural_network
+  input: [sensor]
+  nn_name: readout_model
+  output_label: [$val_value]
+
+neural_networks:
+- nn_name: readout_model
+  nn_architecture:
+  - type_layer: GRU
+    units: 64
+  - type_layer: Dense
+    units: 64
+    activation: relu
+  - type_layer: Dense
+    units: 32
+    activation: relu
+  - type_layer: Dense
+    units: 1
+    activation: relu
+
+- nn_name: feed_forward
+  nn_architecture:
+    - type_layer: BatchNormalization
+    - type_layer: Dense
+      units: 64
+      activation: relu
+    - type_layer: Dropout
+      rate: 0.2
+    - type_layer: Dense
+      units: 64
+      activation: relu
+
+- nn_name: GRU
+  nn_architecture:
+    - type_layer: GRU
+
+- nn_name: GRU_tmp
+  nn_architecture:
+    - type_layer: GRU
+    - units: 1
